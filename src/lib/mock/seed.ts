@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 3;
+export const SEED_VERSION = 4;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -1843,7 +1843,16 @@ export function buildSeed(): Tables {
       id: uuid(rng),
       patient_id: HERO_PATIENT_ID,
       direction: "out",
-      body: "Thank you for the message. We have your readings and a care team member is reviewing them now. Please rest, drink water, and do not take any extra tablets until we come back to you.",
+      body: "Thank you for the message. We have your readings and a care team member is reviewing them now. Please rest, drink water, and do not take any extra tablets until we come back to you.\n\nWould you like to speak to someone now?",
+      // Outbound messages can carry WhatsApp interactive buttons. The care line
+      // is the front door for people whose only assumption is WhatsApp, so
+      // tapping a button has to be a first-class way in — including the one
+      // that puts them on a call.
+      actions: [
+        { label: "Call the care line", action: "call" },
+        { label: "Mi cyaan talk now", action: "reply" },
+        { label: "Mi feel worse", action: "reply" },
+      ],
       kind: "text",
       language: "jam",
       channel: "whatsapp",
@@ -1911,6 +1920,18 @@ export function buildSeed(): Tables {
       "Anotado. Descanse, tome agua y escríbanos si empeora.",
     ],
   };
+  const CALL_LABEL: Record<string, string[]> = {
+    en: ["Call the care line", "Speak to a nurse now"],
+    jam: ["Call di care line", "Talk to a nurse now"],
+    ht: ["Rele liy swen an", "Pale ak yon enfimyè"],
+    es: ["Llamar a la línea de salud", "Hablar con una enfermera"],
+  };
+  const LATER_LABEL: Record<string, string[]> = {
+    en: ["Not right now", "I am okay for now"],
+    jam: ["Nuh right now", "Mi awright fi now"],
+    ht: ["Pa kounye a", "Mwen byen pou kounye a"],
+    es: ["Ahora no", "Estoy bien por ahora"],
+  };
   const lineFor = (pool: Record<string, string[]>, language: string) =>
     pool[language] ?? pool["en"]!;
 
@@ -1952,6 +1973,14 @@ export function buildSeed(): Tables {
         language,
         channel: "whatsapp",
         queued_offline: false,
+        // Not every reply offers buttons — a line that always did would read as
+        // a menu tree rather than a conversation.
+        actions: chance(rng, 0.45)
+          ? [
+              { label: pick(rng, lineFor(CALL_LABEL, language)), action: "call" },
+              { label: pick(rng, lineFor(LATER_LABEL, language)), action: "reply" },
+            ]
+          : null,
         delivered_at: daysAgo(repliedDaysAgo),
         created_at: daysAgo(repliedDaysAgo),
       });

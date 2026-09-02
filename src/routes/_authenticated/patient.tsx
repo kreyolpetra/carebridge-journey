@@ -11,6 +11,10 @@ import {
   Loader2,
   CloudOff,
   CheckCheck,
+  Phone,
+  PhoneOff,
+  MicOff,
+  Volume2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -81,6 +85,12 @@ const QUICK = [
 ];
 
 type PendingMessage = { id: string; body: string; kind: string; created_at: string };
+
+function formatCallTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
 type Thread = { patient: Patient; last: Message; awaitingReply: boolean; count: number };
 
 /**
@@ -97,6 +107,18 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
   const embedded = Boolean(pinnedPatientId);
   const patientId = pinnedPatientId ?? (isPatient ? (ownPatientId ?? HERO_PATIENT_ID) : selectedId);
   const [draft, setDraft] = useState("");
+  /**
+   * A voice call placed from the care line.
+   *
+   * "ringing" is the second or two before the line picks up; "connected" runs a
+   * timer until someone hangs up, and hanging up writes the call into the
+   * thread the way WhatsApp leaves a call record behind. Nothing here dials a
+   * real network — this is the same simulated channel as the rest of the line.
+   */
+  const [call, setCall] = useState<{ phase: "ringing" | "connected"; startedAt: number } | null>(
+    null,
+  );
+  const [callSeconds, setCallSeconds] = useState(0);
   const [queue, setQueue] = useState<PendingMessage[]>([]);
   const [triage, setTriage] = useState<TriageResult | null>(null);
   const [routingNote, setRoutingNote] = useState<string[] | null>(null);
@@ -161,6 +183,46 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
     if (threads.some((t) => t.patient.id === selectedId)) return;
     setSelectedId(threads[0]!.patient.id);
   }, [embedded, isPatient, threads, selectedId]);
+
+  useEffect(() => {
+    if (!call) return;
+    if (call.phase === "ringing") {
+      const t = window.setTimeout(
+        () => setCall({ phase: "connected", startedAt: Date.now() }),
+        2200,
+      );
+      return () => window.clearTimeout(t);
+    }
+    const t = window.setInterval(
+      () => setCallSeconds(Math.floor((Date.now() - call.startedAt) / 1000)),
+      1000,
+    );
+    return () => window.clearInterval(t);
+  }, [call]);
+
+  const endCall = useMutation({
+    mutationFn: async (seconds: number) => {
+      const { error } = await supabase.from("messages").insert({
+        patient_id: patientId,
+        direction: "in",
+        body: seconds ? `Voice call · ${formatCallTime(seconds)}` : "Voice call · not answered",
+        kind: "call",
+        call_seconds: seconds,
+        language: bundle.data?.patient.language ?? "en",
+        channel: "whatsapp",
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["patient-bundle", patientId] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const hangUp = () => {
+    const seconds = call?.phase === "connected" ? callSeconds : 0;
+    setCall(null);
+    setCallSeconds(0);
+    endCall.mutate(seconds);
+  };
 
   const send = useMutation({
     mutationFn: async (body: string) => {
@@ -455,7 +517,53 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
         </Panel>
       )}
 
-      <Panel className="flex h-[720px] flex-col overflow-hidden">
+      <Panel className="relative flex h-[720px] flex-col overflow-hidden">
+        {call ? (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-between bg-foreground/95 px-6 py-10 text-background">
+            <div className="flex flex-col items-center gap-3 pt-10">
+              <span className="grid h-20 w-20 place-items-center rounded-full bg-background/10 text-background">
+                <Phone className="h-8 w-8" />
+              </span>
+              <p className="font-display text-[20px] font-semibold">
+                {isPatient ? "CariCare Grid care line" : (b?.patient.full_name ?? "Patient")}
+              </p>
+              <p className="text-[13px] text-background/70">
+                {call.phase === "ringing" ? "Ringing…" : formatCallTime(callSeconds)}
+              </p>
+              {call.phase === "connected" ? (
+                <p className="max-w-xs text-center text-[12px] leading-relaxed text-background/60">
+                  Voice call over WhatsApp — no data plan needed, and it is logged to the record
+                  like any other contact.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                aria-label="Mute"
+                className="grid h-12 w-12 place-items-center rounded-full bg-background/10 text-background transition-colors hover:bg-background/20"
+              >
+                <MicOff className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={hangUp}
+                aria-label="End call"
+                className="grid h-14 w-14 place-items-center rounded-full bg-critical text-white transition-transform hover:scale-105"
+              >
+                <PhoneOff className="h-6 w-6" />
+              </button>
+              <button
+                type="button"
+                aria-label="Speaker"
+                className="grid h-12 w-12 place-items-center rounded-full bg-background/10 text-background transition-colors hover:bg-background/20"
+              >
+                <Volume2 className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
         {!b ? (
           <Loading />
         ) : (
@@ -516,11 +624,59 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
                           <Mic className="h-3 w-3" /> voice note transcript
                         </div>
                       ) : null}
-                      <p className="whitespace-pre-wrap">{m.body}</p>
+                      {m.kind === "call" ? (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={
+                              "grid h-8 w-8 shrink-0 place-items-center rounded-full " +
+                              (m.call_seconds
+                                ? "bg-low/15 text-low"
+                                : "bg-critical/15 text-critical")
+                            }
+                          >
+                            <Phone className="h-4 w-4" />
+                          </span>
+                          <span>
+                            <span className="block font-medium">Voice call</span>
+                            <span className="block text-[11.5px] text-muted-foreground">
+                              {m.call_seconds
+                                ? `Care line · ${formatCallTime(m.call_seconds)}`
+                                : "Not answered"}
+                            </span>
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{m.body}</p>
+                      )}
                       <div className="mt-1 flex items-center justify-end gap-1 text-[10.5px] text-muted-foreground">
                         {clockTime(m.created_at)}
                         {mine ? <CheckCheck className="h-3.5 w-3.5 text-sky-500" /> : null}
                       </div>
+                      {/* WhatsApp interactive buttons: the patient taps rather
+                          than types, which is the whole point of the channel for
+                          someone on a feature phone or low literacy. */}
+                      {Array.isArray(m.actions) && m.actions.length ? (
+                        <div className="-mx-4 mt-2 border-t border-border/50">
+                          {m.actions.map((a) => (
+                            <button
+                              key={a.label}
+                              type="button"
+                              onClick={() => {
+                                if (a.action === "call") {
+                                  setCallSeconds(0);
+                                  setCall({ phase: "ringing", startedAt: Date.now() });
+                                } else {
+                                  void send.mutate(a.label);
+                                }
+                              }}
+                              className="flex w-full items-center justify-center gap-1.5 border-b border-border/50 px-4 py-2 text-[12.5px] font-semibold text-primary transition-colors last:border-0 hover:bg-primary/5"
+                            >
+                              {a.action === "call" ? <Phone className="h-3.5 w-3.5" /> : null}
+                              {a.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );

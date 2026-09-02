@@ -1037,7 +1037,9 @@ export type Database = {
       }
       messages: {
         Row: {
+          actions: Json | null
           body: string
+          call_seconds: number | null
           channel: string
           created_at: string
           delivered_at: string | null
@@ -1049,7 +1051,9 @@ export type Database = {
           queued_offline: boolean
         }
         Insert: {
+          actions?: Json | null
           body: string
+          call_seconds?: number | null
           channel?: string
           created_at?: string
           delivered_at?: string | null
@@ -1061,7 +1065,9 @@ export type Database = {
           queued_offline?: boolean
         }
         Update: {
+          actions?: Json | null
           body?: string
+          call_seconds?: number | null
           channel?: string
           created_at?: string
           delivered_at?: string | null

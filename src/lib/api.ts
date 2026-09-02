@@ -71,6 +71,16 @@ export type Vital = {
   weight_kg: number | null;
   source: string;
 };
+/**
+ * A reply button attached to an outbound message — the WhatsApp interactive
+ * buttons a patient taps instead of typing. "call" places a voice call to the
+ * care line; "reply" sends its own label back as a message.
+ */
+export type MessageAction = {
+  label: string;
+  action: "call" | "reply";
+};
+
 export type Message = {
   id: string;
   patient_id: string;
@@ -81,6 +91,10 @@ export type Message = {
   channel: string;
   queued_offline: boolean;
   created_at: string;
+  /** Present on outbound messages that offer the patient buttons. */
+  actions?: MessageAction[] | null;
+  /** Seconds, on kind === "call" rows. */
+  call_seconds?: number | null;
 };
 export type RiskScore = {
   id: string;
