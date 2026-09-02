@@ -1619,6 +1619,47 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          label: string | null
+          patient_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          label?: string | null
+          patient_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          label?: string | null
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_events_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vitals: {
         Row: {
           device: string | null

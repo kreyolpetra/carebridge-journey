@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, Lock } from "lucide-react";
+import { Sparkles, Lock, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   HERO_PATIENT_ID,
@@ -11,6 +11,7 @@ import {
   patientsQuery,
   providersQuery,
   riskScoresQuery,
+  workflowEventsQuery,
   type Patient,
   type RiskScore,
 } from "@/lib/api";
@@ -28,13 +29,13 @@ import { bandClasses } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/clinician")({
   head: () => ({
     meta: [
-      { title: "Clinician Console — Risk-Ranked NCD Queue | CariCare Grid" },
+      { title: "Worklist — Risk-Ranked Patient List | CariCare Grid" },
       {
         name: "description",
         content:
           "A queue ordered by clinical risk instead of arrival time, with the patient's whole longitudinal record assembled from fragmented island systems.",
       },
-      { property: "og:title", content: "Clinician Console — Risk-Ranked NCD Queue" },
+      { property: "og:title", content: "Worklist — Risk-Ranked Patient List" },
       {
         property: "og:description",
         content: "See who is deteriorating before they arrive at the emergency room.",
@@ -46,15 +47,69 @@ export const Route = createFileRoute("/_authenticated/clinician")({
   component: Clinician,
 });
 
+const PAGE_SIZE = 20;
+
+const BANDS = [
+  { key: "critical", label: "Critical", hint: "Contact today", tone: "critical" },
+  { key: "high", label: "High", hint: "Contact this week", tone: "high" },
+  { key: "moderate", label: "Moderate", hint: "Monitoring", tone: "moderate" },
+  { key: "low", label: "Stable", hint: "Self-management", tone: "low" },
+] as const;
+
 function Clinician() {
   const search = Route.useSearch();
   const { profile } = useAuth();
-  const [selected, setSelected] = useState(search.patient ?? HERO_PATIENT_ID);
+  const [selected, setSelected] = useState<string | null>(search.patient ?? null);
   const [bandFilter, setBandFilter] = useState<string>("all");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const patients = useQuery(patientsQuery);
   const risks = useQuery(riskScoresQuery);
   const providers = useQuery(providersQuery);
+  const workflow = useQuery(workflowEventsQuery);
+  const qc = useQueryClient();
   const { index: access, ready: accessReady } = useAccessIndex();
+
+  /**
+   * Who this clinician has already contacted today.
+   *
+   * The list resets overnight, because the bands it is sorted by say "contact
+   * today" and "contact this week" — a permanent flag would mean a patient
+   * contacted once in March never resurfaces. Events are per-clinician, so a
+   * consultant clearing their round does not empty the ward nurse's list, and
+   * the most recent event per patient wins so the mark can be undone.
+   */
+  const contacted = useMemo(() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const decided = new Set<string>();
+    const done = new Set<string>();
+    for (const e of workflow.data ?? []) {
+      if (e.action !== "patient_contacted" && e.action !== "patient_contact_cleared") continue;
+      if (e.actor_id && profile?.id && e.actor_id !== profile.id) continue;
+      if (new Date(e.created_at) < startOfDay) continue;
+      if (decided.has(e.patient_id)) continue; // newest first, so this is the latest word
+      decided.add(e.patient_id);
+      if (e.action === "patient_contacted") done.add(e.patient_id);
+    }
+    return done;
+  }, [workflow.data, profile?.id]);
+
+  const setContacted = useMutation({
+    mutationFn: async ({ patientId, done }: { patientId: string; done: boolean }) => {
+      const { error } = await supabase.from("workflow_events").insert({
+        patient_id: patientId,
+        actor_id: profile?.id ?? null,
+        actor_name: profile?.full_name ?? "Clinician",
+        action: done ? "patient_contacted" : "patient_contact_cleared",
+        label: done ? "Marked contacted" : "Contact mark cleared",
+        detail: null,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["workflow_events"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const decision = useMemo<AccessDecision | null>(
     () => (accessReady && selected ? access.decide(selected) : null),
@@ -64,8 +119,10 @@ function Clinician() {
   // The chart is not fetched at all without a basis. Refusing to render a
   // record we already pulled into the browser would be theatre, not access
   // control.
-  const bundle = useQuery({ ...patientBundleQuery(selected), enabled: decision?.allowed === true });
-  const qc = useQueryClient();
+  const bundle = useQuery({
+    ...patientBundleQuery(selected ?? ""),
+    enabled: Boolean(selected) && decision?.allowed === true,
+  });
   useLogRecordAccess(selected, "Full clinical record (clinician console)", decision);
 
   /**
@@ -97,11 +154,39 @@ function Clinician() {
       if (d.allowed) mine.push({ ...row, decision: d });
       else withheld += 1;
     }
+    const needle = query.trim().toLowerCase();
+    const filtered = needle
+      ? mine.filter(
+          (row) =>
+            row.patient.full_name.toLowerCase().includes(needle) ||
+            row.patient.parish.toLowerCase().includes(needle),
+        )
+      : mine;
+
     return {
-      queue: mine.sort((a, b) => b.risk.score - a.risk.score).slice(0, 40),
+      // Contacted patients drop to the bottom rather than disappearing, so the
+      // list shows progress and the mark stays reversible.
+      queue: filtered.sort((a, b) => {
+        const ac = contacted.has(a.patient.id);
+        const bc = contacted.has(b.patient.id);
+        if (ac !== bc) return ac ? 1 : -1;
+        return b.risk.score - a.risk.score;
+      }),
       restricted: withheld,
     };
-  }, [risks.data, patients.data, bandFilter, access, accessReady]);
+  }, [risks.data, patients.data, bandFilter, access, accessReady, query, contacted]);
+
+  const outstanding = queue.filter((row) => !contacted.has(row.patient.id)).length;
+  const pageCount = Math.max(1, Math.ceil(queue.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, pageCount);
+  const pageRows = queue.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
+  // Open on the top of this clinician's own list rather than a fixed patient —
+  // the hardcoded default landed most users straight on a refusal panel.
+  useEffect(() => {
+    if (selected || !queue.length) return;
+    setSelected(queue[0]!.patient.id);
+  }, [selected, queue]);
 
   // Band counts follow the same rule: they describe the panel this clinician is
   // responsible for, not every scored patient in eleven countries.
@@ -130,7 +215,7 @@ function Clinician() {
       if (error) throw new Error(error.message);
       await supabase.from("consultations").insert({
         referral_id: referralId,
-        patient_id: selected,
+        patient_id: selected!,
         status: "in_progress",
         notes: "Teleconsult opened from the clinician console.",
       });
@@ -173,67 +258,181 @@ function Clinician() {
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
+      <div className="mb-5">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Worklist</h1>
+        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
+          Your panel, ordered by deterioration risk rather than arrival time.{" "}
+          {outstanding
+            ? `${outstanding} still to contact.`
+            : queue.length
+              ? "Everyone on this list has been contacted today."
+              : ""}
+        </p>
+      </div>
+
+      {/* The band tiles are the filter. They used to look like one and do
+          nothing, while the real control was a small select in the panel
+          header — two controls for one job, and the obvious one was dead. */}
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat
-          label="Critical"
-          value={counts["critical"] ?? 0}
-          hint="Contact today"
-          tone="critical"
-        />
-        <Stat label="High" value={counts["high"] ?? 0} hint="Contact this week" />
-        <Stat label="Moderate" value={counts["moderate"] ?? 0} hint="Monitoring" />
-        <Stat label="Stable" value={counts["low"] ?? 0} hint="Self-management" tone="low" />
+        {BANDS.map((band) => {
+          const active = bandFilter === band.key;
+          return (
+            <button
+              key={band.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                setBandFilter(active ? "all" : band.key);
+                setPage(1);
+              }}
+              className={
+                "rounded-xl border p-4 text-left transition-colors " +
+                (active
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border bg-card hover:border-primary/30")
+              }
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {band.label}
+              </p>
+              <p
+                className={
+                  "mt-1 font-display text-[26px] font-bold " +
+                  (band.tone === "critical"
+                    ? "text-critical"
+                    : band.tone === "low"
+                      ? "text-low"
+                      : "text-foreground")
+                }
+              >
+                {counts[band.key] ?? 0}
+              </p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
+                {active ? "Filtering — tap to clear" : band.hint}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
         <Panel className="h-fit">
           <PanelHeader
-            title="Escalation queue"
-            subtitle="Your panel, ordered by deterioration risk, not arrival time"
-            right={
-              <select
-                value={bandFilter}
-                onChange={(e) => setBandFilter(e.target.value)}
-                className="rounded-lg border border-border bg-background px-2 py-1 text-[12px]"
-              >
-                <option value="all">All bands</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="moderate">Moderate</option>
-                <option value="low">Stable</option>
-              </select>
+            title="Today's list"
+            subtitle={
+              query.trim()
+                ? `${queue.length} matching “${query.trim()}”`
+                : bandFilter === "all"
+                  ? `${queue.length} in your panel`
+                  : `${queue.length} ${BANDS.find((b) => b.key === bandFilter)?.label.toLowerCase()}`
             }
           />
-          <div className="max-h-[720px] overflow-y-auto p-2">
+          <div className="border-b border-border px-3 py-2.5">
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Find someone on your list…"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-[12.5px] outline-none focus:border-primary"
+            />
+          </div>
+          <div className="max-h-[620px] overflow-y-auto p-2">
             {risks.isLoading ? <Loading label="Scoring the panel…" /> : null}
-            {queue.map(({ risk, patient }) => (
-              <button
-                key={patient.id}
-                onClick={() => setSelected(patient.id)}
-                className={
-                  "mb-1 w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
-                  (patient.id === selected ? "bg-primary/12" : "hover:bg-surface")
-                }
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[13.5px] font-semibold">{patient.full_name}</span>
-                  <span className="mono-num text-[15px] font-semibold">{risk.score}</span>
+            {pageRows.map(({ risk, patient }) => {
+              const done = contacted.has(patient.id);
+              return (
+                <div
+                  key={patient.id}
+                  className={
+                    "mb-1 rounded-lg transition-colors " +
+                    (patient.id === selected ? "bg-primary/12" : "hover:bg-surface")
+                  }
+                >
+                  <button
+                    onClick={() => setSelected(patient.id)}
+                    className={"w-full px-3 pt-2.5 text-left " + (done ? "opacity-55" : "")}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[13.5px] font-semibold">
+                        {patient.full_name}
+                      </span>
+                      <span className="mono-num shrink-0 text-[13px] font-semibold">
+                        Risk {risk.score}
+                        <span className="text-[11px] font-normal text-muted-foreground">/100</span>
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Pill className={bandClasses(risk.band)}>{risk.band}</Pill>
+                      <span className="truncate text-[11.5px] text-muted-foreground">
+                        {patient.parish}, {patient.island_code} · {risk.trend}
+                      </span>
+                    </div>
+                  </button>
+                  <div className="px-3 pb-2 pt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setContacted.mutate({ patientId: patient.id, done: !done })}
+                      disabled={setContacted.isPending}
+                      className={
+                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-medium transition-colors disabled:opacity-60 " +
+                        (done
+                          ? "border-low/40 bg-low/10 text-low"
+                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary")
+                      }
+                    >
+                      <Check className="h-3 w-3" />
+                      {done ? "Contacted today" : "Mark contacted"}
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <Pill className={bandClasses(risk.band)}>{risk.band}</Pill>
-                  <span className="truncate text-[11.5px] text-muted-foreground">
-                    {patient.parish}, {patient.island_code} · {risk.trend}
-                  </span>
-                </div>
-              </button>
-            ))}
+              );
+            })}
             {accessReady && !queue.length ? (
               <p className="px-3 py-6 text-[13px] text-muted-foreground">
-                No patients in your panel. A referral you accept, an episode at your facility, or a
-                consent grant from the patient will place someone here.
+                {query.trim() || bandFilter !== "all"
+                  ? "Nobody on your list matches that."
+                  : "No patients in your panel. A referral you accept, an episode at your facility, or a consent grant from the patient will place someone here."}
               </p>
             ) : null}
           </div>
+          {queue.length ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+              <p className="text-[12px] text-muted-foreground">
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {(pageSafe - 1) * PAGE_SIZE + 1}–{Math.min(pageSafe * PAGE_SIZE, queue.length)}
+                </span>{" "}
+                of <span className="font-semibold text-foreground">{queue.length}</span>
+              </p>
+              {pageCount > 1 ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Previous page"
+                    disabled={pageSafe === 1}
+                    onClick={() => setPage(pageSafe - 1)}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="px-1 text-[12px] text-muted-foreground">
+                    {pageSafe} / {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Next page"
+                    disabled={pageSafe === pageCount}
+                    onClick={() => setPage(pageSafe + 1)}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {restricted > 0 ? (
             <div className="flex items-start gap-2 border-t border-border px-4 py-3 text-[12px] text-muted-foreground">
               <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -249,7 +448,7 @@ function Clinician() {
 
         <div className="space-y-4">
           {decision && !decision.allowed ? (
-            <NoBasisPanel patientId={selected} decision={decision} />
+            <NoBasisPanel patientId={selected!} decision={decision} />
           ) : !b ? (
             <Panel>
               <Loading label="Assembling the longitudinal record…" />

@@ -311,6 +311,36 @@ export type PatientBundle = {
  * Ordered newest first so grouping by patient yields each thread's latest
  * message without a second pass.
  */
+/**
+ * Actions a clinician has taken on a patient that are not clinical facts —
+ * marking someone contacted for the day, accepting an agent brief. Kept apart
+ * from the record itself: this is who did what on the worklist, not what is
+ * true about the patient.
+ */
+export type WorkflowEvent = {
+  id: string;
+  patient_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  label: string | null;
+  detail: string | null;
+  created_at: string;
+};
+
+export const workflowEventsQuery = queryOptions({
+  queryKey: ["workflow_events"],
+  staleTime: 2_000,
+  queryFn: async () =>
+    unwrap<WorkflowEvent[]>(
+      await supabase
+        .from("workflow_events")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(2000),
+    ),
+});
+
 export const recentMessagesQuery = queryOptions({
   queryKey: ["messages", "recent"],
   staleTime: 5_000,

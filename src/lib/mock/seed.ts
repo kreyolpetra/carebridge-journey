@@ -726,6 +726,7 @@ export function buildSeed(): Tables {
     detection_signals: [],
     clinical_documents: [],
     api_clients: [],
+    workflow_events: [],
   };
 
   // ---- islands ----

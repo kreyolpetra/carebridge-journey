@@ -87,12 +87,12 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: "/clinician",
-    label: "Clinician console",
+    label: "Worklist",
     icon: Stethoscope,
     roles: ["clinician", "admin"],
     tiers: CLINICAL_TIERS,
     group: "Work",
-    keywords: "queue risk patients teleconsult",
+    keywords: "worklist queue risk patients teleconsult console escalation contact",
   },
   {
     to: "/facility",
