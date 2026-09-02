@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/registry")({
 
 const MAX_ROWS = 250;
 
-function RegistryPage() {
+export function RegistryPage() {
   const qc = useQueryClient();
   const { profile } = useAuth();
   const patients = useQuery(patientsQuery);

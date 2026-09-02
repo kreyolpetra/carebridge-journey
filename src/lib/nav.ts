@@ -9,9 +9,7 @@ import {
   History,
   Hospital,
   Eye,
-  Megaphone,
   Radar,
-  Plug,
   Settings,
   Users,
   type LucideIcon,
@@ -26,15 +24,11 @@ export type NavItem = {
     | "/patients"
     | "/clinician"
     | "/facility"
-    | "/registry"
-    | "/prevention"
     | "/detection"
-    | "/interop"
     | "/dashboard"
     | "/consent"
     | "/access-log"
     | "/insurer"
-    | "/activity"
     | "/settings";
   label: string;
   icon: LucideIcon;
@@ -106,43 +100,18 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Hospital,
     roles: ["clinician", "admin"],
     group: "Work",
-    keywords: "hospital clinic organisation staff encounters shared records",
-  },
-  {
-    to: "/registry",
-    label: "Registry & import",
-    icon: Users,
-    roles: ["clinician", "admin"],
-    tiers: ["attending", "org_admin"],
-    group: "Work",
-    keywords: "patients staff add csv import export onboarding roster bulk registry",
-  },
-  {
-    to: "/prevention",
-    label: "Prevention engine",
-    icon: Megaphone,
-    roles: ["clinician", "ministry", "admin"],
-    tiers: CLINICAL_TIERS,
-    group: "Work",
-    keywords: "campaign cohort outreach screening prevention whatsapp sms",
+    keywords:
+      "hospital clinic organisation staff encounters shared records registry import csv roster fhir api interoperability paper scan",
   },
   {
     to: "/detection",
-    label: "Early detection",
+    label: "Surveillance & outreach",
     icon: Radar,
     roles: ["clinician", "ministry", "admin"],
     tiers: CLINICAL_TIERS,
     group: "Work",
-    keywords: "signals deterioration trend home readings early warning",
-  },
-  {
-    to: "/interop",
-    label: "Records & API",
-    icon: Plug,
-    roles: ["clinician", "admin"],
-    tiers: ["attending", "org_admin"],
-    group: "Work",
-    keywords: "paper scan digitise upload fhir api interoperability integration",
+    keywords:
+      "signals deterioration trend home readings early warning prevention campaign cohort outreach screening",
   },
   {
     to: "/dashboard",
@@ -178,14 +147,6 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: "premium credits adherence pricing",
   },
   {
-    to: "/activity",
-    label: "Activity",
-    icon: History,
-    roles: ALL,
-    group: "Work",
-    keywords: "feed events log timeline",
-  },
-  {
     to: "/settings",
     label: "Settings",
     icon: Settings,
@@ -201,7 +162,6 @@ const PATIENT_LABELS: Record<string, string> = {
   "/record": "My record",
   "/consent": "Sharing & permissions",
   "/access-log": "Who has looked at my record",
-  "/activity": "My activity",
 };
 
 export function navFor(role: string, staffRole?: string | null): NavItem[] {
@@ -215,8 +175,7 @@ export function navFor(role: string, staffRole?: string | null): NavItem[] {
     return item.tiers.includes(tier);
   });
   if (role !== "patient") return items;
-  // Patients see their activity inside "My health", not as a separate page.
-  return items
-    .filter((item) => item.to !== "/activity")
-    .map((item) => ({ ...item, label: PATIENT_LABELS[item.to] ?? item.label }));
+  // Patients get plain-language labels; the activity feed lives on Overview for
+  // every role, so it is no longer a nav item.
+  return items.map((item) => ({ ...item, label: PATIENT_LABELS[item.to] ?? item.label }));
 }

@@ -45,7 +45,7 @@ const STATUS_TONE: Record<string, string> = {
   complete: "border-low/40 bg-low/10 text-low",
 };
 
-function Prevention() {
+export function Prevention() {
   const qc = useQueryClient();
   const campaigns = useQuery(campaignsQuery);
   const targets = useQuery(campaignTargetsQuery);

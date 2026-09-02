@@ -15,6 +15,10 @@ import {
   ENCOUNTER_KIND_LABEL,
   STAFF_ROLE_LABEL,
 } from "@/lib/org";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useScope } from "@/hooks/useScope";
+import { RegistryPage } from "@/routes/_authenticated/registry";
+import { Interop } from "@/routes/_authenticated/interop";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { bandClasses, shortDate, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,6 +54,7 @@ function FacilityConsole() {
   const providers = useQuery(providersQuery);
   const risks = useQuery(riskScoresQuery);
   const staff = useQuery(facilityStaffQuery);
+  const { tier } = useScope();
   const [picked, setPicked] = useState<string | null>(null);
 
   const facilityList = (facilities.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -99,7 +104,11 @@ function FacilityConsole() {
   }, [sharedPatientIds, profile, facility, qc]);
 
   if (facilities.isLoading || encounters.isLoading || !view || !facility)
-    return <Loading label="Loading facility" />;
+    return (
+      <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
+        <Loading label="Loading facility" />
+      </div>
+    );
 
   const patientById = new Map((patients.data ?? []).map((p) => [p.id, p]));
   const facilityById = new Map(facilityList.map((f) => [f.id, f]));
@@ -122,191 +131,222 @@ function FacilityConsole() {
   const openEncounters = view.mine.filter((e) => e.status === "open");
   const myStaff = (staff.data ?? []).filter((s) => s.facility_id === facilityId);
 
+  // Roster and record-intake used to be their own nav entries. They are the same
+  // job as this screen — administering one institution's records — so they are
+  // tabs here now. The tier gating they carried in the sidebar has to come with
+  // them, or the merge would quietly hand a ward nurse a bulk patient export.
+  const canAdminister = tier === "attending" || tier === "org_admin";
+
   return (
-    <div className="space-y-4">
-      <Panel>
-        <PanelHeader
-          title={
-            <span className="flex items-center gap-2">
-              {facility.kind === "hospital" ? (
-                <Hospital className="h-4.5 w-4.5 text-primary" />
-              ) : (
-                <Building2 className="h-4.5 w-4.5 text-primary" />
-              )}
-              {facility.name}
-            </span>
-          }
-          subtitle={`${islandName(facility.island_code)} · ${facility.kind} · ${facility.beds_occupied}/${facility.beds_total} beds occupied`}
-          right={
-            <select
-              value={facilityId ?? ""}
-              onChange={(e) => setPicked(e.target.value)}
-              className="h-9 max-w-[280px] rounded-md border border-input bg-background px-3 text-[13px]"
-              aria-label="Switch facility"
-            >
-              {facilityList.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          }
-        />
-        <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
-          <Stat
-            label="Patients on file here"
-            value={view.myPatientIds.size}
-            hint="Seen at this facility"
-          />
-          <Stat
-            label="Open encounters"
-            value={openEncounters.length}
-            hint="Currently in care"
-            tone="signal"
-          />
-          <Stat
-            label="Records shared in"
-            value={view.shared.length}
-            hint={`From ${view.sharedFacilities.size} other facilit${view.sharedFacilities.size === 1 ? "y" : "ies"}`}
-            tone="signal"
-          />
-          <Stat label="Staff on the Grid" value={myStaff.length} hint="Doctors, nurses and admin" />
-        </div>
-      </Panel>
+    <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
+      <Tabs defaultValue="console">
+        <TabsList>
+          <TabsTrigger value="console">Console</TabsTrigger>
+          {canAdminister ? <TabsTrigger value="roster">Roster &amp; import</TabsTrigger> : null}
+          {canAdminister ? <TabsTrigger value="records">Records &amp; API</TabsTrigger> : null}
+        </TabsList>
 
-      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-        <Panel>
-          <PanelHeader
-            title="Patients seen here"
-            subtitle="Risk-ranked. A shared badge means another hospital or clinic also holds part of this record."
-          />
-          <div className="divide-y divide-border">
-            {roster.length === 0 ? (
-              <p className="px-5 py-6 text-[13px] text-muted-foreground">
-                No encounters recorded at this facility.
-              </p>
-            ) : (
-              roster.slice(0, 40).map((r) => {
-                const p = patientById.get(r.pid);
-                return (
-                  <Link
-                    key={r.pid}
-                    to="/clinician"
-                    search={{ patient: r.pid }}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-semibold">
-                        {p?.full_name ?? "Unknown patient"}
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {r.visits} visit{r.visits === 1 ? "" : "s"} here · last{" "}
-                        {r.last ? timeAgo(r.last.started_at) : "—"}
-                        {p ? ` · ${p.age}y · ${p.parish}` : ""}
-                      </p>
-                    </div>
-                    {r.elsewhere.size > 0 ? (
-                      <Pill className="border-primary/30 bg-primary/10 text-primary">
-                        <Share2 className="h-3 w-3" /> +{r.elsewhere.size} facilit
-                        {r.elsewhere.size === 1 ? "y" : "ies"}
-                      </Pill>
-                    ) : null}
-                    {r.risk ? (
-                      <Pill className={bandClasses(r.risk.band)}>{r.risk.score}</Pill>
-                    ) : null}
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                );
-              })
-            )}
-          </div>
-        </Panel>
-
-        <div className="space-y-4">
+        <TabsContent value="console" className="mt-4 space-y-4">
           <Panel>
             <PanelHeader
-              title="Shared in from other facilities"
-              subtitle="Care your patients received elsewhere on the Grid — visible to your team automatically"
+              title={
+                <span className="flex items-center gap-2">
+                  {facility.kind === "hospital" ? (
+                    <Hospital className="h-4.5 w-4.5 text-primary" />
+                  ) : (
+                    <Building2 className="h-4.5 w-4.5 text-primary" />
+                  )}
+                  {facility.name}
+                </span>
+              }
+              subtitle={`${islandName(facility.island_code)} · ${facility.kind} · ${facility.beds_occupied}/${facility.beds_total} beds occupied`}
+              right={
+                <select
+                  value={facilityId ?? ""}
+                  onChange={(e) => setPicked(e.target.value)}
+                  className="h-9 max-w-[280px] rounded-md border border-input bg-background px-3 text-[13px]"
+                  aria-label="Switch facility"
+                >
+                  {facilityList.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              }
             />
-            <div className="divide-y divide-border">
-              {view.shared.length === 0 ? (
-                <p className="px-5 py-6 text-[13px] text-muted-foreground">
-                  Nothing shared in yet. As soon as one of your patients is seen at another Grid
-                  facility, it lands here.
-                </p>
-              ) : (
-                view.shared.slice(0, 12).map((e) => (
-                  <div key={e.id} className="px-5 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-[13.5px] font-semibold">
-                        {patientById.get(e.patient_id)?.full_name ?? "Patient"}
-                      </span>
-                      <Pill className="border-border bg-surface text-muted-foreground">
-                        {ENCOUNTER_KIND_LABEL[e.kind] ?? e.kind}
-                      </Pill>
-                    </div>
-                    <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                      {facilityById.get(e.facility_id)?.name ?? "Another facility"} ·{" "}
-                      {shortDate(e.started_at)}
+            <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
+              <Stat
+                label="Patients on file here"
+                value={view.myPatientIds.size}
+                hint="Seen at this facility"
+              />
+              <Stat
+                label="Open encounters"
+                value={openEncounters.length}
+                hint="Currently in care"
+                tone="signal"
+              />
+              <Stat
+                label="Records shared in"
+                value={view.shared.length}
+                hint={`From ${view.sharedFacilities.size} other facilit${view.sharedFacilities.size === 1 ? "y" : "ies"}`}
+                tone="signal"
+              />
+              <Stat
+                label="Staff on the Grid"
+                value={myStaff.length}
+                hint="Doctors, nurses and admin"
+              />
+            </div>
+          </Panel>
+
+          <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+            <Panel>
+              <PanelHeader
+                title="Patients seen here"
+                subtitle="Risk-ranked. A shared badge means another hospital or clinic also holds part of this record."
+              />
+              <div className="divide-y divide-border">
+                {roster.length === 0 ? (
+                  <p className="px-5 py-6 text-[13px] text-muted-foreground">
+                    No encounters recorded at this facility.
+                  </p>
+                ) : (
+                  roster.slice(0, 40).map((r) => {
+                    const p = patientById.get(r.pid);
+                    return (
+                      <Link
+                        key={r.pid}
+                        to="/clinician"
+                        search={{ patient: r.pid }}
+                        className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13.5px] font-semibold">
+                            {p?.full_name ?? "Unknown patient"}
+                          </p>
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">
+                            {r.visits} visit{r.visits === 1 ? "" : "s"} here · last{" "}
+                            {r.last ? timeAgo(r.last.started_at) : "—"}
+                            {p ? ` · ${p.age}y · ${p.parish}` : ""}
+                          </p>
+                        </div>
+                        {r.elsewhere.size > 0 ? (
+                          <Pill className="border-primary/30 bg-primary/10 text-primary">
+                            <Share2 className="h-3 w-3" /> +{r.elsewhere.size} facilit
+                            {r.elsewhere.size === 1 ? "y" : "ies"}
+                          </Pill>
+                        ) : null}
+                        {r.risk ? (
+                          <Pill className={bandClasses(r.risk.band)}>{r.risk.score}</Pill>
+                        ) : null}
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+            </Panel>
+
+            <div className="space-y-4">
+              <Panel>
+                <PanelHeader
+                  title="Shared in from other facilities"
+                  subtitle="Care your patients received elsewhere on the Grid — visible to your team automatically"
+                />
+                <div className="divide-y divide-border">
+                  {view.shared.length === 0 ? (
+                    <p className="px-5 py-6 text-[13px] text-muted-foreground">
+                      Nothing shared in yet. As soon as one of your patients is seen at another Grid
+                      facility, it lands here.
                     </p>
-                    {e.reason ? <p className="mt-1 text-[12.5px]">{e.reason}</p> : null}
-                    {e.summary ? (
-                      <p className="mt-1 text-[12.5px] text-muted-foreground">{e.summary}</p>
-                    ) : null}
-                  </div>
-                ))
-              )}
-            </div>
-          </Panel>
+                  ) : (
+                    view.shared.slice(0, 12).map((e) => (
+                      <div key={e.id} className="px-5 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="truncate text-[13.5px] font-semibold">
+                            {patientById.get(e.patient_id)?.full_name ?? "Patient"}
+                          </span>
+                          <Pill className="border-border bg-surface text-muted-foreground">
+                            {ENCOUNTER_KIND_LABEL[e.kind] ?? e.kind}
+                          </Pill>
+                        </div>
+                        <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                          {facilityById.get(e.facility_id)?.name ?? "Another facility"} ·{" "}
+                          {shortDate(e.started_at)}
+                        </p>
+                        {e.reason ? <p className="mt-1 text-[12.5px]">{e.reason}</p> : null}
+                        {e.summary ? (
+                          <p className="mt-1 text-[12.5px] text-muted-foreground">{e.summary}</p>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Panel>
 
-          <Panel>
-            <PanelHeader
-              title="Staff roster"
-              subtitle="Who at this facility can open a Grid record"
-              right={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <div className="divide-y divide-border">
-              {myStaff.length === 0 ? (
-                <p className="px-5 py-6 text-[13px] text-muted-foreground">
-                  No Grid accounts registered to this facility yet.
-                </p>
-              ) : (
-                myStaff.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                    <span className="truncate text-[13.5px] font-semibold">
-                      {s.user_id === profile?.id
-                        ? profile.full_name
-                        : (s.full_name ?? s.title ?? "Grid account")}
-                    </span>
-                    <Pill className="border-border bg-surface text-muted-foreground">
-                      {STAFF_ROLE_LABEL[s.staff_role] ?? s.staff_role}
-                    </Pill>
-                  </div>
-                ))
-              )}
-            </div>
-          </Panel>
+              <Panel>
+                <PanelHeader
+                  title="Staff roster"
+                  subtitle="Who at this facility can open a Grid record"
+                  right={<Users className="h-4 w-4 text-muted-foreground" />}
+                />
+                <div className="divide-y divide-border">
+                  {myStaff.length === 0 ? (
+                    <p className="px-5 py-6 text-[13px] text-muted-foreground">
+                      No Grid accounts registered to this facility yet.
+                    </p>
+                  ) : (
+                    myStaff.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                        <span className="truncate text-[13.5px] font-semibold">
+                          {s.user_id === profile?.id
+                            ? profile.full_name
+                            : (s.full_name ?? s.title ?? "Grid account")}
+                        </span>
+                        <Pill className="border-border bg-surface text-muted-foreground">
+                          {STAFF_ROLE_LABEL[s.staff_role] ?? s.staff_role}
+                        </Pill>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Panel>
 
-          <Panel>
-            <PanelHeader
-              title="Providers based here"
-              subtitle="Clinical capacity attached to this facility"
-            />
-            <div className="divide-y divide-border">
-              {[...providerById.values()]
-                .filter((p) => p.facility_id === facilityId)
-                .slice(0, 8)
-                .map((p) => (
-                  <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                    <span className="truncate text-[13.5px] font-semibold">{p.full_name}</span>
-                    <span className="text-[12px] text-muted-foreground">{p.specialty}</span>
-                  </div>
-                ))}
+              <Panel>
+                <PanelHeader
+                  title="Providers based here"
+                  subtitle="Clinical capacity attached to this facility"
+                />
+                <div className="divide-y divide-border">
+                  {[...providerById.values()]
+                    .filter((p) => p.facility_id === facilityId)
+                    .slice(0, 8)
+                    .map((p) => (
+                      <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                        <span className="truncate text-[13.5px] font-semibold">{p.full_name}</span>
+                        <span className="text-[12px] text-muted-foreground">{p.specialty}</span>
+                      </div>
+                    ))}
+                </div>
+              </Panel>
             </div>
-          </Panel>
-        </div>
-      </div>
+          </div>
+        </TabsContent>
+
+        {canAdminister ? (
+          <TabsContent value="roster" className="mt-4">
+            <RegistryPage />
+          </TabsContent>
+        ) : null}
+        {canAdminister ? (
+          <TabsContent value="records" className="mt-4">
+            <Interop />
+          </TabsContent>
+        ) : null}
+      </Tabs>
     </div>
   );
 }

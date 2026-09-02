@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/interop")({
   component: Interop,
 });
 
-function Interop() {
+export function Interop() {
   const qc = useQueryClient();
   const { profile } = useAuth();
   const docs = useQuery(documentsQuery);

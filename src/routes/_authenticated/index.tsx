@@ -23,6 +23,7 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
+import { ActivityFeed } from "@/components/app/ActivityFeed";
 import { isGrantActive } from "@/lib/access";
 import { firstName } from "@/lib/names";
 import {
@@ -91,7 +92,9 @@ function Greeting({ subtitle }: { subtitle: string }) {
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl">
           {role === "patient" ? `Hello, ${firstName(name)}.` : `Good day, ${firstName(name)}.`}
         </h1>
-        <p className="mt-2 max-w-xl text-[14.5px] leading-relaxed text-muted-foreground">{subtitle}</p>
+        <p className="mt-2 max-w-xl text-[14.5px] leading-relaxed text-muted-foreground">
+          {subtitle}
+        </p>
       </div>
     </div>
   );
@@ -116,7 +119,8 @@ function SurfaceLinks() {
                 <h3 className="font-display text-[15px] font-semibold">{s.label}</h3>
               </div>
               <div className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary">
-                Open <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                Open{" "}
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
               </div>
             </Panel>
           </Link>
@@ -159,13 +163,19 @@ function PatientHome() {
         <Stat
           label="Latest blood pressure"
           value={latestVital?.systolic ? `${latestVital.systolic}/${latestVital.diastolic}` : "—"}
-          hint={latestVital ? new Date(latestVital.measured_at).toLocaleDateString() : "No readings yet"}
+          hint={
+            latestVital ? new Date(latestVital.measured_at).toLocaleDateString() : "No readings yet"
+          }
           tone="signal"
         />
         <Stat
           label="Medication adherence"
           value={adherence !== null ? `${adherence}%` : "—"}
-          hint={lowMeds.length ? `${lowMeds.length} refill${lowMeds.length > 1 ? "s" : ""} due within 7 days` : "Refills on track"}
+          hint={
+            lowMeds.length
+              ? `${lowMeds.length} refill${lowMeds.length > 1 ? "s" : ""} due within 7 days`
+              : "Refills on track"
+          }
         />
         <Stat
           label="Who can see my record"
@@ -182,35 +192,41 @@ function PatientHome() {
             <h3 className="font-display text-[15px] font-semibold">What needs my attention</h3>
           </div>
           <ul className="mt-4 space-y-3 text-[13.5px]">
-            {risk && (risk.band === "high" || risk.band === "critical" || risk.band === "rising") ? (
+            {risk &&
+            (risk.band === "high" || risk.band === "critical" || risk.band === "rising") ? (
               <li className="flex gap-2.5 rounded-lg border border-critical/25 bg-critical/5 p-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-critical" />
                 <span>
                   Your risk is <strong className={bandTone(risk.band)}>{risk.band}</strong>.{" "}
-                  {risk.drivers[0] ? `Main driver: ${risk.drivers[0].label}.` : ""} Message the line today so a
-                  clinician can review you.
+                  {risk.drivers[0] ? `Main driver: ${risk.drivers[0].label}.` : ""} Message the line
+                  today so a clinician can review you.
                 </span>
               </li>
             ) : (
               <li className="flex gap-2.5 rounded-lg border border-low/25 bg-low/5 p-3">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-low" />
-                <span>Your readings look steady. Keep logging daily — it keeps your risk score accurate.</span>
+                <span>
+                  Your readings look steady. Keep logging daily — it keeps your risk score accurate.
+                </span>
               </li>
             )}
             {lowMeds.map((m) => (
-              <li key={m.id} className="flex gap-2.5 rounded-lg border border-border bg-surface p-3">
+              <li
+                key={m.id}
+                className="flex gap-2.5 rounded-lg border border-border bg-surface p-3"
+              >
                 <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <span>
-                  <strong>{m.name}</strong> has {m.days_supply_left} days left — ask the line to route a refill before
-                  it runs out.
+                  <strong>{m.name}</strong> has {m.days_supply_left} days left — ask the line to
+                  route a refill before it runs out.
                 </span>
               </li>
             ))}
             <li className="flex gap-2.5 rounded-lg border border-border bg-surface p-3">
               <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
-                Feeling unwell? Message the patient line in plain language — Patois or English — and the AI triage
-                will route you.
+                Feeling unwell? Message the patient line in plain language — Patois or English — and
+                the AI triage will route you.
               </span>
             </li>
           </ul>
@@ -233,7 +249,6 @@ function PatientHome() {
             >
               Manage my consent
             </Link>
-
           </div>
         </Panel>
 
@@ -244,7 +259,9 @@ function PatientHome() {
           </div>
           <ul className="mt-4 space-y-2.5">
             {activeGrants.length === 0 && (
-              <li className="text-[13px] text-muted-foreground">No active grants — only your care team sees your record.</li>
+              <li className="text-[13px] text-muted-foreground">
+                No active grants — only your care team sees your record.
+              </li>
             )}
             {activeGrants.slice(0, 4).map((g) => (
               <li key={g.id} className="rounded-lg border border-border bg-surface p-3 text-[13px]">
@@ -259,56 +276,10 @@ function PatientHome() {
         </Panel>
       </section>
 
-      <PatientActivity patientId={patientId ?? null} />
+      <ActivityFeed maxHeight="440px" />
     </>
   );
 }
-
-function PatientActivity({ patientId }: { patientId: string | null }) {
-  const feed = useQuery({ ...activityQuery(patientId), enabled: Boolean(patientId) });
-  const items = (feed.data ?? []).slice(0, 12);
-
-  return (
-    <section>
-      <Panel className="p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <History className="h-4 w-4 text-primary" />
-            <h3 className="font-display text-[15px] font-semibold">My activity</h3>
-          </div>
-          <span className="text-[12px] text-muted-foreground">Live · your record only</span>
-        </div>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
-          Your messages, triage results, referrals and every time your file was opened.
-        </p>
-        <div className="mt-4 divide-y divide-border/60">
-          {feed.isLoading ? (
-            <p className="py-6 text-center text-[13px] text-muted-foreground">Loading your activity…</p>
-          ) : null}
-          {!feed.isLoading && !items.length ? (
-            <p className="py-6 text-center text-[13px] text-muted-foreground">Nothing on your record yet.</p>
-          ) : null}
-          {items.map((item) => {
-            const meta = ACTIVITY_META[item.kind];
-            return (
-              <div key={item.id} className="flex gap-3 py-3 first:pt-0">
-                <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg", meta.tone)}>
-                  <meta.icon className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13.5px] font-semibold">{item.title}</p>
-                  <p className="mt-0.5 text-[12.5px] text-muted-foreground">{item.detail}</p>
-                </div>
-                <span className="shrink-0 text-[11.5px] text-muted-foreground">{timeAgo(item.at)}</span>
-              </div>
-            );
-          })}
-        </div>
-      </Panel>
-    </section>
-  );
-}
-
 
 /* ---------------- Clinician home ---------------- */
 
@@ -329,7 +300,9 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
   const myReferrals = (referrals.data ?? []).filter(
     (r) => provider && r.to_provider_id === provider.id && r.status !== "completed",
   );
-  const mySlots = (slots.data ?? []).filter((s) => provider && s.provider_id === provider.id && s.status === "open");
+  const mySlots = (slots.data ?? []).filter(
+    (s) => provider && s.provider_id === provider.id && s.status === "open",
+  );
   const topQueue = queue.slice(0, 5);
 
   return (
@@ -342,7 +315,11 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
         <Stat
           label="High-risk queue"
           value={queue.length}
-          hint={restricted > 0 ? `Your panel · ${restricted} more outside your access` : "Critical + high, your panel"}
+          hint={
+            restricted > 0
+              ? `Your panel · ${restricted} more outside your access`
+              : "Critical + high, your panel"
+          }
           tone="critical"
         />
         <Stat
@@ -351,10 +328,19 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
           hint="Cross-island teleconsults awaiting review"
           tone="signal"
         />
-        <Stat label="My open teleconsult slots" value={mySlots.length} hint="Bookable by other islands" tone="low" />
+        <Stat
+          label="My open teleconsult slots"
+          value={mySlots.length}
+          hint="Bookable by other islands"
+          tone="low"
+        />
         <Stat
           label="Avg. local wait bypassed"
-          value={myReferrals.length ? `${Math.round(myReferrals.reduce((s, r) => s + (r.wait_days_local - r.wait_days_routed), 0) / myReferrals.length)} days` : "—"}
+          value={
+            myReferrals.length
+              ? `${Math.round(myReferrals.reduce((s, r) => s + (r.wait_days_local - r.wait_days_routed), 0) / myReferrals.length)} days`
+              : "—"
+          }
           hint="Saved per routed patient"
         />
       </section>
@@ -364,9 +350,14 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Stethoscope className="h-4 w-4 text-primary" />
-              <h3 className="font-display text-[15px] font-semibold">Highest-risk patients right now</h3>
+              <h3 className="font-display text-[15px] font-semibold">
+                Highest-risk patients right now
+              </h3>
             </div>
-            <Link to="/clinician" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary">
+            <Link
+              to="/clinician"
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary"
+            >
               Open console <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -383,23 +374,32 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
                     <span
                       className={cn(
                         "rounded-md px-2 py-0.5 font-mono text-[11px] font-bold",
-                        r.band === "critical" ? "bg-critical/10 text-critical" : "bg-[#b45309]/10 text-[#b45309]",
+                        r.band === "critical"
+                          ? "bg-critical/10 text-critical"
+                          : "bg-[#b45309]/10 text-[#b45309]",
                       )}
                     >
                       {Math.round(r.score)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13.5px] font-medium">{p?.full_name ?? "Patient"}</span>
+                      <span className="block truncate text-[13.5px] font-medium">
+                        {p?.full_name ?? "Patient"}
+                      </span>
                       <span className="block truncate text-[12px] text-muted-foreground">
-                        {p ? `${p.island_code} · ${p.parish}` : ""} · {r.drivers[0]?.label ?? "Multiple drivers"}
+                        {p ? `${p.island_code} · ${p.parish}` : ""} ·{" "}
+                        {r.drivers[0]?.label ?? "Multiple drivers"}
                       </span>
                     </span>
-                    <span className="text-[11.5px] uppercase tracking-wide text-muted-foreground">{r.band}</span>
+                    <span className="text-[11.5px] uppercase tracking-wide text-muted-foreground">
+                      {r.band}
+                    </span>
                   </Link>
                 </li>
               );
             })}
-            {topQueue.length === 0 && <li className="py-3 text-[13px] text-muted-foreground">Queue is clear.</li>}
+            {topQueue.length === 0 && (
+              <li className="py-3 text-[13px] text-muted-foreground">Queue is clear.</li>
+            )}
           </ul>
         </Panel>
 
@@ -412,19 +412,24 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
             {myReferrals.slice(0, 4).map((r) => {
               const p = patientById.get(r.patient_id);
               return (
-                <li key={r.id} className="rounded-lg border border-border bg-surface p-3 text-[13px]">
+                <li
+                  key={r.id}
+                  className="rounded-lg border border-border bg-surface p-3 text-[13px]"
+                >
                   <p className="font-medium">
                     {p?.full_name ?? "Patient"} · {r.specialty}
                   </p>
                   <p className="mt-0.5 text-[12px] text-muted-foreground">
-                    {r.cross_island ? "Cross-island" : "Local"} · local wait {r.wait_days_local}d → routed{" "}
-                    {r.wait_days_routed}d · {r.status}
+                    {r.cross_island ? "Cross-island" : "Local"} · local wait {r.wait_days_local}d →
+                    routed {r.wait_days_routed}d · {r.status}
                   </p>
                 </li>
               );
             })}
             {myReferrals.length === 0 && (
-              <li className="text-[13px] text-muted-foreground">No pending referrals routed to you.</li>
+              <li className="text-[13px] text-muted-foreground">
+                No pending referrals routed to you.
+              </li>
             )}
           </ul>
         </Panel>
@@ -444,10 +449,14 @@ function MinistryHome() {
   const stock = useQuery(stockQuery);
   const patients = useQuery(patientsQuery);
 
-  const highRisk = (risks.data ?? []).filter((r) => r.band === "critical" || r.band === "high").length;
+  const highRisk = (risks.data ?? []).filter(
+    (r) => r.band === "critical" || r.band === "high",
+  ).length;
   const stockouts = (stock.data ?? []).filter((s) => s.status !== "ok").length;
   const retained = (referrals.data ?? []).reduce((s, r) => s + r.retained_value_usd, 0);
-  const criticalAlerts = (alerts.data ?? []).filter((a) => a.severity === "critical" || a.severity === "high");
+  const criticalAlerts = (alerts.data ?? []).filter(
+    (a) => a.severity === "critical" || a.severity === "high",
+  );
 
   const riskByIsland = new Map<string, number>();
   const patientIsland = new Map((patients.data ?? []).map((p) => [p.id, p.island_code]));
@@ -464,10 +473,29 @@ function MinistryHome() {
       <Greeting subtitle="Population risk, capacity and supply across eleven Caribbean health systems — from Cuba's clinical depth to Haiti's shortfall — in one operational picture." />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="High-risk population" value={highRisk} hint="Queued for outreach today" tone="critical" />
-        <Stat label="Open system alerts" value={alerts.data?.length ?? 0} hint={`${criticalAlerts.length} critical/high`} />
-        <Stat label="Medication stockouts" value={stockouts} hint="Facilities below safe cover" tone="critical" />
-        <Stat label="Care retained in-region" value={usd(retained)} hint="Kept out of Miami this quarter" tone="low" />
+        <Stat
+          label="High-risk population"
+          value={highRisk}
+          hint="Queued for outreach today"
+          tone="critical"
+        />
+        <Stat
+          label="Open system alerts"
+          value={alerts.data?.length ?? 0}
+          hint={`${criticalAlerts.length} critical/high`}
+        />
+        <Stat
+          label="Medication stockouts"
+          value={stockouts}
+          hint="Facilities below safe cover"
+          tone="critical"
+        />
+        <Stat
+          label="Care retained in-region"
+          value={usd(retained)}
+          hint="Kept out of Miami this quarter"
+          tone="low"
+        />
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
@@ -477,7 +505,10 @@ function MinistryHome() {
               <Activity className="h-4 w-4 text-primary" />
               <h3 className="font-display text-[15px] font-semibold">Island risk picture</h3>
             </div>
-            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary"
+            >
               Open coordination <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -490,19 +521,24 @@ function MinistryHome() {
                   <span className="w-24 truncate text-[12.5px] font-medium">{island.name}</span>
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface">
                     <div
-                      className={cn("h-full rounded-full", count > max * 0.6 ? "bg-critical" : "bg-primary")}
+                      className={cn(
+                        "h-full rounded-full",
+                        count > max * 0.6 ? "bg-critical" : "bg-primary",
+                      )}
                       style={{ width: `${Math.max(3, (count / max) * 100)}%` }}
                     />
                   </div>
-                  <span className="w-8 text-right font-mono text-[12px] text-muted-foreground">{count}</span>
+                  <span className="w-8 text-right font-mono text-[12px] text-muted-foreground">
+                    {count}
+                  </span>
                 </div>
               );
             })}
           </div>
           {hotspot && (
             <p className="mt-4 text-[12.5px] text-muted-foreground">
-              Current hotspot: <strong className="text-foreground">{hotspot[0]}</strong> with {hotspot[1]} high-risk
-              patients.
+              Current hotspot: <strong className="text-foreground">{hotspot[0]}</strong> with{" "}
+              {hotspot[1]} high-risk patients.
             </p>
           )}
         </Panel>
@@ -543,19 +579,42 @@ function InsurerHome() {
 
   const members = patients.data ?? [];
   const insured = members.filter((p: Patient) => p.insurer);
-  const enrolled = (grants.data ?? []).filter((g) => g.scope.includes("vitals") && g.status === "active").length;
+  const enrolled = (grants.data ?? []).filter(
+    (g) => g.scope.includes("vitals") && g.status === "active",
+  ).length;
   const retained = (referrals.data ?? []).reduce((s, r) => s + r.retained_value_usd, 0);
-  const highRisk = (risks.data ?? []).filter((r) => r.band === "critical" || r.band === "high").length;
+  const highRisk = (risks.data ?? []).filter(
+    (r) => r.band === "critical" || r.band === "high",
+  ).length;
 
   return (
     <>
       <Greeting subtitle="Live adherence and monitoring data turns chronic-disease pricing from guesswork into an incentive engine." />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Members in network" value={insured.length} hint="With a Caribbean Mutual policy" />
-        <Stat label="Sharing vitals with us" value={enrolled} hint="Consent-gated, member-approved" tone="signal" />
-        <Stat label="High-risk members" value={highRisk} hint="Candidates for outreach incentives" tone="critical" />
-        <Stat label="Avoided evacuation cost" value={usd(retained)} hint="Care routed in-region instead" tone="low" />
+        <Stat
+          label="Members in network"
+          value={insured.length}
+          hint="With a Caribbean Mutual policy"
+        />
+        <Stat
+          label="Sharing vitals with us"
+          value={enrolled}
+          hint="Consent-gated, member-approved"
+          tone="signal"
+        />
+        <Stat
+          label="High-risk members"
+          value={highRisk}
+          hint="Candidates for outreach incentives"
+          tone="critical"
+        />
+        <Stat
+          label="Avoided evacuation cost"
+          value={usd(retained)}
+          hint="Care routed in-region instead"
+          tone="low"
+        />
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
@@ -563,26 +622,32 @@ function InsurerHome() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Coins className="h-4 w-4 text-primary" />
-              <h3 className="font-display text-[15px] font-semibold">How the engine pays for itself</h3>
+              <h3 className="font-display text-[15px] font-semibold">
+                How the engine pays for itself
+              </h3>
             </div>
-            <Link to="/insurer" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary">
+            <Link
+              to="/insurer"
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary"
+            >
               Open insurer engine <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <ul className="mt-4 space-y-3 text-[13.5px] leading-relaxed text-muted-foreground">
             <li className="flex gap-2.5">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-              Members on monitoring streaks earn premium credits — adherence becomes a discount, not a survey.
+              Members on monitoring streaks earn premium credits — adherence becomes a discount, not
+              a survey.
             </li>
             <li className="flex gap-2.5">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-              Every cross-island teleconsult that keeps a member out of Miami saves an order of magnitude versus
-              evacuation and US billing.
+              Every cross-island teleconsult that keeps a member out of Miami saves an order of
+              magnitude versus evacuation and US billing.
             </li>
             <li className="flex gap-2.5">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-              Risk scores recompute daily from real vitals, so pricing reflects this week — not a 1990s actuarial
-              table.
+              Risk scores recompute daily from real vitals, so pricing reflects this week — not a
+              1990s actuarial table.
             </li>
           </ul>
         </Panel>
@@ -593,8 +658,8 @@ function InsurerHome() {
             <h3 className="font-display text-[15px] font-semibold">Data access standing</h3>
           </div>
           <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
-            Every data pull is consent-gated and logged in the shared ledger. Members can revoke at any time, and
-            revocations take effect immediately.
+            Every data pull is consent-gated and logged in the shared ledger. Members can revoke at
+            any time, and revocations take effect immediately.
           </p>
           <Link
             to="/consent"
@@ -630,6 +695,7 @@ function Home() {
           <Greeting subtitle="A coordination layer connecting detection, access and treatment across eight Caribbean islands." />
         </>
       )}
+      {role === "patient" ? null : <ActivityFeed maxHeight="420px" />}
       <SurfaceLinks />
     </div>
   );

@@ -13,7 +13,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authenticated/access-log'
-import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedClinicianRouteImport } from './routes/_authenticated/clinician'
 import { Route as AuthenticatedConsentRouteImport } from './routes/_authenticated/consent'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -49,11 +48,6 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedAccessLogRoute = AuthenticatedAccessLogRouteImport.update({
   id: '/access-log',
   path: '/access-log',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
-  id: '/activity',
-  path: '/activity',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedClinicianRoute = AuthenticatedClinicianRouteImport.update({
@@ -148,7 +142,6 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/access-log': typeof AuthenticatedAccessLogRoute
-  '/activity': typeof AuthenticatedActivityRoute
   '/clinician': typeof AuthenticatedClinicianRoute
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -170,7 +163,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/access-log': typeof AuthenticatedAccessLogRoute
-  '/activity': typeof AuthenticatedActivityRoute
   '/clinician': typeof AuthenticatedClinicianRoute
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -195,7 +187,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/access-log': typeof AuthenticatedAccessLogRoute
-  '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/clinician': typeof AuthenticatedClinicianRoute
   '/_authenticated/consent': typeof AuthenticatedConsentRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -221,7 +212,6 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/access-log'
-    | '/activity'
     | '/clinician'
     | '/consent'
     | '/dashboard'
@@ -243,7 +233,6 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/access-log'
-    | '/activity'
     | '/clinician'
     | '/consent'
     | '/dashboard'
@@ -267,7 +256,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/access-log'
-    | '/_authenticated/activity'
     | '/_authenticated/clinician'
     | '/_authenticated/consent'
     | '/_authenticated/dashboard'
@@ -324,13 +312,6 @@ declare module '@tanstack/react-router' {
       path: '/access-log'
       fullPath: '/access-log'
       preLoaderRoute: typeof AuthenticatedAccessLogRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/activity': {
-      id: '/_authenticated/activity'
-      path: '/activity'
-      fullPath: '/activity'
-      preLoaderRoute: typeof AuthenticatedActivityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clinician': {
@@ -457,7 +438,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessLogRoute: typeof AuthenticatedAccessLogRoute
-  AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
   AuthenticatedClinicianRoute: typeof AuthenticatedClinicianRoute
   AuthenticatedConsentRoute: typeof AuthenticatedConsentRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -477,7 +457,6 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessLogRoute: AuthenticatedAccessLogRoute,
-  AuthenticatedActivityRoute: AuthenticatedActivityRoute,
   AuthenticatedClinicianRoute: AuthenticatedClinicianRoute,
   AuthenticatedConsentRoute: AuthenticatedConsentRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
