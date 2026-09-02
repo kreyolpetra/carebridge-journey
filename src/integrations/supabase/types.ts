@@ -457,6 +457,7 @@ export type Database = {
         Row: {
           accessed_at: string
           actor_name: string | null
+          agreement_id: string | null
           allowed: boolean
           basis: string
           break_glass_id: string | null
@@ -472,6 +473,7 @@ export type Database = {
         Insert: {
           accessed_at?: string
           actor_name?: string | null
+          agreement_id?: string | null
           allowed?: boolean
           basis?: string
           break_glass_id?: string | null
@@ -487,6 +489,7 @@ export type Database = {
         Update: {
           accessed_at?: string
           actor_name?: string | null
+          agreement_id?: string | null
           allowed?: boolean
           basis?: string
           break_glass_id?: string | null
@@ -1132,6 +1135,8 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          licence_no: string | null
+          verification_status: string | null
           facility_id: string | null
           full_name: string
           id: string
@@ -1147,6 +1152,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          licence_no?: string | null
+          verification_status?: string | null
           facility_id?: string | null
           full_name?: string
           id: string
@@ -1162,6 +1169,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          licence_no?: string | null
+          verification_status?: string | null
           facility_id?: string | null
           full_name?: string
           id?: string

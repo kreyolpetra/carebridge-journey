@@ -8,6 +8,7 @@
 // Deterministic by design — see ./core.ts for why.
 
 import type { Condition, ConsentGrant, Medication, Message, Patient, Referral, RiskScore, Vital } from "@/lib/api";
+import { isGrantActive } from "@/lib/access";
 import {
   AGENT_DISCLAIMER,
   denyTool,
@@ -70,7 +71,7 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
   // receives, and the brief says so rather than quietly looking complete.
   const sensitiveConditions = conditions.filter((c) => (c as { sensitivity?: string }).sensitivity && (c as { sensitivity?: string }).sensitivity !== "standard");
   const grantedCategories = new Set(
-    grants.filter((g) => g.status === "granted").flatMap((g) => g.scope),
+    grants.filter((g) => isGrantActive(g.status)).flatMap((g) => g.scope),
   );
 
   for (const c of sensitiveConditions) {

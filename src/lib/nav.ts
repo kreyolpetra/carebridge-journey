@@ -16,6 +16,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { STAFF_ROLE_TIER, type CareTier } from "@/lib/access";
 
 export type NavItem = {
   to:
@@ -37,14 +38,30 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
   roles: string[];
+  /**
+   * Which care tiers may see this item, for users who are clinical staff.
+   * Omitted means every tier. "clinician" is one role covering a consultant
+   * cardiologist and a community nurse alike, so the role alone was never
+   * enough to decide what belongs in someone's sidebar.
+   */
+  tiers?: CareTier[];
   group: "Work" | "Account";
   keywords: string;
 };
 
+const CLINICAL_TIERS: CareTier[] = ["attending", "consulting", "nursing"];
+
 const ALL = ["patient", "clinician", "ministry", "insurer", "admin"];
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Overview", icon: LayoutDashboard, roles: ALL, group: "Work", keywords: "home summary grid" },
+  {
+    to: "/",
+    label: "Overview",
+    icon: LayoutDashboard,
+    roles: ALL,
+    group: "Work",
+    keywords: "home summary grid",
+  },
   {
     to: "/record",
     label: "My record",
@@ -58,6 +75,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Patient line",
     icon: MessageSquareText,
     roles: ["patient", "clinician", "admin"],
+    tiers: CLINICAL_TIERS,
     group: "Work",
     keywords: "whatsapp chat intake triage message",
   },
@@ -65,7 +83,8 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/clinician",
     label: "Clinician console",
     icon: Stethoscope,
-    roles: ["clinician", "ministry", "admin"],
+    roles: ["clinician", "admin"],
+    tiers: CLINICAL_TIERS,
     group: "Work",
     keywords: "queue risk patients teleconsult",
   },
@@ -73,7 +92,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/facility",
     label: "Facility console",
     icon: Hospital,
-    roles: ["clinician", "ministry", "admin"],
+    roles: ["clinician", "admin"],
     group: "Work",
     keywords: "hospital clinic organisation staff encounters shared records",
   },
@@ -81,7 +100,8 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/registry",
     label: "Registry & import",
     icon: Users,
-    roles: ["clinician", "ministry", "admin"],
+    roles: ["clinician", "admin"],
+    tiers: ["attending", "org_admin"],
     group: "Work",
     keywords: "patients staff add csv import export onboarding roster bulk registry",
   },
@@ -90,6 +110,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Prevention engine",
     icon: Megaphone,
     roles: ["clinician", "ministry", "admin"],
+    tiers: CLINICAL_TIERS,
     group: "Work",
     keywords: "campaign cohort outreach screening prevention whatsapp sms",
   },
@@ -98,6 +119,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Early detection",
     icon: Radar,
     roles: ["clinician", "ministry", "admin"],
+    tiers: CLINICAL_TIERS,
     group: "Work",
     keywords: "signals deterioration trend home readings early warning",
   },
@@ -105,7 +127,8 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/interop",
     label: "Records & API",
     icon: Plug,
-    roles: ["clinician", "ministry", "admin"],
+    roles: ["clinician", "admin"],
+    tiers: ["attending", "org_admin"],
     group: "Work",
     keywords: "paper scan digitise upload fhir api interoperability integration",
   },
@@ -114,6 +137,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Coordination",
     icon: Activity,
     roles: ["ministry", "clinician", "admin"],
+    tiers: ["attending", "consulting", "org_admin"],
     group: "Work",
     keywords: "heatmap capacity stockout island",
   },
@@ -168,8 +192,16 @@ const PATIENT_LABELS: Record<string, string> = {
   "/activity": "My activity",
 };
 
-export function navFor(role: string): NavItem[] {
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
+export function navFor(role: string, staffRole?: string | null): NavItem[] {
+  const tier = staffRole ? STAFF_ROLE_TIER[staffRole] : null;
+  const items = NAV_ITEMS.filter((item) => {
+    if (!item.roles.includes(role)) return false;
+    // A tier restriction only bites when we actually know the reader's tier.
+    // Self-signed-up clinicians and the seeded admin have no facility staff
+    // row, and they should not silently lose the whole sidebar.
+    if (!tier || !item.tiers) return true;
+    return item.tiers.includes(tier);
+  });
   if (role !== "patient") return items;
   // Patients see their activity inside "My health", not as a separate page.
   return items

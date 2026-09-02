@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { LogOut, Menu, Search, User2, Radio } from "lucide-react";
+import { LogOut, Menu, Search, User2, Radio, ShieldQuestion } from "lucide-react";
 import { NetworkToggle } from "@/components/NetworkToggle";
 import { NotificationsMenu } from "@/components/app/NotificationsMenu";
 import { CommandPalette } from "@/components/app/CommandPalette";
@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeGrid } from "@/hooks/useRealtime";
 import { navFor } from "@/lib/nav";
+import { useScope } from "@/hooks/useScope";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { cn } from "@/lib/utils";
 import { firstName, initials } from "@/lib/names";
@@ -24,7 +25,13 @@ function Brand() {
   return (
     <Link to="/" className="flex shrink-0 items-center gap-2.5">
       <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/12 text-primary">
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+        >
           <path d="M3 12h4l2-6 3 13 3-9 2 2h4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
@@ -36,7 +43,8 @@ function Brand() {
 }
 
 function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => void }) {
-  const items = navFor(role);
+  const { staffRole } = useScope();
+  const items = navFor(role, staffRole);
   const groups = ["Work", "Account"] as const;
 
   return (
@@ -71,14 +79,78 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
   );
 }
 
+/**
+ * A clinical account that has not been confirmed by its facility holds the role
+ * but none of its reach. Gating at the shell rather than per route means a new
+ * surface cannot forget to check — there is no authenticated page a pending
+ * account can render.
+ */
+function PendingVerification({ onSignOut }: { onSignOut: () => void }) {
+  const { profile } = useAuth();
+  return (
+    <div className="grid min-h-screen place-items-center px-6 py-12">
+      <div className="w-full max-w-[520px]">
+        <div className="flex items-center gap-2.5">
+          <Brand />
+        </div>
+        <div className="panel mt-6 p-8">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-high/12 text-high">
+            <ShieldQuestion className="h-5 w-5" />
+          </span>
+          <h1 className="mt-4 font-display text-[22px] font-bold tracking-tight">
+            Awaiting facility confirmation
+          </h1>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
+            Your account is registered as a clinical account
+            {profile?.licence_no ? ` against registration ${profile.licence_no}` : ""}. Someone at
+            your facility has to confirm that before any patient record opens to you.
+          </p>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            This is not a queue you can skip. A clinical role reaches other people's records, so it
+            is not something an account can assert about itself.
+          </p>
+          <button
+            onClick={onSignOut}
+            className="mt-6 rounded-lg border border-border px-3.5 py-2 text-[13px] font-semibold hover:bg-surface"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { profile, role, signOut } = useAuth();
+  const { session, profile, loading, role, signOut } = useAuth();
   const navigate = useNavigate();
   const live = useRealtimeGrid();
 
   const name = profile?.full_name ?? "Grid user";
+
+  // Until the profile resolves we know the session but not the role, and
+  // useAuth falls back to "patient". Rendering on that fallback would show a
+  // brand-new clinician the patient home for a beat — and, worse, skip the
+  // verification gate below, which needs the profile to fire at all.
+  if (loading || (session && !profile)) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <p className="text-[13px] text-muted-foreground">Opening your workspace…</p>
+      </div>
+    );
+  }
+
+  if (profile && profile.verification_status === "pending") {
+    return (
+      <PendingVerification
+        onSignOut={() => {
+          void signOut().then(() => navigate({ to: "/auth" }));
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -145,7 +217,9 @@ export function AppShell() {
             <span
               className={cn(
                 "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:flex",
-                live ? "border-low/40 bg-low/10 text-low" : "border-border bg-surface text-muted-foreground",
+                live
+                  ? "border-low/40 bg-low/10 text-low"
+                  : "border-border bg-surface text-muted-foreground",
               )}
               title={live ? "Realtime connected" : "Connecting to realtime…"}
             >
@@ -165,7 +239,9 @@ export function AppShell() {
                   <span className="grid h-7 w-7 place-items-center rounded-md bg-primary/12 text-[11px] font-bold text-primary">
                     {initials(name)}
                   </span>
-                  <span className="hidden text-[13px] font-medium sm:inline">{firstName(name)}</span>
+                  <span className="hidden text-[13px] font-medium sm:inline">
+                    {firstName(name)}
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">

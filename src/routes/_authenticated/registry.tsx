@@ -141,7 +141,10 @@ function RegistryPage() {
         knownIslands,
       );
       if (!row.ok) throw new Error(row.error);
-      const { error } = await supabase.from("profiles").insert(row.value as Record<string, unknown>);
+      // Staff added through the registry by their own facility are verified by
+      // that act — a named admin vouched for them — so they skip the pending
+      // queue that self-signup lands in.
+      const { error } = await supabase.from("profiles").insert({ ...row.value, verification_status: "verified" } as never);
       if (error) throw new Error(error.message);
       await audit("staff.create", true, `Created ${staffName} (${staffRole})`);
     },
@@ -191,7 +194,7 @@ function RegistryPage() {
             await supabase.from("conditions").insert({ patient_id: created.id, name, diagnosed_on: null, sensitivity: "standard" });
           }
         } else {
-          const { error } = await supabase.from("profiles").insert(r.value as Record<string, unknown>);
+          const { error } = await supabase.from("profiles").insert({ ...r.value, verification_status: "verified" } as never);
           if (error) throw new Error(error.message);
         }
         written++;

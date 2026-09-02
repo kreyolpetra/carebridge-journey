@@ -136,7 +136,14 @@ export class MockQueryBuilder<T extends Row = Row> implements PromiseLike<Result
       const table = getTable(this.table);
 
       if (this.mode === "select") {
-        const rows = this.sortAndLimit(table.filter((r) => this.matches(r)));
+        // Copy each row on the way out. Reads used to hand back the live store
+        // objects, so an update() that mutated a row in place also mutated the
+        // copy React Query was already holding — the refetch then compared
+        // deeply equal to itself, structural sharing kept the old reference,
+        // and nothing re-rendered until a full reload. Accepting a referral
+        // wrote through to the database and left the screen showing the old
+        // state. Real PostgREST returns fresh JSON every time; so does this now.
+        const rows = this.sortAndLimit(table.filter((r) => this.matches(r))).map((r) => ({ ...r }));
         if (this.wantSingle) {
           if (rows.length !== 1) return { data: null, error: { message: rows.length === 0 ? "Row not found" : "Multiple rows returned" } };
           return { data: rows[0] as T, error: null };

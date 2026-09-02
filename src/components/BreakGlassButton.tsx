@@ -14,7 +14,14 @@ import { STAFF_ROLE_TIER } from "@/lib/access";
 export function BreakGlassButton({ patientId }: { patientId: string }) {
   const { role, profile } = useAuth();
   const qc = useQueryClient();
-  const authorised = role === "clinician" || role === "admin";
+  // Spec §5: licensed clinical staff only. Front desk and facility admins can
+  // never trigger an override, so employment at a facility is not enough — the
+  // staff role has to map to a tier that delivers care.
+  const tier = profile?.staff_role ? STAFF_ROLE_TIER[profile.staff_role] : null;
+  const authorised =
+    (role === "clinician" &&
+      (tier === "attending" || tier === "consulting" || tier === "nursing")) ||
+    role === "admin";
 
   const trigger = useMutation({
     mutationFn: async () => {
@@ -30,8 +37,12 @@ export function BreakGlassButton({ patientId }: { patientId: string }) {
           facility_id: profile?.facility_id ?? null,
           provider_id: profile?.provider_id ?? null,
           actor_name: profile?.full_name ?? "Clinician",
-          actor_tier: profile?.staff_role ? (STAFF_ROLE_TIER[profile.staff_role] ?? "attending") : "attending",
+          actor_tier: tier ?? "attending",
           reason,
+          started_at: new Date().toISOString(),
+          // Spec §5: 24 hours, non-renewable. Without this the override had no
+          // expiry at all, so the resolver would have treated it as permanent.
+          expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
           patient_notified_at: new Date().toISOString(),
           review_status: "pending",
         })

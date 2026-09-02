@@ -7,7 +7,13 @@ import type { Facility } from "@/lib/api";
 /* Lawful bases                                                        */
 /* ------------------------------------------------------------------ */
 
-export type AccessBasis = "treating" | "institutional" | "consent" | "break_glass" | "self";
+/**
+ * The five lawful bases of the spec, plus `none` — which is not a basis but the
+ * recorded absence of one. A refused read is still a read attempt the patient is
+ * entitled to see (spec §7: "every branch writes an access-log row"), so it needs
+ * a value it can be stored and rendered under.
+ */
+export type AccessBasis = "treating" | "institutional" | "consent" | "break_glass" | "self" | "none";
 
 export const BASIS_LABEL: Record<AccessBasis, string> = {
   treating: "Treating facility",
@@ -15,6 +21,7 @@ export const BASIS_LABEL: Record<AccessBasis, string> = {
   consent: "You approved this",
   break_glass: "Emergency override",
   self: "You",
+  none: "Refused — no lawful basis",
 };
 
 export const BASIS_BLURB: Record<AccessBasis, string> = {
@@ -26,6 +33,8 @@ export const BASIS_BLURB: Record<AccessBasis, string> = {
   break_glass:
     "An emergency override taken without your approval to protect life. You are notified within the hour and a governance panel must review it.",
   self: "You opened your own record.",
+  none:
+    "Someone tried to open your record without a lawful basis. Nothing clinical was shown to them, and the attempt was recorded here.",
 };
 
 export const BASIS_TONE: Record<AccessBasis, string> = {
@@ -34,6 +43,7 @@ export const BASIS_TONE: Record<AccessBasis, string> = {
   consent: "border-primary/30 bg-primary/10 text-primary",
   break_glass: "border-critical/40 bg-critical/10 text-critical",
   self: "border-low/40 bg-low/10 text-low",
+  none: "border-critical/40 bg-critical/10 text-critical",
 };
 
 /* ------------------------------------------------------------------ */
@@ -105,6 +115,20 @@ export const SENSITIVE_LABEL: Record<string, string> = Object.fromEntries(
 
 export function isSensitive(sensitivity?: string | null) {
   return !!sensitivity && sensitivity !== "standard";
+}
+
+/**
+ * A consent grant the patient has said yes to.
+ *
+ * The seed wrote "granted" while the consent screen's approve action writes
+ * "active", so readers that checked only one of them disagreed about whether
+ * the same grant existed — the clinician console withheld sensitive entries the
+ * patient had approved, and the patient's own "who can see my record" tile
+ * counted zero. One predicate, used everywhere, so the two spellings can never
+ * drift apart again.
+ */
+export function isGrantActive(status?: string | null) {
+  return status === "active" || status === "granted";
 }
 
 /* ------------------------------------------------------------------ */

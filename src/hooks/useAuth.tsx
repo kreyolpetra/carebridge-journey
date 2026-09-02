@@ -22,6 +22,13 @@ export type Profile = {
   staff_role: string | null;
   is_demo: boolean;
   onboarded: boolean;
+  /**
+   * Clinical roles are claimed at sign-up and verified afterwards. Until a
+   * facility confirms the licence, a self-declared clinician holds the role
+   * but none of its reach — see AppShell's pending gate.
+   */
+  verification_status: string | null;
+  licence_no: string | null;
 };
 
 type AuthValue = {

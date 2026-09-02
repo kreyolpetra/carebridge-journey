@@ -5,6 +5,7 @@
 // without needing a live database. Fixed UUIDs below match the ones the app
 // code references directly (HERO_PATIENT_ID, DEMO_FACILITY, etc).
 import { makeRng, pick, int, chance, uuid, type Rng } from "./rng";
+import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -683,6 +684,12 @@ export function buildSeed(): Tables {
 
   // ---- sensitive grants (one illustrative pending example) ----
   const cardiologyTT = t.providers.find((p) => p.island_code === "TT" && p.specialty === "Cardiology")!;
+  // The demo clinician profile points at this provider row, so they are the same
+  // person and must carry the same name. They did not: the console showed
+  // referrals routed to "Dr. Cheryl Boyce" while the user was signed in as
+  // Dr. Anand Rampersad. Harmless while no referral was ever visible; wrong the
+  // moment one is.
+  cardiologyTT.full_name = DEMO_ACCOUNTS.clinician.name;
   t.sensitive_grants = [
     {
       id: uuid(rng),
@@ -807,8 +814,9 @@ export function buildSeed(): Tables {
   );
 
   // ---- hero patient: triage event, consent grants, access log, messages ----
+  const heroTriageId = uuid(rng);
   t.triage_events.push({
-    id: uuid(rng),
+    id: heroTriageId,
     patient_id: HERO_PATIENT_ID,
     message_id: null,
     severity: "urgent",
@@ -825,7 +833,7 @@ export function buildSeed(): Tables {
     provider_id: cardiologyTT.id,
     scope: ["vitals", "medications", "conditions"],
     purpose: "teleconsult",
-    status: "granted",
+    status: "active",
     granted_at: daysAgo(0.2),
     expires_at: daysAhead(30),
     created_at: daysAgo(0.25),
@@ -846,6 +854,78 @@ export function buildSeed(): Tables {
     actor_name: cardiologyTT.full_name,
     break_glass_id: null,
   });
+  // ---- referrals waiting on the demo cardiologist -------------------------
+  // Every historical referral seeded above closes as `completed`, which left a
+  // consultant's inbox structurally empty: the home surface filters referrals
+  // for status !== completed, so "Referrals routed to me" could only ever read
+  // 0 and the average-local-wait-bypassed tile beside it could only ever read
+  // "—". The routing engine's whole output is a queue on a specialist's desk.
+  //
+  // `routed` is the pre-acceptance state: visible to the clinician, but under
+  // the access model it opens no record until they accept it.
+  const routedReferral = (
+    patient: Row,
+    opts: { reason: string; waitLocal: number; waitRouted: number; need: number; retained: number; ageDays: number; triageId?: string },
+  ): Row => ({
+    id: uuid(rng),
+    patient_id: patient.id,
+    triage_event_id: opts.triageId ?? null,
+    to_provider_id: cardiologyTT.id,
+    specialty: "Cardiology",
+    status: "routed",
+    cross_island: patient.island_code !== "TT",
+    reason: opts.reason,
+    wait_days_local: opts.waitLocal,
+    wait_days_routed: opts.waitRouted,
+    retained_value_usd: opts.retained,
+    need_score: opts.need,
+    prioritised_on_need: opts.need >= 40,
+    patient_island: patient.island_code,
+    created_at: daysAgo(opts.ageDays),
+  });
+
+  const heroPatient = t.patients.find((p) => p.id === HERO_PATIENT_ID)!;
+  t.referrals.push(
+    routedReferral(heroPatient, {
+      reason: "Hypertensive crisis pattern on the 60-day trend; no cardiology slot in JM inside the clinical window",
+      waitLocal: 42,
+      waitRouted: 1,
+      need: 78,
+      retained: 8400,
+      ageDays: 0.2,
+      triageId: heroTriageId,
+    }),
+  );
+
+  // Three more, so the queue reads as a regional allocation problem rather than
+  // one hero patient.
+  const seenPending = new Set<string>([HERO_PATIENT_ID]);
+  const pendingCandidates: Row[] = [];
+  for (const r of [...(t.risk_scores ?? [])].sort((a, b) => (b.score as number) - (a.score as number))) {
+    if (pendingCandidates.length >= 3) break;
+    if (seenPending.has(r.patient_id as string)) continue;
+    const p = t.patients.find((x) => x.id === r.patient_id);
+    if (!p || p.island_code === "TT") continue;
+    seenPending.add(p.id as string);
+    pendingCandidates.push(p);
+  }
+  for (const [i, p] of pendingCandidates.entries()) {
+    const island = ISLANDS.find((isl) => isl.code === p.island_code);
+    const scarce = island?.tier === "under_resourced";
+    t.referrals.push(
+      routedReferral(p, {
+        reason: scarce
+          ? `No cardiology capacity in ${p.island_code} — routed on need`
+          : "Capacity-aware routing: next local cardiology slot falls outside the clinical window",
+        waitLocal: scarce ? 168 : 39,
+        waitRouted: 2 + i,
+        need: scarce ? 71 : 46,
+        retained: 3200 + i * 1900,
+        ageDays: 0.5 + i,
+      }),
+    );
+  }
+
   t.messages.push(
     { id: uuid(rng), patient_id: HERO_PATIENT_ID, direction: "in", body: "Mi head a hurt mi bad and mi nuh see clear. Mi pressure high?", kind: "text", language: "jam", channel: "whatsapp", queued_offline: false, delivered_at: daysAgo(0.26), created_at: daysAgo(0.26) },
     { id: uuid(rng), patient_id: HERO_PATIENT_ID, direction: "out", body: "Thank you for the message. We have your readings and a care team member is reviewing them now. Please rest, drink water, and do not take any extra tablets until we come back to you.", kind: "text", language: "jam", channel: "whatsapp", queued_offline: false, delivered_at: daysAgo(0.25), created_at: daysAgo(0.25) },
@@ -1103,6 +1183,7 @@ export function buildSeed(): Tables {
       staff_role: null,
       is_demo: true,
       onboarded: true,
+      verification_status: "verified",
       created_at: daysAgo(365),
       updated_at: daysAgo(0),
     },
@@ -1116,8 +1197,10 @@ export function buildSeed(): Tables {
       organisation: "Jamaica Community Clinic",
       facility_id: JM_CLINIC_ID,
       staff_role: "nurse",
+      licence_no: "NCJ-2014-08822",
       is_demo: true,
       onboarded: true,
+      verification_status: "verified",
       created_at: daysAgo(365),
       updated_at: daysAgo(0),
     },
@@ -1131,8 +1214,10 @@ export function buildSeed(): Tables {
       organisation: "Trinidad and Tobago General Hospital",
       facility_id: TT_HOSPITAL_ID,
       staff_role: "doctor",
+      licence_no: "MCTT-2009-01173",
       is_demo: true,
       onboarded: true,
+      verification_status: "verified",
       created_at: daysAgo(365),
       updated_at: daysAgo(0),
     },
@@ -1148,6 +1233,7 @@ export function buildSeed(): Tables {
       staff_role: null,
       is_demo: true,
       onboarded: true,
+      verification_status: "verified",
       created_at: daysAgo(365),
       updated_at: daysAgo(0),
     },
@@ -1163,6 +1249,7 @@ export function buildSeed(): Tables {
       staff_role: null,
       is_demo: true,
       onboarded: true,
+      verification_status: "verified",
       created_at: daysAgo(365),
       updated_at: daysAgo(0),
     },

@@ -21,7 +21,8 @@ import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { bandClasses, severityClasses, shortDate, timeAgo, clockTime, LANGUAGE_LABEL } from "@/lib/format";
 import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
-import { SENSITIVE_LABEL, isSensitive } from "@/lib/access";
+import { SENSITIVE_LABEL, isSensitive, isGrantActive } from "@/lib/access";
+import { useAccessDecision } from "@/lib/access-basis";
 
 export const Route = createFileRoute("/_authenticated/record")({
   head: () => ({
@@ -48,7 +49,10 @@ function MyRecord() {
   const { isPatient, patientId } = useScope();
   const id = isPatient ? (patientId ?? HERO_PATIENT_ID) : HERO_PATIENT_ID;
   const bundle = useQuery(patientBundleQuery(id));
-  useLogRecordAccess(isPatient ? null : id, "Full clinical record (record view)");
+  // A third party opening this view resolves a basis like anywhere else; a
+  // patient reading their own record is not a third-party access at all.
+  const accessDecision = useAccessDecision(isPatient ? null : id);
+  useLogRecordAccess(isPatient ? null : id, "Full clinical record (record view)", accessDecision);
   const providers = useQuery(providersQuery);
   const [openVisit, setOpenVisit] = useState<Consultation | null>(null);
   const b = bundle.data;
@@ -363,7 +367,7 @@ function MyRecord() {
                     {g.purpose} · {g.scope.join(", ")}
                   </div>
                 </div>
-                <Pill className={bandClasses(g.status === "granted" ? "low" : g.status === "pending" ? "moderate" : "critical")}>
+                <Pill className={bandClasses(isGrantActive(g.status) ? "low" : g.status === "pending" ? "moderate" : "critical")}>
                   {g.status}
                 </Pill>
               </div>

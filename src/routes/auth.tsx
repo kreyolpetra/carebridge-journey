@@ -1,9 +1,21 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Activity, ArrowRight, Coins, Hospital, Loader2, MessageSquareText, ShieldCheck, Stethoscope } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  Coins,
+  Hospital,
+  Loader2,
+  MessageSquareText,
+  ShieldCheck,
+  Stethoscope,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { facilitiesQuery } from "@/lib/api";
 import { demoSignIn, provisionProfile } from "@/lib/auth.functions";
+import { useAuth } from "@/hooks/useAuth";
 import { DEMO_ACCOUNTS, type DemoPersona } from "@/lib/demo-accounts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +34,8 @@ export const Route = createFileRoute("/auth")({
       { property: "og:title", content: "Sign in — CariCare Grid" },
       {
         property: "og:description",
-        content: "The front door to Caribbean healthcare. One identity, one record, one triage brain.",
+        content:
+          "The front door to Caribbean healthcare. One identity, one record, one triage brain.",
       },
     ],
   }),
@@ -43,11 +56,20 @@ const PERSONA_ICON: Record<DemoPersona, typeof Activity> = {
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
   const [busy, setBusy] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<DemoPersona>("clinician");
+  const [role, setRole] = useState<DemoPersona>("patient");
+  const [licenceNo, setLicenceNo] = useState("");
+  const [facilityId, setFacilityId] = useState("");
+  const [staffRole, setStaffRole] = useState("doctor");
+  const facilities = useQuery(facilitiesQuery);
+
+  // Roles that can reach another person's record have to be claimed against
+  // something checkable. The default is "patient" for the same reason.
+  const needsVerification = role === "clinician";
 
   const enterDemo = async (persona: DemoPersona) => {
     setBusy(persona);
@@ -76,6 +98,12 @@ function AuthPage() {
   };
 
   const signUp = async () => {
+    if (needsVerification && (!licenceNo.trim() || !facilityId)) {
+      toast.error(
+        "A clinical account needs your registration number and the facility that can confirm it",
+      );
+      return;
+    }
     setBusy("signup");
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -88,11 +116,28 @@ function AuthPage() {
       return;
     }
     if (data.user) {
-      await provisionProfile({ data: { userId: data.user.id, fullName: fullName || email, role } });
+      await provisionProfile({
+        data: {
+          userId: data.user.id,
+          fullName: fullName || email,
+          role,
+          licenceNo: needsVerification ? licenceNo.trim() : null,
+          facilityId: needsVerification ? facilityId : null,
+          staffRole: needsVerification ? staffRole : null,
+        },
+      });
+      // The auth listener loaded a profile that did not exist yet, so the
+      // context is holding null. Without this the shell falls back to the
+      // "patient" default and walks straight past the verification gate.
+      await refreshProfile();
     }
     setBusy(null);
     if (data.session) {
-      toast.success("Account created");
+      toast.success(
+        needsVerification
+          ? "Account created — your facility must confirm your registration before records open"
+          : "Account created",
+      );
       void navigate({ to: "/" });
     } else {
       toast.success("Account created — check your email to confirm, then sign in.");
@@ -106,7 +151,13 @@ function AuthPage() {
         <div className="relative">
           <div className="flex items-center gap-2.5">
             <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/12 text-primary">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+              >
                 <path d="M3 12h4l2-6 3 13 3-9 2 2h4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
@@ -121,9 +172,9 @@ function AuthPage() {
             The front door to healthcare in the Caribbean.
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-            WhatsApp intake in Kreyòl, Patois and Spanish, AI triage that catches deterioration early, and
-            routing that allocates scarce specialist time by need — so care reaches Haiti, not only the
-            islands that can already afford it.
+            WhatsApp intake in Kreyòl, Patois and Spanish, AI triage that catches deterioration
+            early, and routing that allocates scarce specialist time by need — so care reaches
+            Haiti, not only the islands that can already afford it.
           </p>
           <div className="mt-8 grid grid-cols-3 gap-3">
             {[
@@ -164,11 +215,19 @@ function AuthPage() {
                   className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:border-primary/50 hover:bg-surface disabled:opacity-60"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
-                    {busy === persona ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                    {busy === persona ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-[13.5px] font-semibold">{account.name}</span>
-                    <span className="block truncate text-[12px] text-muted-foreground">{account.blurb}</span>
+                    <span className="block truncate text-[13.5px] font-semibold">
+                      {account.name}
+                    </span>
+                    <span className="block truncate text-[12px] text-muted-foreground">
+                      {account.blurb}
+                    </span>
                   </span>
                   <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                 </button>
@@ -178,7 +237,9 @@ function AuthPage() {
 
           <div className="my-6 flex items-center gap-3">
             <span className="h-px flex-1 bg-border" />
-            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">or use an account</span>
+            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              or use an account
+            </span>
             <span className="h-px flex-1 bg-border" />
           </div>
 
@@ -191,11 +252,21 @@ function AuthPage() {
             <TabsContent value="signin" className="mt-4 space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
               <Button className="w-full" onClick={() => void signIn()} disabled={busy !== null}>
                 {busy === "signin" ? "Signing in…" : "Sign in"}
@@ -209,11 +280,21 @@ function AuthPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email2">Email</Label>
-                <Input id="email2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input
+                  id="email2"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="password2">Password</Label>
-                <Input id="password2" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input
+                  id="password2"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="role">I am a…</Label>
@@ -229,6 +310,56 @@ function AuthPage() {
                   <option value="insurer">Insurer</option>
                 </select>
               </div>
+
+              {needsVerification ? (
+                <div className="space-y-3 rounded-xl border border-border bg-surface p-3.5">
+                  <p className="text-[12px] leading-relaxed text-muted-foreground">
+                    Clinical accounts reach other people's records, so the claim is checked. You can
+                    sign in straight away, but no patient record opens until{" "}
+                    {facilities.data?.find((f) => f.id === facilityId)?.name ?? "your facility"}{" "}
+                    confirms this registration.
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="licence">Medical / nursing council registration number</Label>
+                    <Input
+                      id="licence"
+                      value={licenceNo}
+                      onChange={(e) => setLicenceNo(e.target.value)}
+                      placeholder="e.g. MCTT-2019-04417"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="facility">Facility that can confirm you</Label>
+                    <select
+                      id="facility"
+                      value={facilityId}
+                      onChange={(e) => setFacilityId(e.target.value)}
+                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-[13.5px]"
+                    >
+                      <option value="">Select a facility…</option>
+                      {(facilities.data ?? []).map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} · {f.island_code}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="staffRole">Your role there</Label>
+                    <select
+                      id="staffRole"
+                      value={staffRole}
+                      onChange={(e) => setStaffRole(e.target.value)}
+                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-[13.5px]"
+                    >
+                      <option value="doctor">Doctor</option>
+                      <option value="nurse">Nurse</option>
+                      <option value="front_desk">Front desk / registration</option>
+                      <option value="org_admin">Facility admin</option>
+                    </select>
+                  </div>
+                </div>
+              ) : null}
               <Button className="w-full" onClick={() => void signUp()} disabled={busy !== null}>
                 {busy === "signup" ? "Creating…" : "Create account"}
               </Button>

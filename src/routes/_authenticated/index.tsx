@@ -21,6 +21,9 @@ import { activityQuery, type ActivityItem } from "@/lib/activity";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { navFor } from "@/lib/nav";
+import { useScope } from "@/hooks/useScope";
+import { useAccessIndex } from "@/lib/access-basis";
+import { isGrantActive } from "@/lib/access";
 import { firstName } from "@/lib/names";
 import {
   ArrowRight,
@@ -96,7 +99,8 @@ function Greeting({ subtitle }: { subtitle: string }) {
 
 function SurfaceLinks() {
   const { role } = useAuth();
-  const items = navFor(role).filter((i) => i.group === "Work" && i.to !== "/");
+  const { staffRole } = useScope();
+  const items = navFor(role, staffRole).filter((i) => i.group === "Work" && i.to !== "/");
   if (!items.length) return null;
   return (
     <section>
@@ -134,7 +138,7 @@ function PatientHome() {
 
   const risk = bundle.data?.risk;
   const latestVital = bundle.data?.vitals[0];
-  const activeGrants = (bundle.data?.grants ?? []).filter((g) => g.status === "active");
+  const activeGrants = (bundle.data?.grants ?? []).filter((g) => isGrantActive(g.status));
   const meds = bundle.data?.medications ?? [];
   const lowMeds = meds.filter((m) => m.days_supply_left <= 7);
   const adherence = meds.length
@@ -314,8 +318,14 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
   const referrals = useQuery(referralsQuery);
   const slots = useQuery(slotsQuery);
 
+  const { index: access, ready: accessReady } = useAccessIndex();
+
   const patientById = new Map((patients.data ?? []).map((p) => [p.id, p]));
-  const queue = (risks.data ?? []).filter((r) => r.band === "critical" || r.band === "high");
+  // Same rule as the console: the tile counts this clinician's own panel, and
+  // the named list below only ever shows patients a lawful basis reaches.
+  const regionQueue = (risks.data ?? []).filter((r) => r.band === "critical" || r.band === "high");
+  const queue = accessReady ? regionQueue.filter((r) => access.decide(r.patient_id).allowed) : [];
+  const restricted = regionQueue.length - queue.length;
   const myReferrals = (referrals.data ?? []).filter(
     (r) => provider && r.to_provider_id === provider.id && r.status !== "completed",
   );
@@ -329,7 +339,12 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
       />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="High-risk queue" value={queue.length} hint="Critical + high, region-wide" tone="critical" />
+        <Stat
+          label="High-risk queue"
+          value={queue.length}
+          hint={restricted > 0 ? `Your panel · ${restricted} more outside your access` : "Critical + high, your panel"}
+          tone="critical"
+        />
         <Stat
           label="Referrals routed to me"
           value={myReferrals.length}

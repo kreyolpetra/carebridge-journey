@@ -10,9 +10,42 @@ export async function demoSignIn({ data }: { data: { persona: DemoPersona } }) {
   return { email: account.email, password: DEMO_PASSWORD };
 }
 
-export async function provisionProfile({ data }: { data: { userId: string; fullName: string; role: string } }) {
+/** Roles that carry access to other people's records, and so cannot be self-declared. */
+const VERIFIED_ROLES = new Set(["clinician", "ministry", "insurer", "admin"]);
+
+export async function provisionProfile({
+  data,
+}: {
+  data: {
+    userId: string;
+    fullName: string;
+    role: string;
+    licenceNo?: string | null;
+    facilityId?: string | null;
+    staffRole?: string | null;
+  };
+}) {
   const { supabase } = await import("@/integrations/supabase/client");
-  await supabase.from("profiles").upsert({ id: data.userId, full_name: data.fullName, primary_role: data.role, onboarded: false }, { onConflict: "id" });
-  await supabase.from("user_roles").upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id,role" });
-  return { ok: true };
+  // Signing up as a clinician used to grant the role outright: a dropdown
+  // selection was enough to read identified charts. The role is still recorded
+  // — it is what the facility will verify against — but it starts pending, and
+  // AppShell holds a pending account out of every clinical surface.
+  const verification_status = VERIFIED_ROLES.has(data.role) ? "pending" : "verified";
+  await supabase.from("profiles").upsert(
+    {
+      id: data.userId,
+      full_name: data.fullName,
+      primary_role: data.role,
+      onboarded: false,
+      verification_status,
+      licence_no: data.licenceNo ?? null,
+      facility_id: data.facilityId ?? null,
+      staff_role: (data.staffRole ?? null) as never,
+    },
+    { onConflict: "id" },
+  );
+  await supabase
+    .from("user_roles")
+    .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id,role" });
+  return { ok: true, verification_status };
 }

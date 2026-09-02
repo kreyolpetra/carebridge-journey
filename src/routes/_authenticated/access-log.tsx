@@ -41,6 +41,11 @@ export const Route = createFileRoute("/_authenticated/access-log")({
 });
 
 const BASES: AccessBasis[] = ["treating", "institutional", "consent", "break_glass"];
+// Refused attempts are part of the log by right (spec §6: "including denied
+// attempts"), so they get their own filter rather than being visible only in
+// the unfiltered list. They are not a lawful basis, so they stay out of BASES
+// and out of the "what the labels mean" explainer below.
+const FILTERS: (AccessBasis | "all")[] = ["all", ...BASES, "none"];
 
 function AccessLog() {
   const { isPatient, patientId } = useScope();
@@ -100,7 +105,7 @@ function AccessLog() {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(["all", ...BASES] as const).map((b) => (
+        {FILTERS.map((b) => (
           <button
             key={b}
             onClick={() => setFilter(b)}
