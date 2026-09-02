@@ -2,18 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Sparkles, ShieldAlert, Lock } from "lucide-react";
+import { Sparkles, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   HERO_PATIENT_ID,
@@ -22,9 +11,7 @@ import {
   patientsQuery,
   providersQuery,
   riskScoresQuery,
-  referralsQuery,
   type Patient,
-  type Referral,
   type RiskScore,
 } from "@/lib/api";
 import { runClinicianBrief } from "@/lib/agents/clinician";
@@ -33,10 +20,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
-import { BASIS_LABEL, BASIS_TONE, TIER_LABEL, TIER_SCOPE, isGrantActive } from "@/lib/access";
-import { BreakGlassButton } from "@/components/BreakGlassButton";
+import { PatientChart } from "@/components/patient/PatientChart";
+import { NoBasisPanel } from "@/components/patient/NoBasisPanel";
 import { Panel, PanelHeader, Pill, Loading, Stat } from "@/components/grid";
-import { bandClasses, severityClasses, shortDate, timeAgo } from "@/lib/format";
+import { bandClasses } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/clinician")({
   head: () => ({
@@ -78,18 +65,6 @@ function Clinician() {
   // record we already pulled into the browser would be theatre, not access
   // control.
   const bundle = useQuery({ ...patientBundleQuery(selected), enabled: decision?.allowed === true });
-  const allReferrals = useQuery(referralsQuery);
-  // The referral that would open this record if the clinician accepted it. It
-  // has to be reachable from the refusal itself — the chart panel that normally
-  // carries "Open teleconsult" is exactly what a refusal withholds, so without
-  // this there was no way out of the refused state.
-  const pendingReferral = useMemo(
-    () =>
-      (allReferrals.data ?? []).find(
-        (r) => r.patient_id === selected && r.to_provider_id === profile?.provider_id && r.status === "routed",
-      ) ?? null,
-    [allReferrals.data, selected, profile?.provider_id],
-  );
   const qc = useQueryClient();
   useLogRecordAccess(selected, "Full clinical record (clinician console)", decision);
 
@@ -167,26 +142,6 @@ function Clinician() {
   });
 
   const b = bundle.data;
-  const providerName = (id: string | null) =>
-    providers.data?.find((p) => p.id === id)?.full_name ?? "Unassigned";
-
-  // Sensitive categories are gated independently of the care relationship, so
-  // the chart must apply the same rule the agent does. Without this the console
-  // rendered entries the agent had just refused to read.
-  const grantedCategories = useMemo(
-    () => new Set((b?.grants ?? []).filter((g) => isGrantActive(g.status)).flatMap((g) => g.scope)),
-    [b?.grants],
-  );
-  const visibleConditions = useMemo(
-    () =>
-      (b?.conditions ?? []).filter((c) => {
-        const s = (c as { sensitivity?: string }).sensitivity;
-        return !s || s === "standard" || grantedCategories.has(s);
-      }),
-    [b?.conditions, grantedCategories],
-  );
-  const withheldConditions = (b?.conditions.length ?? 0) - visibleConditions.length;
-
   // ---- pre-consult brief agent -------------------------------------------
   const islands = useQuery(islandsQuery);
   const [briefFor, setBriefFor] = useState<string | null>(null);
@@ -215,20 +170,6 @@ function Clinician() {
       islandTier: island?.tier,
     });
   }, [b, briefFor, selected, islands.data, providers.data, profile]);
-
-  const chartData = useMemo(
-    () =>
-      (b?.vitals ?? [])
-        .slice()
-        .reverse()
-        .map((v) => ({
-          date: shortDate(v.measured_at),
-          systolic: v.systolic,
-          diastolic: v.diastolic,
-          glucose: v.glucose_mmol ? Number(v.glucose_mmol) : null,
-        })),
-    [b?.vitals],
-  );
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
@@ -308,13 +249,7 @@ function Clinician() {
 
         <div className="space-y-4">
           {decision && !decision.allowed ? (
-            <NoBasisPanel
-              patientId={selected}
-              decision={decision}
-              pendingReferral={pendingReferral}
-              onAccept={() => acceptConsult.mutate(pendingReferral!.id)}
-              accepting={acceptConsult.isPending}
-            />
+            <NoBasisPanel patientId={selected} decision={decision} />
           ) : !b ? (
             <Panel>
               <Loading label="Assembling the longitudinal record…" />
@@ -353,373 +288,29 @@ function Clinician() {
                   }}
                 />
               )}
-              <Panel>
-                <PanelHeader
-                  title={`${b.patient.full_name} · ${b.patient.age}${b.patient.sex}`}
-                  subtitle={`${b.patient.parish}, ${b.patient.island_code} · ${b.patient.km_to_facility} km from care · ${b.patient.insurer ?? "Uninsured"}`}
-                  right={
-                    <div className="flex items-center gap-2">
-                      {decision ? (
-                        <Pill className={BASIS_TONE[decision.basis]}>
-                          {BASIS_LABEL[decision.basis]}
-                        </Pill>
-                      ) : null}
-                      {b.risk ? (
-                        <Pill className={bandClasses(b.risk.band)}>risk {b.risk.score}</Pill>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBriefFor(selected);
-                          setBriefDecision(null);
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/20"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {briefFor === selected ? "Re-run brief" : "Prepare consult brief"}
-                      </button>
-                      <BreakGlassButton patientId={b.patient.id} />
-                    </div>
-                  }
-                />
-                {/* The basis is stated on the chart, not buried in a tooltip:
-                    the clinician should know which instrument they are reading
-                    under, because it is the same sentence the patient will see
-                    in their access log. */}
-                {decision ? (
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-border bg-surface px-5 py-2.5 text-[12px] text-muted-foreground">
-                    <span className="font-semibold text-foreground">{decision.detail}</span>
-                    {decision.tier ? (
-                      <span>
-                        · {TIER_LABEL[decision.tier]} — {TIER_SCOPE[decision.tier].toLowerCase()}
-                      </span>
-                    ) : null}
-                    {decision.expiresAt ? (
-                      <span>· access closes {shortDate(decision.expiresAt)}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div className="grid gap-4 p-5 md:grid-cols-3">
-                  <div>
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Conditions
-                    </h4>
-                    <ul className="mt-2 space-y-1 text-[13px]">
-                      {visibleConditions.map((c) => (
-                        <li key={c.id}>
-                          {c.name}{" "}
-                          <span className="text-muted-foreground">
-                            since {new Date(c.diagnosed_on).getFullYear()}
-                          </span>
-                        </li>
-                      ))}
-                      {/* Redaction, not concealment: the clinician is told a
-                          restricted entry exists rather than being shown a chart
-                          that silently looks complete. */}
-                      {withheldConditions > 0 ? (
-                        <li className="flex items-start gap-1.5 text-high">
-                          <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                          <span>
-                            {withheldConditions} restricted{" "}
-                            {withheldConditions === 1 ? "entry" : "entries"} withheld — no active
-                            grant
-                          </span>
-                        </li>
-                      ) : null}
-                      {!visibleConditions.length && !withheldConditions ? (
-                        <li className="text-muted-foreground">None recorded</li>
-                      ) : null}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Medications
-                    </h4>
-                    <ul className="mt-2 space-y-1 text-[13px]">
-                      {b.medications.map((m) => (
-                        <li key={m.id}>
-                          {m.name} {m.dosage}{" "}
-                          <span
-                            className={
-                              m.adherence_pct < 70 ? "text-critical" : "text-muted-foreground"
-                            }
-                          >
-                            · {m.adherence_pct}% adherence · {m.days_supply_left}d supply
-                          </span>
-                        </li>
-                      ))}
-                      {!b.medications.length ? (
-                        <li className="text-muted-foreground">None recorded</li>
-                      ) : null}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Risk drivers
-                    </h4>
-                    <ul className="mt-2 space-y-1 text-[13px]">
-                      {(b.risk?.drivers ?? []).map((d) => (
-                        <li key={d.label} className="flex justify-between gap-3">
-                          <span className="text-muted-foreground">{d.label}</span>
-                          <span className="mono-num">+{d.points}</span>
-                        </li>
-                      ))}
-                      {!b.risk ? <li className="text-muted-foreground">Not yet scored</li> : null}
-                    </ul>
-                  </div>
-                </div>
-              </Panel>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Panel>
-                  <PanelHeader title="Blood pressure" subtitle="Home readings via WhatsApp" />
-                  <div className="h-[220px] p-3">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                          minTickGap={24}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                          width={32}
-                          domain={[50, 200]}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                            borderRadius: 10,
-                            fontSize: 12,
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="systolic"
-                          stroke="var(--color-critical)"
-                          dot={false}
-                          strokeWidth={2}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="diastolic"
-                          stroke="var(--color-primary)"
-                          dot={false}
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Panel>
-                <Panel>
-                  <PanelHeader title="Glucose" subtitle="mmol/L" />
-                  <div className="h-[220px] p-3">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData}>
-                        <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                          minTickGap={24}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                          width={32}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            background: "var(--color-card)",
-                            border: "1px solid var(--color-border)",
-                            borderRadius: 10,
-                            fontSize: 12,
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="glucose"
-                          stroke="var(--color-moderate)"
-                          fill="var(--color-moderate)"
-                          fillOpacity={0.18}
-                          strokeWidth={2}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Panel>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Panel>
-                  <PanelHeader
-                    title="Triage history"
-                    subtitle="Every inbound message, clinically read"
-                  />
-                  <div className="max-h-[320px] space-y-3 overflow-y-auto p-5">
-                    {b.triage.map((t) => (
-                      <div key={t.id} className="rounded-lg border border-border bg-surface p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <Pill className={severityClasses(t.severity)}>
-                            {t.severity.replace("_", " ")}
-                          </Pill>
-                          <span className="text-[11.5px] text-muted-foreground">
-                            {timeAgo(t.created_at)}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-[13px] font-semibold">{t.category}</div>
-                        <p className="mt-1 text-[12.5px] text-muted-foreground">{t.rationale}</p>
-                      </div>
-                    ))}
-                    {!b.triage.length ? (
-                      <p className="text-[13px] text-muted-foreground">
-                        No triage events yet for this patient.
-                      </p>
-                    ) : null}
-                  </div>
-                </Panel>
-
-                <Panel>
-                  <PanelHeader
-                    title="Referrals & teleconsults"
-                    subtitle="Cross-island routing for this patient"
-                  />
-                  <div className="max-h-[320px] space-y-3 overflow-y-auto p-5">
-                    {b.referrals.map((r) => (
-                      <div key={r.id} className="rounded-lg border border-border bg-surface p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-semibold">
-                            {r.specialty} · {providerName(r.to_provider_id)}
-                          </span>
-                          <Pill className="border-border bg-background text-muted-foreground">
-                            {r.status}
-                          </Pill>
-                        </div>
-                        <p className="mt-1 text-[12.5px] text-muted-foreground">
-                          {r.cross_island ? "Cross-island" : "On-island"} · local wait{" "}
-                          {r.wait_days_local}d → routed {r.wait_days_routed}d · $
-                          {r.retained_value_usd.toLocaleString()} retained in-region
-                        </p>
-                        {r.status === "routed" ? (
-                          <button
-                            onClick={() => acceptConsult.mutate(r.id)}
-                            className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground"
-                          >
-                            Open teleconsult
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                    {!b.referrals.length ? (
-                      <p className="text-[13px] text-muted-foreground">No referrals raised yet.</p>
-                    ) : null}
-                  </div>
-                </Panel>
-              </div>
+              <PatientChart
+                bundle={b}
+                decision={decision}
+                providers={providers.data ?? []}
+                onAcceptReferral={(id) => acceptConsult.mutate(id)}
+                headerActions={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBriefFor(selected);
+                      setBriefDecision(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/20"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {briefFor === selected ? "Re-run brief" : "Prepare consult brief"}
+                  </button>
+                }
+              />
             </>
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * What a clinician sees when no lawful basis resolves. It deliberately shows
- * nothing clinical — not even the patient's name — because the whole point is
- * that the reader has not established a right to know who this is. The refusal
- * is already written to the patient's access log by useLogRecordAccess.
- */
-function NoBasisPanel({
-  patientId,
-  decision,
-  pendingReferral,
-  onAccept,
-  accepting,
-}: {
-  patientId: string;
-  decision: AccessDecision;
-  pendingReferral: Referral | null;
-  onAccept: () => void;
-  accepting: boolean;
-}) {
-  const { profile } = useAuth();
-  const { isAggregateOnly } = useScope();
-  const qc = useQueryClient();
-
-  const requestConsent = useMutation({
-    mutationFn: async () => {
-      const purpose = window.prompt(
-        "The patient will see this request in their care line. What are you asking to review, and why?",
-        "Cross-island cardiology review of blood pressure trend and current medications",
-      );
-      if (!purpose) return null;
-      const { error } = await supabase.from("consent_grants").insert({
-        patient_id: patientId,
-        provider_id: profile?.provider_id ?? null,
-        scope: ["vitals", "medications", "conditions"],
-        purpose,
-        status: "pending",
-        granted_at: null,
-        expires_at: null,
-      });
-      if (error) throw new Error(error.message);
-      return true;
-    },
-    onSuccess: (ok) => {
-      if (!ok) return;
-      toast.success("Consent request sent — the patient decides on their care line");
-      void qc.invalidateQueries({ queryKey: ["consent_grants"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return (
-    <Panel>
-      <div className="flex flex-col items-start gap-4 p-8">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-critical/10 text-critical">
-          <Lock className="h-5 w-5" />
-        </span>
-        <div>
-          <h3 className="font-display text-[17px] font-semibold tracking-tight">
-            No lawful basis for this record
-          </h3>
-          <p className="mt-1.5 max-w-xl text-[13.5px] leading-relaxed text-muted-foreground">
-            {decision.detail}
-          </p>
-          <p className="mt-3 max-w-xl text-[12.5px] leading-relaxed text-muted-foreground">
-            This attempt has been recorded in the patient's access log, which they can read. Nothing
-            clinical was loaded.
-          </p>
-        </div>
-        {/* Ministry and insurer have no route to an identified record at all,
-            so offering them a way to ask for one would misdescribe the model. */}
-        {isAggregateOnly ? null : (
-          <div className="flex flex-wrap items-center gap-2">
-            {pendingReferral ? (
-              <button
-                onClick={onAccept}
-                disabled={accepting}
-                className="rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                {accepting ? "Accepting…" : `Accept the ${pendingReferral.specialty.toLowerCase()} referral`}
-              </button>
-            ) : null}
-            <button
-              onClick={() => requestConsent.mutate()}
-              disabled={requestConsent.isPending}
-              className={
-                pendingReferral
-                  ? "rounded-lg border border-border px-3.5 py-2 text-[13px] font-semibold hover:bg-surface disabled:opacity-60"
-                  : "rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground disabled:opacity-60"
-              }
-            >
-              Request the patient's consent
-            </button>
-            <BreakGlassButton patientId={patientId} />
-          </div>
-        )}
-      </div>
-    </Panel>
   );
 }

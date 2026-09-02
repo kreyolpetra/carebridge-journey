@@ -22,10 +22,12 @@ import { Route as AuthenticatedFacilityRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedInsurerRouteImport } from './routes/_authenticated/insurer'
 import { Route as AuthenticatedInteropRouteImport } from './routes/_authenticated/interop'
 import { Route as AuthenticatedPatientRouteImport } from './routes/_authenticated/patient'
+import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticated/patients'
 import { Route as AuthenticatedPreventionRouteImport } from './routes/_authenticated/prevention'
 import { Route as AuthenticatedRecordRouteImport } from './routes/_authenticated/record'
 import { Route as AuthenticatedRegistryRouteImport } from './routes/_authenticated/registry'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedPatientsPatientIdRouteImport } from './routes/_authenticated/patients_.$patientId'
 import { Route as ApiPublicFhirMetadataRouteImport } from './routes/api/public/fhir/metadata'
 import { Route as ApiPublicFhirObservationRouteImport } from './routes/api/public/fhir/observation'
 import { Route as ApiPublicFhirPatientIdRouteImport } from './routes/api/public/fhir/patient.$id'
@@ -94,6 +96,11 @@ const AuthenticatedPatientRoute = AuthenticatedPatientRouteImport.update({
   path: '/patient',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPatientsRoute = AuthenticatedPatientsRouteImport.update({
+  id: '/patients',
+  path: '/patients',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPreventionRoute = AuthenticatedPreventionRouteImport.update({
   id: '/prevention',
   path: '/prevention',
@@ -114,6 +121,12 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPatientsPatientIdRoute =
+  AuthenticatedPatientsPatientIdRouteImport.update({
+    id: '/patients_/$patientId',
+    path: '/patients/$patientId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicFhirMetadataRoute = ApiPublicFhirMetadataRouteImport.update({
   id: '/api/public/fhir/metadata',
   path: '/api/public/fhir/metadata',
@@ -144,10 +157,12 @@ export interface FileRoutesByFullPath {
   '/insurer': typeof AuthenticatedInsurerRoute
   '/interop': typeof AuthenticatedInteropRoute
   '/patient': typeof AuthenticatedPatientRoute
+  '/patients': typeof AuthenticatedPatientsRoute
   '/prevention': typeof AuthenticatedPreventionRoute
   '/record': typeof AuthenticatedRecordRoute
   '/registry': typeof AuthenticatedRegistryRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/patients/$patientId': typeof AuthenticatedPatientsPatientIdRoute
   '/api/public/fhir/metadata': typeof ApiPublicFhirMetadataRoute
   '/api/public/fhir/observation': typeof ApiPublicFhirObservationRoute
   '/api/public/fhir/patient/$id': typeof ApiPublicFhirPatientIdRoute
@@ -164,11 +179,13 @@ export interface FileRoutesByTo {
   '/insurer': typeof AuthenticatedInsurerRoute
   '/interop': typeof AuthenticatedInteropRoute
   '/patient': typeof AuthenticatedPatientRoute
+  '/patients': typeof AuthenticatedPatientsRoute
   '/prevention': typeof AuthenticatedPreventionRoute
   '/record': typeof AuthenticatedRecordRoute
   '/registry': typeof AuthenticatedRegistryRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/': typeof AuthenticatedIndexRoute
+  '/patients/$patientId': typeof AuthenticatedPatientsPatientIdRoute
   '/api/public/fhir/metadata': typeof ApiPublicFhirMetadataRoute
   '/api/public/fhir/observation': typeof ApiPublicFhirObservationRoute
   '/api/public/fhir/patient/$id': typeof ApiPublicFhirPatientIdRoute
@@ -187,11 +204,13 @@ export interface FileRoutesById {
   '/_authenticated/insurer': typeof AuthenticatedInsurerRoute
   '/_authenticated/interop': typeof AuthenticatedInteropRoute
   '/_authenticated/patient': typeof AuthenticatedPatientRoute
+  '/_authenticated/patients': typeof AuthenticatedPatientsRoute
   '/_authenticated/prevention': typeof AuthenticatedPreventionRoute
   '/_authenticated/record': typeof AuthenticatedRecordRoute
   '/_authenticated/registry': typeof AuthenticatedRegistryRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/patients_/$patientId': typeof AuthenticatedPatientsPatientIdRoute
   '/api/public/fhir/metadata': typeof ApiPublicFhirMetadataRoute
   '/api/public/fhir/observation': typeof ApiPublicFhirObservationRoute
   '/api/public/fhir/patient/$id': typeof ApiPublicFhirPatientIdRoute
@@ -211,10 +230,12 @@ export interface FileRouteTypes {
     | '/insurer'
     | '/interop'
     | '/patient'
+    | '/patients'
     | '/prevention'
     | '/record'
     | '/registry'
     | '/settings'
+    | '/patients/$patientId'
     | '/api/public/fhir/metadata'
     | '/api/public/fhir/observation'
     | '/api/public/fhir/patient/$id'
@@ -231,11 +252,13 @@ export interface FileRouteTypes {
     | '/insurer'
     | '/interop'
     | '/patient'
+    | '/patients'
     | '/prevention'
     | '/record'
     | '/registry'
     | '/settings'
     | '/'
+    | '/patients/$patientId'
     | '/api/public/fhir/metadata'
     | '/api/public/fhir/observation'
     | '/api/public/fhir/patient/$id'
@@ -253,11 +276,13 @@ export interface FileRouteTypes {
     | '/_authenticated/insurer'
     | '/_authenticated/interop'
     | '/_authenticated/patient'
+    | '/_authenticated/patients'
     | '/_authenticated/prevention'
     | '/_authenticated/record'
     | '/_authenticated/registry'
     | '/_authenticated/settings'
     | '/_authenticated/'
+    | '/_authenticated/patients_/$patientId'
     | '/api/public/fhir/metadata'
     | '/api/public/fhir/observation'
     | '/api/public/fhir/patient/$id'
@@ -364,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPatientRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/patients': {
+      id: '/_authenticated/patients'
+      path: '/patients'
+      fullPath: '/patients'
+      preLoaderRoute: typeof AuthenticatedPatientsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/prevention': {
       id: '/_authenticated/prevention'
       path: '/prevention'
@@ -390,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/patients_/$patientId': {
+      id: '/_authenticated/patients_/$patientId'
+      path: '/patients/$patientId'
+      fullPath: '/patients/$patientId'
+      preLoaderRoute: typeof AuthenticatedPatientsPatientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/fhir/metadata': {
@@ -427,11 +466,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInsurerRoute: typeof AuthenticatedInsurerRoute
   AuthenticatedInteropRoute: typeof AuthenticatedInteropRoute
   AuthenticatedPatientRoute: typeof AuthenticatedPatientRoute
+  AuthenticatedPatientsRoute: typeof AuthenticatedPatientsRoute
   AuthenticatedPreventionRoute: typeof AuthenticatedPreventionRoute
   AuthenticatedRecordRoute: typeof AuthenticatedRecordRoute
   AuthenticatedRegistryRoute: typeof AuthenticatedRegistryRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedPatientsPatientIdRoute: typeof AuthenticatedPatientsPatientIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -445,11 +486,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInsurerRoute: AuthenticatedInsurerRoute,
   AuthenticatedInteropRoute: AuthenticatedInteropRoute,
   AuthenticatedPatientRoute: AuthenticatedPatientRoute,
+  AuthenticatedPatientsRoute: AuthenticatedPatientsRoute,
   AuthenticatedPreventionRoute: AuthenticatedPreventionRoute,
   AuthenticatedRecordRoute: AuthenticatedRecordRoute,
   AuthenticatedRegistryRoute: AuthenticatedRegistryRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedPatientsPatientIdRoute: AuthenticatedPatientsPatientIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

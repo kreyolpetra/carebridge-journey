@@ -40,7 +40,13 @@ export type Provider = {
   teleconsult_rate_usd: number;
   next_local_wait_days: number;
 };
-export type Slot = { id: string; provider_id: string; starts_at: string; minutes: number; status: string };
+export type Slot = {
+  id: string;
+  provider_id: string;
+  starts_at: string;
+  minutes: number;
+  status: string;
+};
 export type Patient = {
   id: string;
   full_name: string;
@@ -217,7 +223,13 @@ export const patientsQuery = queryOptions({
 export const riskScoresQuery = queryOptions({
   queryKey: ["risk_scores"],
   queryFn: async () =>
-    unwrap<RiskScore[]>(await supabase.from("risk_scores").select("*").order("score", { ascending: false }).limit(1000)),
+    unwrap<RiskScore[]>(
+      await supabase
+        .from("risk_scores")
+        .select("*")
+        .order("score", { ascending: false })
+        .limit(1000),
+    ),
   staleTime: 30_000,
 });
 
@@ -225,7 +237,12 @@ export const alertsQuery = queryOptions({
   queryKey: ["alerts"],
   queryFn: async () =>
     unwrap<Alert[]>(
-      await supabase.from("alerts").select("*").eq("resolved", false).order("created_at", { ascending: false }).limit(300),
+      await supabase
+        .from("alerts")
+        .select("*")
+        .eq("resolved", false)
+        .order("created_at", { ascending: false })
+        .limit(300),
     ),
   staleTime: 15_000,
 });
@@ -233,7 +250,13 @@ export const alertsQuery = queryOptions({
 export const referralsQuery = queryOptions({
   queryKey: ["referrals"],
   queryFn: async () =>
-    unwrap<Referral[]>(await supabase.from("referrals").select("*").order("created_at", { ascending: false }).limit(1000)),
+    unwrap<Referral[]>(
+      await supabase
+        .from("referrals")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1000),
+    ),
   staleTime: 15_000,
 });
 
@@ -247,7 +270,11 @@ export const accessLogQuery = queryOptions({
   queryKey: ["access_log"],
   queryFn: async () =>
     unwrap<AccessLogRow[]>(
-      await supabase.from("consent_access_log").select("*").order("accessed_at", { ascending: false }).limit(200),
+      await supabase
+        .from("consent_access_log")
+        .select("*")
+        .order("accessed_at", { ascending: false })
+        .limit(200),
     ),
   staleTime: 5_000,
 });
@@ -256,17 +283,45 @@ export const consentGrantsQuery = queryOptions({
   queryKey: ["consent_grants"],
   queryFn: async () =>
     unwrap<ConsentGrant[]>(
-      await supabase.from("consent_grants").select("*").order("created_at", { ascending: false }).limit(200),
+      await supabase
+        .from("consent_grants")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
     ),
   staleTime: 5_000,
 });
+
+/** The whole longitudinal record for one patient, assembled from every table. */
+export type PatientBundle = {
+  patient: Patient;
+  conditions: Condition[];
+  medications: Medication[];
+  vitals: Vital[];
+  messages: Message[];
+  risk: RiskScore | null;
+  triage: TriageEvent[];
+  referrals: Referral[];
+  grants: ConsentGrant[];
+  consultations: Consultation[];
+};
 
 export function patientBundleQuery(patientId: string) {
   return queryOptions({
     queryKey: ["patient-bundle", patientId],
     queryFn: async () => {
-      const [patient, conditions, medications, vitals, messages, risk, triage, referrals, grants, consultations] =
-        await Promise.all([
+      const [
+        patient,
+        conditions,
+        medications,
+        vitals,
+        messages,
+        risk,
+        triage,
+        referrals,
+        grants,
+        consultations,
+      ] = await Promise.all([
         supabase.from("patients").select("*").eq("id", patientId).single(),
         supabase.from("conditions").select("*").eq("patient_id", patientId),
         supabase.from("medications").select("*").eq("patient_id", patientId),
@@ -289,8 +344,16 @@ export function patientBundleQuery(patientId: string) {
           .eq("patient_id", patientId)
           .order("created_at", { ascending: false })
           .limit(10),
-        supabase.from("referrals").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
-        supabase.from("consent_grants").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
+        supabase
+          .from("referrals")
+          .select("*")
+          .eq("patient_id", patientId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("consent_grants")
+          .select("*")
+          .eq("patient_id", patientId)
+          .order("created_at", { ascending: false }),
         supabase
           .from("consultations")
           .select("*")
@@ -304,7 +367,7 @@ export function patientBundleQuery(patientId: string) {
         medications: (medications.data ?? []) as Medication[],
         vitals: (vitals.data ?? []) as Vital[],
         messages: (messages.data ?? []) as Message[],
-        risk: (((risk.data ?? [])[0] ?? null) as unknown) as RiskScore | null,
+        risk: ((risk.data ?? [])[0] ?? null) as unknown as RiskScore | null,
         triage: (triage.data ?? []) as TriageEvent[],
         referrals: (referrals.data ?? []) as Referral[],
         grants: (grants.data ?? []) as ConsentGrant[],

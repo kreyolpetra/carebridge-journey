@@ -23,14 +23,24 @@ import {
 } from "@/lib/api";
 import { askGrid, ASK_EXAMPLES } from "@/lib/agents/ask";
 import { useAuth } from "@/hooks/useAuth";
+import { useScope } from "@/hooks/useScope";
+import { useAccessIndex } from "@/lib/access-basis";
 
-export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+export function CommandPalette({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { staffRole, isAggregateOnly } = useScope();
   const isPatient = role === "patient";
   const enabled = open && !isPatient;
 
   const patients = useQuery({ ...patientsQuery, enabled });
+  const { index: access, ready: accessReady } = useAccessIndex();
   const risks = useQuery({ ...riskScoresQuery, enabled });
   const islands = useQuery({ ...islandsQuery, enabled });
   const providers = useQuery({ ...providersQuery, enabled });
@@ -55,13 +65,20 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     return m;
   }, [risks.data]);
 
+  // Search spans the whole index — a clinician has to be able to find the
+  // person in front of them — but a row for someone outside the reader's panel
+  // shows identity only. This used to render every patient's risk score to any
+  // non-patient role, which is clinical data about someone whose chart the
+  // console would refuse to open two clicks later.
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q || isPatient) return [];
+    if (!q || isPatient || isAggregateOnly || !accessReady) return [];
     return (patients.data ?? [])
       .filter((p) => p.full_name.toLowerCase().includes(q) || p.parish.toLowerCase().includes(q))
+      .map((p) => ({ patient: p, allowed: access.decide(p.id).allowed }))
+      .sort((a, b) => Number(b.allowed) - Number(a.allowed))
       .slice(0, 6);
-  }, [patients.data, query, isPatient]);
+  }, [patients.data, query, isPatient, isAggregateOnly, access, accessReady]);
 
   // Answers questions over live data instead of only filtering a list. Runs on
   // deterministic intent matching, not a language model — the footer says so.
@@ -76,7 +93,16 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       referrals: referrals.data ?? [],
       stock: stock.data ?? [],
     });
-  }, [query, isPatient, islands.data, patients.data, risks.data, providers.data, referrals.data, stock.data]);
+  }, [
+    query,
+    isPatient,
+    islands.data,
+    patients.data,
+    risks.data,
+    providers.data,
+    referrals.data,
+    stock.data,
+  ]);
 
   const close = () => {
     onOpenChange(false);
@@ -88,7 +114,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   };
   const goPatient = (id: string) => {
     close();
-    void navigate({ to: "/clinician", search: { patient: id } as never });
+    void navigate({ to: "/patients/$patientId", params: { patientId: id } as never });
   };
 
   return (
@@ -126,7 +152,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   }}
                 >
                   <span className="truncate">{row.label}</span>
-                  <span className="ml-auto shrink-0 pl-3 text-[11px] text-muted-foreground">{row.sub}</span>
+                  <span className="ml-auto shrink-0 pl-3 text-[11px] text-muted-foreground">
+                    {row.sub}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -149,8 +177,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         )}
 
         <CommandGroup heading="Go to">
-          {navFor(role).map((item) => (
-            <CommandItem key={item.to} value={`${item.label} ${item.keywords}`} onSelect={() => go(item.to)}>
+          {navFor(role, staffRole).map((item) => (
+            <CommandItem
+              key={item.to}
+              value={`${item.label} ${item.keywords}`}
+              onSelect={() => go(item.to)}
+            >
               <item.icon className="mr-2 h-4 w-4" />
               {item.label}
             </CommandItem>
@@ -161,7 +193,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           <>
             <CommandSeparator />
             <CommandGroup heading="Patients">
-              {matches.map((p) => (
+              {matches.map(({ patient: p, allowed }) => (
                 <CommandItem
                   key={p.id}
                   value={`patient-${p.full_name}-${p.id}`}
@@ -169,7 +201,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 >
                   <span className="truncate">{p.full_name}</span>
                   <span className="ml-auto text-[11px] text-muted-foreground">
-                    {p.parish}, {p.island_code} · risk {scoreOf.get(p.id) ?? "—"}
+                    {p.parish}, {p.island_code} ·{" "}
+                    {allowed ? `risk ${scoreOf.get(p.id) ?? "—"}` : "sealed"}
                   </span>
                 </CommandItem>
               ))}
@@ -181,8 +214,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       {!isPatient && (
         <div className="border-t border-border px-3 py-2">
           <p className="text-[11px] text-muted-foreground">
-            Answers come from deterministic rules over live Grid data — no language model, so the same
-            question always returns the same answer.
+            Answers come from deterministic rules over live Grid data — no language model, so the
+            same question always returns the same answer.
           </p>
         </div>
       )}
