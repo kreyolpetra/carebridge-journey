@@ -306,6 +306,24 @@ export type PatientBundle = {
   consultations: Consultation[];
 };
 
+/**
+ * Recent care-line traffic across every patient, for the clinician inbox.
+ * Ordered newest first so grouping by patient yields each thread's latest
+ * message without a second pass.
+ */
+export const recentMessagesQuery = queryOptions({
+  queryKey: ["messages", "recent"],
+  staleTime: 5_000,
+  queryFn: async () =>
+    unwrap<Message[]>(
+      await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(3000),
+    ),
+});
+
 export function patientBundleQuery(patientId: string) {
   return queryOptions({
     queryKey: ["patient-bundle", patientId],

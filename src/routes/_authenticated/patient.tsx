@@ -2,7 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Mic, Send, Activity, Droplets, PillBottle, Loader2, CloudOff, CheckCheck } from "lucide-react";
+import {
+  Mic,
+  Send,
+  Activity,
+  Droplets,
+  PillBottle,
+  Loader2,
+  CloudOff,
+  CheckCheck,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   HERO_PATIENT_ID,
@@ -11,6 +20,8 @@ import {
   providersQuery,
   slotsQuery,
   islandsQuery,
+  recentMessagesQuery,
+  type Message,
   type Patient,
 } from "@/lib/api";
 import { analyzeMessage } from "@/lib/triage.functions";
@@ -19,6 +30,7 @@ import { Panel, PanelHeader, Pill, Loading } from "@/components/grid";
 import { severityClasses, clockTime, LANGUAGE_LABEL } from "@/lib/format";
 import { useNetworkOnline } from "@/lib/offline";
 import { useScope } from "@/hooks/useScope";
+import { useAccessIndex } from "@/lib/access-basis";
 import type { TriageResult } from "@/lib/triage.server";
 
 export const Route = createFileRoute("/_authenticated/patient")({
@@ -33,17 +45,34 @@ export const Route = createFileRoute("/_authenticated/patient")({
       { property: "og:title", content: "Patient Line — WhatsApp Intake & AI Triage" },
       {
         property: "og:description",
-        content: "No app install, no data plan required. The patient texts; the Grid triages and routes.",
+        content:
+          "No app install, no data plan required. The patient texts; the Grid triages and routes.",
       },
     ],
   }),
-  component: PatientLine,
+  component: PatientLineRoute,
 });
 
+function PatientLineRoute() {
+  return <PatientLine />;
+}
+
 const QUICK = [
-  { icon: Activity, label: "Log blood pressure", text: "Mi pressure read 168 over 104 dis mawnin, and mi head a hurt mi bad." },
-  { icon: Droplets, label: "Log glucose", text: "Sugar test seh 14.2 after breakfast, mi feel weak and thirsty." },
-  { icon: PillBottle, label: "Out of medication", text: "Mi run out a di amlodipine two week now, di clinic neva have none." },
+  {
+    icon: Activity,
+    label: "Log blood pressure",
+    text: "Mi pressure read 168 over 104 dis mawnin, and mi head a hurt mi bad.",
+  },
+  {
+    icon: Droplets,
+    label: "Log glucose",
+    text: "Sugar test seh 14.2 after breakfast, mi feel weak and thirsty.",
+  },
+  {
+    icon: PillBottle,
+    label: "Out of medication",
+    text: "Mi run out a di amlodipine two week now, di clinic neva have none.",
+  },
   {
     icon: Mic,
     label: "Voice note",
@@ -52,11 +81,21 @@ const QUICK = [
 ];
 
 type PendingMessage = { id: string; body: string; kind: string; created_at: string };
+type Thread = { patient: Patient; last: Message; awaitingReply: boolean; count: number };
 
-function PatientLine() {
+/**
+ * The care line.
+ *
+ * Two callers: this route, where a clinician picks from an inbox of every live
+ * conversation, and the patient chart, where the thread for one patient is a
+ * tab. `pinnedPatientId` switches between them — the chart already knows whose
+ * record it is and must not offer a patient picker inside a patient's chart.
+ */
+export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = {}) {
   const { isPatient, patientId: ownPatientId } = useScope();
   const [selectedId, setSelectedId] = useState(HERO_PATIENT_ID);
-  const patientId = isPatient ? (ownPatientId ?? HERO_PATIENT_ID) : selectedId;
+  const embedded = Boolean(pinnedPatientId);
+  const patientId = pinnedPatientId ?? (isPatient ? (ownPatientId ?? HERO_PATIENT_ID) : selectedId);
   const [draft, setDraft] = useState("");
   const [queue, setQueue] = useState<PendingMessage[]>([]);
   const [triage, setTriage] = useState<TriageResult | null>(null);
@@ -67,17 +106,61 @@ function PatientLine() {
   const scroller = useRef<HTMLDivElement>(null);
 
   const patients = useQuery({ ...patientsQuery, enabled: !isPatient });
+  const messages = useQuery({ ...recentMessagesQuery, enabled: !isPatient && !embedded });
+  const { index: access, ready: accessReady } = useAccessIndex();
+  const [inboxQuery, setInboxQuery] = useState("");
   const bundle = useQuery(patientBundleQuery(patientId));
   const providers = useQuery(providersQuery);
   const slots = useQuery(slotsQuery);
   const islands = useQuery(islandsQuery);
 
-  const roster = useMemo(() => {
-    const list = patients.data ?? [];
-    const hero = list.find((p) => p.id === HERO_PATIENT_ID);
-    const rest = list.filter((p) => p.id !== HERO_PATIENT_ID).slice(0, 11);
-    return [hero, ...rest].filter(Boolean) as Patient[];
-  }, [patients.data]);
+  /**
+   * The inbox: one row per live conversation, newest first, and only for
+   * patients this clinician holds a lawful basis for. It used to be the first
+   * twelve rows of the patient table regardless of who was signed in or whether
+   * anyone had ever messaged — a picker dressed as an inbox.
+   */
+  const threads = useMemo(() => {
+    if (isPatient || !accessReady) return [];
+    const byId = new Map((patients.data ?? []).map((p) => [p.id, p] as const));
+    const seen = new Map<string, Thread>();
+    // recentMessagesQuery is ordered newest first, so the first message seen for
+    // a patient is that thread's latest.
+    for (const m of messages.data ?? []) {
+      const patient = byId.get(m.patient_id);
+      if (!patient) continue;
+      let thread = seen.get(m.patient_id);
+      if (!thread) {
+        if (!access.decide(m.patient_id).allowed) continue;
+        thread = { patient, last: m, awaitingReply: m.direction === "in", count: 0 };
+        seen.set(m.patient_id, thread);
+      }
+      thread.count += 1;
+    }
+    const rows = [...seen.values()];
+    const needle = inboxQuery.trim().toLowerCase();
+    return rows
+      .filter((t) =>
+        needle
+          ? t.patient.full_name.toLowerCase().includes(needle) ||
+            t.last.body.toLowerCase().includes(needle)
+          : true,
+      )
+      .sort((a, b) => {
+        // Unanswered first — that is the job the inbox exists to make visible.
+        if (a.awaitingReply !== b.awaitingReply) return a.awaitingReply ? -1 : 1;
+        return new Date(b.last.created_at).getTime() - new Date(a.last.created_at).getTime();
+      });
+  }, [isPatient, accessReady, access, patients.data, messages.data, inboxQuery]);
+
+  const awaiting = threads.filter((t) => t.awaitingReply).length;
+
+  // Land on a real conversation rather than a hardcoded patient.
+  useEffect(() => {
+    if (embedded || isPatient || !threads.length) return;
+    if (threads.some((t) => t.patient.id === selectedId)) return;
+    setSelectedId(threads[0]!.patient.id);
+  }, [embedded, isPatient, threads, selectedId]);
 
   const send = useMutation({
     mutationFn: async (body: string) => {
@@ -88,7 +171,7 @@ function PatientLine() {
         .from("messages")
         .insert({
           patient_id: patientId,
-          direction: "inbound",
+          direction: "in",
           body,
           kind: body.startsWith("[voice note") ? "voice" : "text",
           language: b.patient.language,
@@ -98,7 +181,11 @@ function PatientLine() {
         .single();
       if (insErr) throw new Error(insErr.message);
 
-      const { result, degraded: fellBack, note } = await analyzeMessage({
+      const {
+        result,
+        degraded: fellBack,
+        note,
+      } = await analyzeMessage({
         data: {
           message: body,
           context: {
@@ -155,7 +242,7 @@ function PatientLine() {
 
       await supabase.from("messages").insert({
         patient_id: patientId,
-        direction: "outbound",
+        direction: "out",
         body: result.patient_reply,
         kind: "text",
         language: b.patient.language,
@@ -210,7 +297,10 @@ function PatientLine() {
             .single();
 
           if (chosen.slot) {
-            await supabase.from("availability_slots").update({ status: "booked" }).eq("id", chosen.slot.id);
+            await supabase
+              .from("availability_slots")
+              .update({ status: "booked" })
+              .eq("id", chosen.slot.id);
             await supabase.from("consultations").insert({
               referral_id: referral?.id ?? null,
               patient_id: patientId,
@@ -273,7 +363,10 @@ function PatientLine() {
     if (!body) return;
     setDraft("");
     if (!online) {
-      setQueue((q) => [...q, { id: crypto.randomUUID(), body, kind: "text", created_at: new Date().toISOString() }]);
+      setQueue((q) => [
+        ...q,
+        { id: crypto.randomUUID(), body, kind: "text", created_at: new Date().toISOString() },
+      ]);
       toast.warning("Offline — message queued on the handset");
       return;
     }
@@ -285,37 +378,81 @@ function PatientLine() {
   return (
     <div
       className={
-        "mx-auto grid w-full gap-4 px-5 py-8 " +
-        (isPatient
-          ? "max-w-[1200px] lg:grid-cols-[minmax(0,1fr)_360px]"
-          : "max-w-[1500px] lg:grid-cols-[260px_minmax(0,1fr)_360px]")
+        "grid w-full gap-4 " +
+        (embedded
+          ? "lg:grid-cols-[minmax(0,1fr)_340px]"
+          : isPatient
+            ? "mx-auto max-w-[1200px] px-5 py-8 lg:grid-cols-[minmax(0,1fr)_360px]"
+            : "mx-auto max-w-[1500px] px-5 py-8 lg:grid-cols-[290px_minmax(0,1fr)_360px]")
       }
     >
-      {isPatient ? null : (
-      <Panel className="h-fit">
-        <PanelHeader title="Patient line" subtitle="Numbers registered on WhatsApp" />
-        <div className="max-h-[560px] overflow-y-auto p-2">
-          {roster.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setSelectedId(p.id);
-                setTriage(null);
-                setRoutingNote(null);
-              }}
-              className={
-                "w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
-                (p.id === patientId ? "bg-primary/12 text-foreground" : "hover:bg-surface")
-              }
-            >
-              <div className="truncate text-[13.5px] font-semibold">{p.full_name}</div>
-              <div className="truncate text-[11.5px] text-muted-foreground">
-                {p.parish}, {p.island_code} · {p.phone}
-              </div>
-            </button>
-          ))}
-        </div>
-      </Panel>
+      {isPatient || embedded ? null : (
+        <Panel className="h-fit">
+          <PanelHeader
+            title="Inbox"
+            subtitle={
+              awaiting
+                ? `${awaiting} waiting on a reply · ${threads.length} conversations`
+                : `${threads.length} conversations · all answered`
+            }
+          />
+          <div className="border-b border-border px-3 py-2.5">
+            <input
+              value={inboxQuery}
+              onChange={(e) => setInboxQuery(e.target.value)}
+              placeholder="Search conversations…"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-[12.5px] outline-none focus:border-primary"
+            />
+          </div>
+          <div className="max-h-[600px] overflow-y-auto p-2">
+            {!accessReady ? <Loading label="Loading your inbox…" /> : null}
+            {accessReady && !threads.length ? (
+              <p className="px-3 py-6 text-[12.5px] text-muted-foreground">
+                {inboxQuery.trim()
+                  ? "No conversation matches that."
+                  : "No care-line conversations with patients in your panel yet."}
+              </p>
+            ) : null}
+            {threads.map((t) => (
+              <button
+                key={t.patient.id}
+                onClick={() => {
+                  setSelectedId(t.patient.id);
+                  setTriage(null);
+                  setRoutingNote(null);
+                }}
+                className={
+                  "mb-1 w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
+                  (t.patient.id === patientId
+                    ? "bg-primary/12 text-foreground"
+                    : "hover:bg-surface")
+                }
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-[13.5px] font-semibold">
+                    {t.patient.full_name}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {clockTime(t.last.created_at)}
+                  </span>
+                </div>
+                <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                  {t.last.direction === "in" ? "" : "You: "}
+                  {t.last.body}
+                </p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  {t.awaitingReply ? (
+                    <Pill className="border-high/40 bg-high/10 text-high">awaiting reply</Pill>
+                  ) : null}
+                  <span className="truncate text-[11px] text-muted-foreground">
+                    {t.patient.parish}, {t.patient.island_code} ·{" "}
+                    {LANGUAGE_LABEL[t.last.language] ?? t.last.language}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </Panel>
       )}
 
       <Panel className="flex h-[720px] flex-col overflow-hidden">
@@ -327,8 +464,18 @@ function PatientLine() {
               <div className="flex items-center gap-3">
                 {isPatient ? (
                   <span className="grid h-10 w-10 place-items-center rounded-full bg-primary/15 text-primary">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2">
-                      <path d="M3 12h4l2-6 3 13 3-9 2 2h4" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                    >
+                      <path
+                        d="M3 12h4l2-6 3 13 3-9 2 2h4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </span>
                 ) : null}
@@ -349,29 +496,33 @@ function PatientLine() {
             <div ref={scroller} className="flex-1 space-y-3 overflow-y-auto bg-chat px-5 py-5">
               {b.messages.map((m) => {
                 // From the patient's own handset, their messages sit on the right (green).
-                const mine = isPatient ? m.direction === "inbound" : m.direction === "outbound";
+                // "in" is from the patient, "out" is from the Grid. This screen used to
+                // write and read "inbound"/"outbound" while the seed, the activity feed
+                // and the brief agent all used the short form, so every seeded message
+                // rendered on the wrong side of the thread.
+                const mine = isPatient ? m.direction === "in" : m.direction === "out";
                 return (
-                <div key={m.id} className={mine ? "flex justify-end" : "flex justify-start"}>
-                  <div
-                    className={
-                      "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed " +
-                      (mine
-                        ? "rounded-tr-sm bg-chat-bubble-out text-chat-foreground"
-                        : "rounded-tl-sm bg-chat-bubble-in text-chat-foreground")
-                    }
-                  >
-                    {m.kind === "voice" ? (
-                      <div className="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-wide text-primary">
-                        <Mic className="h-3 w-3" /> voice note transcript
+                  <div key={m.id} className={mine ? "flex justify-end" : "flex justify-start"}>
+                    <div
+                      className={
+                        "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed " +
+                        (mine
+                          ? "rounded-tr-sm bg-chat-bubble-out text-chat-foreground"
+                          : "rounded-tl-sm bg-chat-bubble-in text-chat-foreground")
+                      }
+                    >
+                      {m.kind === "voice" ? (
+                        <div className="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-wide text-primary">
+                          <Mic className="h-3 w-3" /> voice note transcript
+                        </div>
+                      ) : null}
+                      <p className="whitespace-pre-wrap">{m.body}</p>
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[10.5px] text-muted-foreground">
+                        {clockTime(m.created_at)}
+                        {mine ? <CheckCheck className="h-3.5 w-3.5 text-sky-500" /> : null}
                       </div>
-                    ) : null}
-                    <p className="whitespace-pre-wrap">{m.body}</p>
-                    <div className="mt-1 flex items-center justify-end gap-1 text-[10.5px] text-muted-foreground">
-                      {clockTime(m.created_at)}
-                      {mine ? <CheckCheck className="h-3.5 w-3.5 text-sky-500" /> : null}
                     </div>
                   </div>
-                </div>
                 );
               })}
               {queue.map((m) => (
@@ -441,7 +592,11 @@ function PatientLine() {
         <Panel>
           <PanelHeader
             title={isPatient ? "What the Grid saw" : "AI triage"}
-            subtitle={isPatient ? "How your last message was assessed" : "Structured clinical read of the last message"}
+            subtitle={
+              isPatient
+                ? "How your last message was assessed"
+                : "Structured clinical read of the last message"
+            }
           />
           <div className="space-y-3 p-5">
             {!triage ? (
@@ -450,17 +605,22 @@ function PatientLine() {
                   ? "Send a message — or tap a quick action — and the Grid will read your vitals, judge how urgent it is and get you to the right clinician."
                   : "Send a message — or tap a quick action — to watch the Grid extract vitals, assign urgency and route the patient."}
               </p>
-
             ) : (
               <>
                 <div className="flex flex-wrap gap-2">
-                  <Pill className={severityClasses(triage.severity)}>{triage.severity.replace("_", " ")}</Pill>
-                  <Pill className="border-border bg-surface text-muted-foreground">{triage.category}</Pill>
+                  <Pill className={severityClasses(triage.severity)}>
+                    {triage.severity.replace("_", " ")}
+                  </Pill>
+                  <Pill className="border-border bg-surface text-muted-foreground">
+                    {triage.category}
+                  </Pill>
                   <Pill className="border-border bg-surface text-muted-foreground">
                     {Math.round(triage.confidence * 100)}% confidence
                   </Pill>
                 </div>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">{triage.rationale}</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  {triage.rationale}
+                </p>
                 {triage.red_flags.length ? (
                   <ul className="space-y-1 rounded-lg border border-critical/30 bg-critical/8 p-3 text-[12.5px] text-critical">
                     {triage.red_flags.map((f) => (
@@ -469,12 +629,16 @@ function PatientLine() {
                   </ul>
                 ) : null}
                 <div className="text-[12px] text-muted-foreground">
-                  Recommended level: <span className="text-foreground">{triage.recommended_level.replace("_", " ")}</span>{" "}
+                  Recommended level:{" "}
+                  <span className="text-foreground">
+                    {triage.recommended_level.replace("_", " ")}
+                  </span>{" "}
                   · Specialty: <span className="text-foreground">{triage.specialty_needed}</span>
                 </div>
                 {degraded ? (
                   <div className="rounded-lg border border-high/30 bg-high/8 p-3 text-[12px] text-high">
-                    Degraded mode — deterministic clinical rules used so the line never goes dark. {degraded}
+                    Degraded mode — deterministic clinical rules used so the line never goes dark.{" "}
+                    {degraded}
                   </div>
                 ) : null}
               </>
@@ -485,7 +649,11 @@ function PatientLine() {
         <Panel>
           <PanelHeader
             title={isPatient ? "Your care appointment" : "Routing decision"}
-            subtitle={isPatient ? "Who you were matched with, and how fast" : "Specialist minutes as a regional resource"}
+            subtitle={
+              isPatient
+                ? "Who you were matched with, and how fast"
+                : "Specialist minutes as a regional resource"
+            }
           />
           <div className="p-5">
             {!routingNote ? (
@@ -494,11 +662,13 @@ function PatientLine() {
                   ? "If something urgent comes up, you'll be matched with the fastest qualified clinician anywhere in the region — and asked to approve before your record crosses a border."
                   : "Urgent and emergency cases are auto-routed to the fastest qualified clinician anywhere in the region, with a consent request raised when the record has to cross a border."}
               </p>
-
             ) : (
               <ol className="space-y-2 text-[12.5px] text-muted-foreground">
                 {routingNote.map((r, i) => (
-                  <li key={r} className={i === 0 ? "text-[13.5px] font-semibold text-foreground" : ""}>
+                  <li
+                    key={r}
+                    className={i === 0 ? "text-[13.5px] font-semibold text-foreground" : ""}
+                  >
                     {i === 0 ? r : `• ${r}`}
                   </li>
                 ))}

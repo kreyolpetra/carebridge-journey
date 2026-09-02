@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 2;
+export const SEED_VERSION = 3;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -1851,6 +1851,127 @@ export function buildSeed(): Tables {
       created_at: daysAgo(0.25),
     },
   );
+
+  // ---- care-line conversations ----
+  // The care line is the product's front door, and exactly one patient had ever
+  // sent a message — which made a clinician's inbox a list of one. Threads are
+  // written in the patient's own language, because a Kreyòl speaker messaging in
+  // Patois would give away that the language field is decoration.
+  const LINE_IN: Record<string, string[]> = {
+    en: [
+      "Good morning, my pressure was 152 over 94 today.",
+      "I finished my tablets last week and the pharmacy had none.",
+      "Sugar was 12.4 after lunch. Is that too high?",
+      "I feel dizzy when I stand up quickly.",
+      "Can I get a refill for the metformin please?",
+      "My ankles are swelling again in the evenings.",
+    ],
+    jam: [
+      "Mi pressure read 148 over 92 dis mawnin.",
+      "Mi tablet dem done and di clinic neva have none.",
+      "Mi sugar test seh 11.8 after lunch.",
+      "Mi feel dizzy when mi stan up too quick.",
+      "Mi foot dem a swell up inna di evening.",
+    ],
+    ht: [
+      "Bonjou, tansyon mwen se 154 sou 96 maten an.",
+      "Mwen fini ak grenn yo, famasi a pa genyen.",
+      "Sik mwen te 12.1 apre mwen manje.",
+      "Mwen santi tèt mwen vire lè mwen kanpe.",
+      "Pye m ap anfle chak aswè.",
+    ],
+    es: [
+      "Buenos días, mi presión fue 150 sobre 95 esta mañana.",
+      "Se me acabaron las pastillas y en la farmacia no había.",
+      "El azúcar salió en 12.6 después de comer.",
+      "Me siento mareada al levantarme.",
+      "Se me hinchan los tobillos por las noches.",
+    ],
+  };
+  const LINE_OUT: Record<string, string[]> = {
+    en: [
+      "Thank you. A nurse is reviewing that reading today — keep taking your tablets as normal.",
+      "We have requested your refill at your clinic. You should hear from them today.",
+      "Noted. Please rest, drink water, and message us again if it gets worse.",
+    ],
+    jam: [
+      "Thank you. A nurse a look pon di reading today — keep tek yuh tablet same way.",
+      "Wi request di refill at yuh clinic. Dem should call yuh today.",
+      "Wi get it. Res up, drink water, and message wi back if it get worse.",
+    ],
+    ht: [
+      "Mèsi. Yon enfimyè ap gade lekti a jodi a — kontinye pran grenn ou yo.",
+      "Nou mande renouvèlman an nan klinik ou a. Y ap rele w jodi a.",
+      "Nou note sa. Repoze w, bwè dlo, epi ekri nou si li vin pi mal.",
+    ],
+    es: [
+      "Gracias. Una enfermera revisará esa lectura hoy — siga tomando sus pastillas.",
+      "Hemos pedido su reposición en la clínica. Deberían llamarle hoy.",
+      "Anotado. Descanse, tome agua y escríbanos si empeora.",
+    ],
+  };
+  const lineFor = (pool: Record<string, string[]>, language: string) =>
+    pool[language] ?? pool["en"]!;
+
+  const conversationPatients = [
+    ...ttGeneralRoster.slice(0, 30),
+    ...jmClinicRoster.slice(0, 16),
+    ...t.patients
+      .filter((p) => !ttGeneralIds.has(p.id as string) && !jmClinicIds.has(p.id as string))
+      .slice(0, 10),
+  ].filter((p) => p.id !== HERO_PATIENT_ID);
+
+  for (const patient of conversationPatients) {
+    const language = patient["language"] as string;
+    const openedDaysAgo = rng() * 13;
+    const inBody = pick(rng, lineFor(LINE_IN, language));
+    t.messages.push({
+      id: uuid(rng),
+      patient_id: patient.id,
+      direction: "in",
+      body: inBody,
+      kind: chance(rng, 0.12) ? "voice" : "text",
+      language,
+      channel: "whatsapp",
+      queued_offline: chance(rng, 0.08),
+      delivered_at: daysAgo(openedDaysAgo),
+      created_at: daysAgo(openedDaysAgo),
+    });
+
+    // Roughly a third of threads are still waiting on the clinic. Those are the
+    // ones an inbox exists to surface, so they are not a rounding error.
+    if (chance(rng, 0.66)) {
+      const repliedDaysAgo = Math.max(0, openedDaysAgo - (0.02 + rng() * 0.3));
+      t.messages.push({
+        id: uuid(rng),
+        patient_id: patient.id,
+        direction: "out",
+        body: pick(rng, lineFor(LINE_OUT, language)),
+        kind: "text",
+        language,
+        channel: "whatsapp",
+        queued_offline: false,
+        delivered_at: daysAgo(repliedDaysAgo),
+        created_at: daysAgo(repliedDaysAgo),
+      });
+      // Some come back with a follow-up, which puts them back in the queue.
+      if (chance(rng, 0.3)) {
+        const followUpDaysAgo = Math.max(0, repliedDaysAgo - (0.01 + rng() * 0.2));
+        t.messages.push({
+          id: uuid(rng),
+          patient_id: patient.id,
+          direction: "in",
+          body: pick(rng, lineFor(LINE_IN, language)),
+          kind: "text",
+          language,
+          channel: "whatsapp",
+          queued_offline: false,
+          delivered_at: daysAgo(followUpDaysAgo),
+          created_at: daysAgo(followUpDaysAgo),
+        });
+      }
+    }
+  }
 
   // ---- screening campaigns + targets ----
   const CAMPAIGN_1 = "c1000000-0000-4000-8000-000000000001";

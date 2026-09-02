@@ -26,6 +26,8 @@ import type { PatientBundle, Provider } from "@/lib/api";
 import { BASIS_LABEL, BASIS_TONE, TIER_LABEL, TIER_SCOPE, isGrantActive } from "@/lib/access";
 import type { AccessDecision } from "@/lib/access-basis";
 import { CareTimeline } from "@/components/patient/CareTimeline";
+import { PatientLine as CareLine } from "@/routes/_authenticated/patient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { bandClasses, severityClasses, shortDate, timeAgo } from "@/lib/format";
 
@@ -183,152 +185,185 @@ export function PatientChart({
         </div>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel>
-          <PanelHeader title="Blood pressure" subtitle="Home readings via WhatsApp" />
-          <div className="h-[220px] p-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                  minTickGap={24}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                  width={32}
-                  domain={[50, 200]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 10,
-                    fontSize: 12,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="systolic"
-                  stroke="var(--color-critical)"
-                  dot={false}
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="diastolic"
-                  stroke="var(--color-primary)"
-                  dot={false}
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
-        <Panel>
-          <PanelHeader title="Glucose" subtitle="mmol/L" />
-          <div className="h-[220px] p-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-                  minTickGap={24}
-                />
-                <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={32} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 10,
-                    fontSize: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="glucose"
-                  stroke="var(--color-moderate)"
-                  fill="var(--color-moderate)"
-                  fillOpacity={0.18}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
-      </div>
+      {/* The chart carries a conversation, two trend series, a cross-border
+          visit history and a referral log. Stacked, that is a long scroll to
+          reach the thing you opened the chart for, so the header stays put and
+          the rest is tabbed. */}
+      <Tabs defaultValue="trends">
+        <TabsList>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="careline">Care line</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="referrals">Triage &amp; referrals</TabsTrigger>
+        </TabsList>
 
-      <CareTimeline
-        patientId={b.patient.id}
-        decision={decision}
-        grantedCategories={grantedCategories}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel>
-          <PanelHeader title="Triage history" subtitle="Every inbound message, clinically read" />
-          <div className="max-h-[320px] space-y-3 overflow-y-auto p-5">
-            {b.triage.map((t) => (
-              <div key={t.id} className="rounded-lg border border-border bg-surface p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Pill className={severityClasses(t.severity)}>
-                    {t.severity.replace("_", " ")}
-                  </Pill>
-                  <span className="text-[11.5px] text-muted-foreground">
-                    {timeAgo(t.created_at)}
-                  </span>
-                </div>
-                <div className="mt-2 text-[13px] font-semibold">{t.category}</div>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">{t.rationale}</p>
+        <TabsContent value="trends" className="mt-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel>
+              <PanelHeader title="Blood pressure" subtitle="Home readings via WhatsApp" />
+              <div className="h-[220px] p-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                      minTickGap={24}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                      width={32}
+                      domain={[50, 200]}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 10,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="systolic"
+                      stroke="var(--color-critical)"
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="diastolic"
+                      stroke="var(--color-primary)"
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-            {!b.triage.length ? (
-              <p className="text-[13px] text-muted-foreground">
-                No triage events yet for this patient.
-              </p>
-            ) : null}
+            </Panel>
+            <Panel>
+              <PanelHeader title="Glucose" subtitle="mmol/L" />
+              <div className="h-[220px] p-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                      minTickGap={24}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                      width={32}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 10,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="glucose"
+                      stroke="var(--color-moderate)"
+                      fill="var(--color-moderate)"
+                      fillOpacity={0.18}
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+        </TabsContent>
 
-        <Panel>
-          <PanelHeader
-            title="Referrals & teleconsults"
-            subtitle="Cross-island routing for this patient"
+        <TabsContent value="careline" className="mt-4">
+          <Panel className="p-4">
+            <Panel className="p-4">
+              <CareLine pinnedPatientId={b.patient.id} />
+            </Panel>
+          </Panel>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4 space-y-4">
+          <CareTimeline
+            patientId={b.patient.id}
+            decision={decision}
+            grantedCategories={grantedCategories}
           />
-          <div className="max-h-[320px] space-y-3 overflow-y-auto p-5">
-            {b.referrals.map((r) => (
-              <div key={r.id} className="rounded-lg border border-border bg-surface p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-semibold">
-                    {r.specialty} · {providerName(r.to_provider_id)}
-                  </span>
-                  <Pill className="border-border bg-background text-muted-foreground">
-                    {r.status}
-                  </Pill>
-                </div>
-                <p className="mt-1 text-[12.5px] text-muted-foreground">
-                  {r.cross_island ? "Cross-island" : "On-island"} · local wait {r.wait_days_local}d
-                  → routed {r.wait_days_routed}d · ${r.retained_value_usd.toLocaleString()} retained
-                  in-region
-                </p>
-                {r.status === "routed" && onAcceptReferral ? (
-                  <button
-                    onClick={() => onAcceptReferral(r.id)}
-                    className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground"
-                  >
-                    Open teleconsult
-                  </button>
+        </TabsContent>
+
+        <TabsContent value="referrals" className="mt-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel>
+              <PanelHeader
+                title="Triage history"
+                subtitle="Every inbound message, clinically read"
+              />
+              <div className="max-h-[320px] space-y-3 overflow-y-auto p-5">
+                {b.triage.map((t) => (
+                  <div key={t.id} className="rounded-lg border border-border bg-surface p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <Pill className={severityClasses(t.severity)}>
+                        {t.severity.replace("_", " ")}
+                      </Pill>
+                      <span className="text-[11.5px] text-muted-foreground">
+                        {timeAgo(t.created_at)}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-[13px] font-semibold">{t.category}</div>
+                    <p className="mt-1 text-[12.5px] text-muted-foreground">{t.rationale}</p>
+                  </div>
+                ))}
+                {!b.triage.length ? (
+                  <p className="text-[13px] text-muted-foreground">
+                    No triage events yet for this patient.
+                  </p>
                 ) : null}
               </div>
-            ))}
-            {!b.referrals.length ? (
-              <p className="text-[13px] text-muted-foreground">No referrals raised yet.</p>
-            ) : null}
+            </Panel>
+
+            <Panel>
+              <PanelHeader
+                title="Referrals & teleconsults"
+                subtitle="Cross-island routing for this patient"
+              />
+              <div className="max-h-[320px] space-y-3 overflow-y-auto p-5">
+                {b.referrals.map((r) => (
+                  <div key={r.id} className="rounded-lg border border-border bg-surface p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] font-semibold">
+                        {r.specialty} · {providerName(r.to_provider_id)}
+                      </span>
+                      <Pill className="border-border bg-background text-muted-foreground">
+                        {r.status}
+                      </Pill>
+                    </div>
+                    <p className="mt-1 text-[12.5px] text-muted-foreground">
+                      {r.cross_island ? "Cross-island" : "On-island"} · local wait{" "}
+                      {r.wait_days_local}d → routed {r.wait_days_routed}d · $
+                      {r.retained_value_usd.toLocaleString()} retained in-region
+                    </p>
+                    {r.status === "routed" && onAcceptReferral ? (
+                      <button
+                        onClick={() => onAcceptReferral(r.id)}
+                        className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground"
+                      >
+                        Open teleconsult
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+                {!b.referrals.length ? (
+                  <p className="text-[13px] text-muted-foreground">No referrals raised yet.</p>
+                ) : null}
+              </div>
+            </Panel>
           </div>
-        </Panel>
-      </div>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
