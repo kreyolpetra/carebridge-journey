@@ -180,20 +180,30 @@ function Patients() {
   }, [risks.data, patients.data, bandFilter, access, accessReady, query, contacted]);
 
   /**
-   * Everyone else on the Grid: findable by name, identity only, records sealed.
-   * Selecting one puts the refusal panel in the right pane, which is the honest
-   * answer and carries the two ways out of it.
+   * Every patient on the Grid, browsable by name — the directory.
+   *
+   * Identity only: name, age, sex, parish, country, language. Whether a row is
+   * readable is shown on it (the basis you hold, or "sealed"), and selecting a
+   * sealed one puts the refusal panel in the chart pane rather than a blank.
+   * Nothing clinical appears here — a risk score is a clinical judgement, so it
+   * stays on "My list" where a basis has already been resolved.
+   *
+   * Sorted by name, because a directory you browse is ordered the way you would
+   * look someone up in it, not by how ill they are.
    */
   const indexMatches = useMemo(() => {
+    if (isAggregateOnly || !accessReady) return [];
     const needle = query.trim().toLowerCase();
-    if (needle.length < 2 || isAggregateOnly || !accessReady) return [];
     return (patients.data ?? [])
-      .filter((p) => !access.decide(p.id).allowed)
       .filter(
         (p) =>
-          p.full_name.toLowerCase().includes(needle) || p.parish.toLowerCase().includes(needle),
-      );
-  }, [patients.data, query, isAggregateOnly, accessReady, access]);
+          !needle ||
+          p.full_name.toLowerCase().includes(needle) ||
+          p.parish.toLowerCase().includes(needle),
+      )
+      .slice()
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  }, [patients.data, query, isAggregateOnly, accessReady]);
 
   const indexPageCount = Math.max(1, Math.ceil(indexMatches.length / PAGE_SIZE));
   const indexPageSafe = Math.min(page, indexPageCount);
@@ -294,7 +304,7 @@ function Patients() {
             : queue.length
               ? "Everyone on your list has been contacted today."
               : ""}{" "}
-          Search by name to find anyone else on the Grid.
+          The Patients tab is the whole Grid directory.
         </p>
       </div>
 
@@ -352,7 +362,7 @@ function Patients() {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search your list, or find anyone on the Grid…"
+              placeholder="Search by name or parish…"
               className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-[12.5px] outline-none focus:border-primary"
             />
             {/* One list, two scopes. "My list" is the working set — everyone a
@@ -388,7 +398,7 @@ function Patients() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                Find a patient{query.trim().length > 1 ? ` (${indexMatches.length})` : ""}
+                Patients ({indexMatches.length})
               </button>
             </div>
           </div>
@@ -452,41 +462,50 @@ function Patients() {
                 );
               })}
             {tab === "find" &&
-              indexRows.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelected(p.id)}
-                  className={
-                    "mb-1 w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
-                    (p.id === selected ? "bg-primary/12" : "hover:bg-surface")
-                  }
-                >
-                  <span className="block truncate text-[13.5px] font-semibold">{p.full_name}</span>
-                  <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
-                    {p.age}
-                    {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
-                  </span>
-                  <Pill className="mt-1.5 border-border bg-background text-muted-foreground">
-                    <Lock className="h-3 w-3" />
-                    sealed
-                  </Pill>
-                </button>
-              ))}
+              indexRows.map((p) => {
+                const d = accessReady ? access.decide(p.id) : null;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelected(p.id)}
+                    className={
+                      "mb-1 w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
+                      (p.id === selected ? "bg-primary/12" : "hover:bg-surface")
+                    }
+                  >
+                    <span className="block truncate text-[13.5px] font-semibold">
+                      {p.full_name}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
+                      {p.age}
+                      {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
+                    </span>
+                    {d?.allowed ? (
+                      <Pill className={"mt-1.5 " + BASIS_TONE[d.basis]}>
+                        {BASIS_LABEL[d.basis]}
+                      </Pill>
+                    ) : (
+                      <Pill className="mt-1.5 border-border bg-background text-muted-foreground">
+                        <Lock className="h-3 w-3" />
+                        sealed
+                      </Pill>
+                    )}
+                  </button>
+                );
+              })}
 
             {tab === "mine" && accessReady && !queue.length ? (
               <p className="px-3 py-6 text-[13px] text-muted-foreground">
                 {query.trim() || bandFilter !== "all"
-                  ? "Nobody on your list matches that. Try “Find a patient” to search the rest of the Grid."
+                  ? "Nobody on your list matches that. The Patients tab searches the whole Grid."
                   : "No patients on your list. A referral you accept, an episode at your facility, or a consent grant from the patient will place someone here."}
               </p>
             ) : null}
             {tab === "find" && !indexRows.length ? (
               <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
                 {isAggregateOnly
-                  ? "Your role is aggregate and de-identified only, so the patient index is not available to it."
-                  : query.trim().length < 2
-                    ? "Type at least two characters to look someone up across all eleven countries. The index is never browsed as a list — results appear only for a name you search."
-                    : `Nobody outside your list matches “${query.trim()}”.`}
+                  ? "Your role is aggregate and de-identified only, so the patient directory is not available to it."
+                  : `Nobody on the Grid matches “${query.trim()}”.`}
               </p>
             ) : null}
           </div>
