@@ -25,6 +25,7 @@ import { ShieldAlert } from "lucide-react";
 import type { PatientBundle, Provider } from "@/lib/api";
 import { BASIS_LABEL, BASIS_TONE, TIER_LABEL, TIER_SCOPE, isGrantActive } from "@/lib/access";
 import type { AccessDecision } from "@/lib/access-basis";
+import { CareTimeline } from "@/components/patient/CareTimeline";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { bandClasses, severityClasses, shortDate, timeAgo } from "@/lib/format";
 
@@ -258,6 +259,12 @@ export function PatientChart({
           </div>
         </Panel>
       </div>
+
+      <CareTimeline
+        patientId={b.patient.id}
+        decision={decision}
+        grantedCategories={grantedCategories}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel>
