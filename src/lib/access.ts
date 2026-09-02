@@ -235,7 +235,7 @@ export const careTeamQuery = (patientId?: string | null) =>
     queryKey: ["care_team_members", patientId ?? "all"],
     staleTime: 30_000,
     queryFn: async () => {
-      let q = supabase.from("care_team_members").select("*").limit(500);
+      let q = supabase.from("care_team_members").select("*").limit(4000);
       if (patientId) q = q.eq("patient_id", patientId);
       return unwrap<CareTeamMember[]>(await q);
     },

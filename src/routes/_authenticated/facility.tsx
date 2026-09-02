@@ -2,8 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Hospital, Share2, Users, ChevronRight, ArrowUpRight } from "lucide-react";
-import { facilitiesQuery, patientsQuery, providersQuery, riskScoresQuery, islandsQuery } from "@/lib/api";
-import { encountersQuery, facilityStaffQuery, ENCOUNTER_KIND_LABEL, STAFF_ROLE_LABEL } from "@/lib/org";
+import {
+  facilitiesQuery,
+  patientsQuery,
+  providersQuery,
+  riskScoresQuery,
+  islandsQuery,
+} from "@/lib/api";
+import {
+  encountersQuery,
+  facilityStaffQuery,
+  ENCOUNTER_KIND_LABEL,
+  STAFF_ROLE_LABEL,
+} from "@/lib/org";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { bandClasses, shortDate, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,7 +61,9 @@ function FacilityConsole() {
     if (!facilityId) return null;
     const mine = all.filter((e) => e.facility_id === facilityId);
     const myPatientIds = new Set(mine.map((e) => e.patient_id));
-    const shared = all.filter((e) => e.facility_id !== facilityId && myPatientIds.has(e.patient_id));
+    const shared = all.filter(
+      (e) => e.facility_id !== facilityId && myPatientIds.has(e.patient_id),
+    );
     const sharedFacilities = new Set(shared.map((e) => e.facility_id));
     return { mine, myPatientIds, shared, sharedFacilities };
   }, [encounters.data, facilityId]);
@@ -85,18 +98,22 @@ function FacilityConsole() {
     if (wrote) void qc.invalidateQueries({ queryKey: ["access_log"] });
   }, [sharedPatientIds, profile, facility, qc]);
 
-  if (facilities.isLoading || encounters.isLoading || !view || !facility) return <Loading label="Loading facility" />;
+  if (facilities.isLoading || encounters.isLoading || !view || !facility)
+    return <Loading label="Loading facility" />;
 
   const patientById = new Map((patients.data ?? []).map((p) => [p.id, p]));
   const facilityById = new Map(facilityList.map((f) => [f.id, f]));
   const providerById = new Map((providers.data ?? []).map((p) => [p.id, p]));
   const riskById = new Map((risks.data ?? []).map((r) => [r.patient_id, r]));
-  const islandName = (code?: string) => (islands.data ?? []).find((i) => i.code === code)?.name ?? code ?? "";
+  const islandName = (code?: string) =>
+    (islands.data ?? []).find((i) => i.code === code)?.name ?? code ?? "";
 
   const roster = [...view.myPatientIds]
     .map((pid) => {
       const mine = view.mine.filter((e) => e.patient_id === pid);
-      const elsewhere = new Set(view.shared.filter((e) => e.patient_id === pid).map((e) => e.facility_id));
+      const elsewhere = new Set(
+        view.shared.filter((e) => e.patient_id === pid).map((e) => e.facility_id),
+      );
       const last = mine[0];
       return { pid, visits: mine.length, elsewhere, last, risk: riskById.get(pid) };
     })
@@ -136,8 +153,17 @@ function FacilityConsole() {
           }
         />
         <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Patients on file here" value={view.myPatientIds.size} hint="Seen at this facility" />
-          <Stat label="Open encounters" value={openEncounters.length} hint="Currently in care" tone="signal" />
+          <Stat
+            label="Patients on file here"
+            value={view.myPatientIds.size}
+            hint="Seen at this facility"
+          />
+          <Stat
+            label="Open encounters"
+            value={openEncounters.length}
+            hint="Currently in care"
+            tone="signal"
+          />
           <Stat
             label="Records shared in"
             value={view.shared.length}
@@ -156,7 +182,9 @@ function FacilityConsole() {
           />
           <div className="divide-y divide-border">
             {roster.length === 0 ? (
-              <p className="px-5 py-6 text-[13px] text-muted-foreground">No encounters recorded at this facility.</p>
+              <p className="px-5 py-6 text-[13px] text-muted-foreground">
+                No encounters recorded at this facility.
+              </p>
             ) : (
               roster.slice(0, 40).map((r) => {
                 const p = patientById.get(r.pid);
@@ -168,18 +196,24 @@ function FacilityConsole() {
                     className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-semibold">{p?.full_name ?? "Unknown patient"}</p>
+                      <p className="truncate text-[13.5px] font-semibold">
+                        {p?.full_name ?? "Unknown patient"}
+                      </p>
                       <p className="mt-0.5 text-[12px] text-muted-foreground">
-                        {r.visits} visit{r.visits === 1 ? "" : "s"} here · last {r.last ? timeAgo(r.last.started_at) : "—"}
+                        {r.visits} visit{r.visits === 1 ? "" : "s"} here · last{" "}
+                        {r.last ? timeAgo(r.last.started_at) : "—"}
                         {p ? ` · ${p.age}y · ${p.parish}` : ""}
                       </p>
                     </div>
                     {r.elsewhere.size > 0 ? (
                       <Pill className="border-primary/30 bg-primary/10 text-primary">
-                        <Share2 className="h-3 w-3" /> +{r.elsewhere.size} facilit{r.elsewhere.size === 1 ? "y" : "ies"}
+                        <Share2 className="h-3 w-3" /> +{r.elsewhere.size} facilit
+                        {r.elsewhere.size === 1 ? "y" : "ies"}
                       </Pill>
                     ) : null}
-                    {r.risk ? <Pill className={bandClasses(r.risk.band)}>{r.risk.score}</Pill> : null}
+                    {r.risk ? (
+                      <Pill className={bandClasses(r.risk.band)}>{r.risk.score}</Pill>
+                    ) : null}
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </Link>
                 );
@@ -197,7 +231,8 @@ function FacilityConsole() {
             <div className="divide-y divide-border">
               {view.shared.length === 0 ? (
                 <p className="px-5 py-6 text-[13px] text-muted-foreground">
-                  Nothing shared in yet. As soon as one of your patients is seen at another Grid facility, it lands here.
+                  Nothing shared in yet. As soon as one of your patients is seen at another Grid
+                  facility, it lands here.
                 </p>
               ) : (
                 view.shared.slice(0, 12).map((e) => (
@@ -212,7 +247,8 @@ function FacilityConsole() {
                     </div>
                     <p className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
                       <ArrowUpRight className="h-3.5 w-3.5" />
-                      {facilityById.get(e.facility_id)?.name ?? "Another facility"} · {shortDate(e.started_at)}
+                      {facilityById.get(e.facility_id)?.name ?? "Another facility"} ·{" "}
+                      {shortDate(e.started_at)}
                     </p>
                     {e.reason ? <p className="mt-1 text-[12.5px]">{e.reason}</p> : null}
                     {e.summary ? (
@@ -239,7 +275,9 @@ function FacilityConsole() {
                 myStaff.map((s) => (
                   <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
                     <span className="truncate text-[13.5px] font-semibold">
-                      {s.user_id === profile?.id ? profile.full_name : (s.title || "Grid account")}
+                      {s.user_id === profile?.id
+                        ? profile.full_name
+                        : (s.full_name ?? s.title ?? "Grid account")}
                     </span>
                     <Pill className="border-border bg-surface text-muted-foreground">
                       {STAFF_ROLE_LABEL[s.staff_role] ?? s.staff_role}
@@ -251,7 +289,10 @@ function FacilityConsole() {
           </Panel>
 
           <Panel>
-            <PanelHeader title="Providers based here" subtitle="Clinical capacity attached to this facility" />
+            <PanelHeader
+              title="Providers based here"
+              subtitle="Clinical capacity attached to this facility"
+            />
             <div className="divide-y divide-border">
               {[...providerById.values()]
                 .filter((p) => p.facility_id === facilityId)

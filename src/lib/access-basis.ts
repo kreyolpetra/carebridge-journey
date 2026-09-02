@@ -141,14 +141,20 @@ export function buildAccessIndex(ctx: AccessContext) {
   };
 
   // --- care-team membership at the reader's own facility ---------------
-  // Spec §4: "Facility employment alone is not membership." A row must name
-  // either the reader's facility with no provider (a facility-level team, e.g.
-  // the ward covering an episode) or the reader themselves.
+  // Spec §4: "Facility employment alone is not membership."
+  //
+  // A row either names a provider — then only that provider is on the team —
+  // or names none, in which case it is a team defined by function: the ward's
+  // nursing team, the clinic's front desk. Those cover a reader working at that
+  // tier and nobody else. Matching every unnamed row to every reader is how a
+  // consultant cardiologist ended up on the care team of all 200 patients
+  // registered at his hospital, which is precisely the claim §4 rejects.
   const careTeamByPatient = new Map<string, CareTeamMember>();
   for (const m of ctx.careTeam) {
     if (!actor.facilityId || m.facility_id !== actor.facilityId) continue;
-    if (m.provider_id && m.provider_id !== actor.providerId) continue;
     if (!notExpired(m.active_until, now)) continue;
+    const named = m.provider_id ? m.provider_id === actor.providerId : m.tier === actor.tier;
+    if (!named) continue;
     careTeamByPatient.set(m.patient_id, m);
   }
 

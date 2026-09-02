@@ -49,17 +49,149 @@ export type Tables = Record<string, Row[]>;
 // between them and shares a land border with Haiti, which is where cross-border
 // care in this region actually happens.
 const ISLANDS = [
-  { code: "JM", name: "Jamaica", country: "Jamaica", population: 2825000, lat: 18.1096, lng: -77.2975, tier: "middle", physPer1k: 1.3, bedsPer1k: 1.7, connectivity: "good", payment: "mixed" },
-  { code: "TT", name: "Trinidad and Tobago", country: "Trinidad and Tobago", population: 1531000, lat: 10.6918, lng: -61.2225, tier: "well_resourced", physPer1k: 2.7, bedsPer1k: 3.0, connectivity: "good", payment: "insured" },
-  { code: "BB", name: "Barbados", country: "Barbados", population: 281000, lat: 13.1939, lng: -59.5432, tier: "well_resourced", physPer1k: 2.5, bedsPer1k: 5.8, connectivity: "good", payment: "insured" },
-  { code: "GD", name: "Grenada", country: "Grenada", population: 125000, lat: 12.1165, lng: -61.679, tier: "middle", physPer1k: 1.4, bedsPer1k: 3.6, connectivity: "good", payment: "mixed" },
-  { code: "LC", name: "Saint Lucia", country: "Saint Lucia", population: 180000, lat: 13.9094, lng: -60.9789, tier: "middle", physPer1k: 0.6, bedsPer1k: 1.3, connectivity: "good", payment: "mixed" },
-  { code: "VC", name: "Saint Vincent", country: "Saint Vincent and the Grenadines", population: 111000, lat: 13.2528, lng: -61.1971, tier: "middle", physPer1k: 0.7, bedsPer1k: 2.6, connectivity: "patchy", payment: "mixed" },
-  { code: "DM", name: "Dominica", country: "Dominica", population: 72000, lat: 15.415, lng: -61.371, tier: "middle", physPer1k: 1.1, bedsPer1k: 3.8, connectivity: "patchy", payment: "mixed" },
-  { code: "AG", name: "Antigua", country: "Antigua and Barbuda", population: 98000, lat: 17.0608, lng: -61.7964, tier: "middle", physPer1k: 2.9, bedsPer1k: 2.9, connectivity: "good", payment: "mixed" },
-  { code: "HT", name: "Haiti", country: "Haiti", population: 11700000, lat: 18.9712, lng: -72.2852, tier: "under_resourced", physPer1k: 0.23, bedsPer1k: 0.7, connectivity: "poor", payment: "out_of_pocket" },
-  { code: "DO", name: "Dominican Republic", country: "Dominican Republic", population: 11330000, lat: 18.7357, lng: -70.1627, tier: "middle", physPer1k: 1.5, bedsPer1k: 1.6, connectivity: "patchy", payment: "mixed" },
-  { code: "CU", name: "Cuba", country: "Cuba", population: 11190000, lat: 21.5218, lng: -77.7812, tier: "clinician_rich", physPer1k: 8.4, bedsPer1k: 5.3, connectivity: "poor", payment: "state" },
+  {
+    code: "JM",
+    name: "Jamaica",
+    country: "Jamaica",
+    population: 2825000,
+    lat: 18.1096,
+    lng: -77.2975,
+    tier: "middle",
+    physPer1k: 1.3,
+    bedsPer1k: 1.7,
+    connectivity: "good",
+    payment: "mixed",
+  },
+  {
+    code: "TT",
+    name: "Trinidad and Tobago",
+    country: "Trinidad and Tobago",
+    population: 1531000,
+    lat: 10.6918,
+    lng: -61.2225,
+    tier: "well_resourced",
+    physPer1k: 2.7,
+    bedsPer1k: 3.0,
+    connectivity: "good",
+    payment: "insured",
+  },
+  {
+    code: "BB",
+    name: "Barbados",
+    country: "Barbados",
+    population: 281000,
+    lat: 13.1939,
+    lng: -59.5432,
+    tier: "well_resourced",
+    physPer1k: 2.5,
+    bedsPer1k: 5.8,
+    connectivity: "good",
+    payment: "insured",
+  },
+  {
+    code: "GD",
+    name: "Grenada",
+    country: "Grenada",
+    population: 125000,
+    lat: 12.1165,
+    lng: -61.679,
+    tier: "middle",
+    physPer1k: 1.4,
+    bedsPer1k: 3.6,
+    connectivity: "good",
+    payment: "mixed",
+  },
+  {
+    code: "LC",
+    name: "Saint Lucia",
+    country: "Saint Lucia",
+    population: 180000,
+    lat: 13.9094,
+    lng: -60.9789,
+    tier: "middle",
+    physPer1k: 0.6,
+    bedsPer1k: 1.3,
+    connectivity: "good",
+    payment: "mixed",
+  },
+  {
+    code: "VC",
+    name: "Saint Vincent",
+    country: "Saint Vincent and the Grenadines",
+    population: 111000,
+    lat: 13.2528,
+    lng: -61.1971,
+    tier: "middle",
+    physPer1k: 0.7,
+    bedsPer1k: 2.6,
+    connectivity: "patchy",
+    payment: "mixed",
+  },
+  {
+    code: "DM",
+    name: "Dominica",
+    country: "Dominica",
+    population: 72000,
+    lat: 15.415,
+    lng: -61.371,
+    tier: "middle",
+    physPer1k: 1.1,
+    bedsPer1k: 3.8,
+    connectivity: "patchy",
+    payment: "mixed",
+  },
+  {
+    code: "AG",
+    name: "Antigua",
+    country: "Antigua and Barbuda",
+    population: 98000,
+    lat: 17.0608,
+    lng: -61.7964,
+    tier: "middle",
+    physPer1k: 2.9,
+    bedsPer1k: 2.9,
+    connectivity: "good",
+    payment: "mixed",
+  },
+  {
+    code: "HT",
+    name: "Haiti",
+    country: "Haiti",
+    population: 11700000,
+    lat: 18.9712,
+    lng: -72.2852,
+    tier: "under_resourced",
+    physPer1k: 0.23,
+    bedsPer1k: 0.7,
+    connectivity: "poor",
+    payment: "out_of_pocket",
+  },
+  {
+    code: "DO",
+    name: "Dominican Republic",
+    country: "Dominican Republic",
+    population: 11330000,
+    lat: 18.7357,
+    lng: -70.1627,
+    tier: "middle",
+    physPer1k: 1.5,
+    bedsPer1k: 1.6,
+    connectivity: "patchy",
+    payment: "mixed",
+  },
+  {
+    code: "CU",
+    name: "Cuba",
+    country: "Cuba",
+    population: 11190000,
+    lat: 21.5218,
+    lng: -77.7812,
+    tier: "clinician_rich",
+    physPer1k: 8.4,
+    bedsPer1k: 5.3,
+    connectivity: "poor",
+    payment: "state",
+  },
 ] as const;
 
 export const TIER_LABEL: Record<string, string> = {
@@ -127,14 +259,335 @@ const PROVIDER_MIX: { island: string; specialty: string; cnt: number; wait: numb
   { island: "CU", specialty: "Ophthalmology", cnt: 2, wait: 10 },
 ];
 
-const FIRST_NAMES_DR = ["Andre", "Camille", "Devon", "Simone", "Rohan", "Anika", "Kwame", "Nadia", "Trevor", "Shanice", "Errol", "Yolande", "Dwight", "Marsha", "Rajiv", "Petra", "Colin", "Jodi-Ann", "Leon", "Cheryl"];
-const LAST_NAMES_DR = ["Bailey", "Ramsingh", "Clarke", "Joseph", "Providence", "Grant", "Alleyne", "Sinanan", "Charles", "Boyce", "Prescod", "Frederick", "Baptiste", "Henriques", "Maharaj", "Cadogan", "Simmons", "Toussaint", "Beckles", "Marshall"];
+const FIRST_NAMES_DR = [
+  "Andre",
+  "Camille",
+  "Devon",
+  "Simone",
+  "Rohan",
+  "Anika",
+  "Kwame",
+  "Nadia",
+  "Trevor",
+  "Shanice",
+  "Errol",
+  "Yolande",
+  "Dwight",
+  "Marsha",
+  "Rajiv",
+  "Petra",
+  "Colin",
+  "Jodi-Ann",
+  "Leon",
+  "Cheryl",
+];
+const LAST_NAMES_DR = [
+  "Bailey",
+  "Ramsingh",
+  "Clarke",
+  "Joseph",
+  "Providence",
+  "Grant",
+  "Alleyne",
+  "Sinanan",
+  "Charles",
+  "Boyce",
+  "Prescod",
+  "Frederick",
+  "Baptiste",
+  "Henriques",
+  "Maharaj",
+  "Cadogan",
+  "Simmons",
+  "Toussaint",
+  "Beckles",
+  "Marshall",
+];
 
-const FIRST_NAMES_PT = ["Marlene", "Delroy", "Sharon", "Winston", "Althea", "Junior", "Beverley", "Clement", "Icilda", "Everton", "Merlene", "Rupert", "Pearline", "Lloyd", "Grace", "Neville", "Doreen", "Sylvester", "Hyacinth", "Barrington", "Yvette", "Fitzroy", "Monica", "Desmond", "Verona", "Linton", "Claudette", "Egbert", "Sandra", "Owen"];
-const LAST_NAMES_PT = ["Campbell", "Bramble", "Ramkissoon", "Gilkes", "Charles", "Edwards", "Providence", "Mohammed", "Isaac", "Belgrave", "Phillip", "Stewart", "Hosein", "Blackman", "Anthony", "Peters", "Lewis", "Weekes", "Douglas", "Samuel"];
+// Name pools by cultural tradition, not one Anglo-Caribbean list for all eleven
+// countries. The Grid covers Haiti, Cuba and the Dominican Republic, and a
+// Haitian patient called "Winston Campbell" or a Cuban called "Delroy Weekes"
+// reads as a placeholder the moment a Caribbean clinician looks at the screen.
+// Trinidad is split because roughly a third of the population is Indo-
+// Trinidadian, which the surname distribution should show.
+//
+// Given names are also split by sex, because the previous version picked a name
+// and a sex independently and produced patients like "Delroy Isaac · 69F".
+const ANGLO_F = [
+  "Marlene",
+  "Sharon",
+  "Althea",
+  "Beverley",
+  "Icilda",
+  "Merlene",
+  "Pearline",
+  "Grace",
+  "Doreen",
+  "Hyacinth",
+  "Yvette",
+  "Monica",
+  "Verona",
+  "Claudette",
+  "Sandra",
+  "Cynthia",
+  "Novelette",
+  "Paulette",
+  "Enid",
+  "Millicent",
+  "Joyce",
+  "Carmen",
+  "Eulalee",
+  "Jacintha",
+  "Dorette",
+  "Lurline",
+  "Icylin",
+  "Berthlyn",
+  "Marva",
+  "Sonia",
+];
+const ANGLO_M = [
+  "Delroy",
+  "Winston",
+  "Junior",
+  "Clement",
+  "Everton",
+  "Rupert",
+  "Lloyd",
+  "Neville",
+  "Sylvester",
+  "Barrington",
+  "Fitzroy",
+  "Desmond",
+  "Linton",
+  "Egbert",
+  "Owen",
+  "Errol",
+  "Vincent",
+  "Horace",
+  "Cuthbert",
+  "Leroy",
+  "Devon",
+  "Cleveland",
+  "Adrian",
+  "Wendell",
+  "Osbourne",
+  "Trevor",
+  "Colin",
+  "Garfield",
+  "Hopeton",
+  "Dwight",
+];
+const ANGLO_LAST = [
+  "Campbell",
+  "Bramble",
+  "Gilkes",
+  "Charles",
+  "Edwards",
+  "Providence",
+  "Isaac",
+  "Belgrave",
+  "Phillip",
+  "Stewart",
+  "Blackman",
+  "Anthony",
+  "Peters",
+  "Lewis",
+  "Weekes",
+  "Douglas",
+  "Samuel",
+  "Browne",
+  "Clarke",
+  "Grant",
+  "Hinds",
+  "Joseph",
+  "Alleyne",
+  "Cumberbatch",
+  "Springer",
+  "Bailey",
+  "Thompson",
+  "Walters",
+  "Sealy",
+  "Nurse",
+];
+
+const INDO_F = [
+  "Savitri",
+  "Radica",
+  "Kamla",
+  "Indira",
+  "Anita",
+  "Reshma",
+  "Sunita",
+  "Drupatee",
+  "Parbatee",
+  "Seeta",
+  "Rani",
+  "Sharmila",
+  "Bhagwantee",
+  "Devika",
+  "Roopnarine",
+];
+const INDO_M = [
+  "Anand",
+  "Rajesh",
+  "Vishnu",
+  "Deodath",
+  "Ramesh",
+  "Krishna",
+  "Sunil",
+  "Harold",
+  "Ravi",
+  "Bissoondath",
+  "Dinesh",
+  "Chandra",
+  "Prakash",
+  "Mahendra",
+  "Suresh",
+];
+const INDO_LAST = [
+  "Ramkissoon",
+  "Mohammed",
+  "Hosein",
+  "Persad",
+  "Maharaj",
+  "Singh",
+  "Sookdeo",
+  "Ramnarine",
+  "Bissessar",
+  "Ali",
+  "Khan",
+  "Rampersad",
+  "Balgobin",
+  "Seepersad",
+  "Boodoo",
+];
+
+const HAITI_F = [
+  "Marie-Ange",
+  "Nadège",
+  "Fabiola",
+  "Guerline",
+  "Roseline",
+  "Mirlande",
+  "Darline",
+  "Yveline",
+  "Sherline",
+  "Manouchka",
+  "Islande",
+  "Rosemène",
+  "Jesula",
+  "Wideline",
+  "Magalie",
+];
+const HAITI_M = [
+  "Jean-Baptiste",
+  "Wilner",
+  "Fritznel",
+  "Édouard",
+  "Renel",
+  "Dieuseul",
+  "Josué",
+  "Wilkens",
+  "Emmanuel",
+  "Ronald",
+  "Yvenel",
+  "Kesnel",
+  "Mackenson",
+  "Jocelyn",
+  "Berthony",
+];
+const HAITI_LAST = [
+  "Pierre",
+  "Jean",
+  "Charles",
+  "Joseph",
+  "Louis",
+  "Baptiste",
+  "Toussaint",
+  "Désir",
+  "Étienne",
+  "Alexis",
+  "Célestin",
+  "Fils-Aimé",
+  "Dorvil",
+  "Saint-Fleur",
+  "Beauvoir",
+];
+
+const HISP_F = [
+  "María",
+  "Yolanda",
+  "Caridad",
+  "Milagros",
+  "Dulce",
+  "Xiomara",
+  "Altagracia",
+  "Yanet",
+  "Marisol",
+  "Idalia",
+  "Zoraida",
+  "Damaris",
+  "Aracelis",
+  "Odalys",
+  "Belkis",
+];
+const HISP_M = [
+  "José",
+  "Ramón",
+  "Orlando",
+  "Eduardo",
+  "Reinaldo",
+  "Ernesto",
+  "Wilfredo",
+  "Aníbal",
+  "Radhamés",
+  "Osvaldo",
+  "Ovidio",
+  "Elpidio",
+  "Rigoberto",
+  "Yoandri",
+  "Lázaro",
+];
+const HISP_LAST = [
+  "Rodríguez",
+  "Fernández",
+  "Gómez",
+  "Peña",
+  "Herrera",
+  "Cabrera",
+  "Batista",
+  "Ureña",
+  "Almonte",
+  "Guerrero",
+  "Valdés",
+  "Betancourt",
+  "Sarmiento",
+  "Cepeda",
+  "Mejía",
+];
+
+/** A name drawn from the tradition that fits the patient's country and sex. */
+function nameFor(rng: Rng, code: string, sex: string): string {
+  const female = sex === "F";
+  if (code === "HT") return `${pick(rng, female ? HAITI_F : HAITI_M)} ${pick(rng, HAITI_LAST)}`;
+  if (code === "DO" || code === "CU")
+    return `${pick(rng, female ? HISP_F : HISP_M)} ${pick(rng, HISP_LAST)}`;
+  // Trinidad and Tobago: roughly a third of the population is Indo-Trinidadian.
+  if (code === "TT" && chance(rng, 0.36))
+    return `${pick(rng, female ? INDO_F : INDO_M)} ${pick(rng, INDO_LAST)}`;
+  return `${pick(rng, female ? ANGLO_F : ANGLO_M)} ${pick(rng, ANGLO_LAST)}`;
+}
 
 const PARISHES: Record<string, string[]> = {
-  JM: ["St. Elizabeth", "Clarendon", "St. Thomas", "Portland", "Westmoreland", "Kingston", "St. Ann"],
+  JM: [
+    "St. Elizabeth",
+    "Clarendon",
+    "St. Thomas",
+    "Portland",
+    "Westmoreland",
+    "Kingston",
+    "St. Ann",
+  ],
   TT: ["Sangre Grande", "Mayaro", "Point Fortin", "Chaguanas", "Tobago East", "Siparia"],
   BB: ["St. Lucy", "St. Andrew", "St. Philip", "Christ Church", "St. John"],
   GD: ["St. Patrick", "St. David", "Carriacou", "St. Andrew"],
@@ -149,12 +602,26 @@ const PARISHES: Record<string, string[]> = {
 
 // Scaled down from the original ~290-patient migration seed for a snappier
 // browser-only demo; proportions preserved.
+// Registered patients per country. Trinidad carries the largest roster not
+// because it has the most people — Haiti alone has seven times its population —
+// but because Trinidad and Tobago General is the deployment site: the hospital
+// actually running the Grid registers its whole catchment, while other
+// countries are still onboarding through referrals and clinics.
 const PATIENT_WEIGHTS: Record<string, number> = {
-  JM: 40, TT: 25, BB: 15, GD: 9, LC: 11, VC: 8, DM: 6, AG: 8,
+  JM: 140,
+  TT: 200,
+  BB: 55,
+  GD: 28,
+  LC: 34,
+  VC: 24,
+  DM: 18,
+  AG: 24,
   // Weighted up to reflect population: these three hold roughly 34M of the
   // region's people between them, and a demo that under-represents them would
   // hide the exact inequity this build exists to surface.
-  HT: 34, DO: 24, CU: 20,
+  HT: 110,
+  DO: 80,
+  CU: 62,
 };
 
 const CONDITION_PROB: [string, number][] = [
@@ -173,9 +640,24 @@ const MED_FOR_COND: Record<string, { name: string; dose: string }> = {
 };
 
 const INSURERS = ["Sagicor", "Guardian Life", "Beacon", "National Health Fund", "Uninsured"];
-const STOCK_MEDS = ["Metformin 500mg", "Amlodipine 10mg", "Lisinopril 20mg", "Insulin glargine", "Furosemide 40mg"];
+const STOCK_MEDS = [
+  "Metformin 500mg",
+  "Amlodipine 10mg",
+  "Lisinopril 20mg",
+  "Insulin glargine",
+  "Furosemide 40mg",
+];
 
-function computeRisk(rng: Rng, age: number, kmToFacility: number, conditionCount: number, avgAdherence: number, avgSys: number, avgGlu: number, prevSys: number) {
+function computeRisk(
+  rng: Rng,
+  age: number,
+  kmToFacility: number,
+  conditionCount: number,
+  avgAdherence: number,
+  avgSys: number,
+  avgGlu: number,
+  prevSys: number,
+) {
   const sBp = Math.min(32, Math.max(0, (avgSys - 120) * 0.95));
   const sGlu = Math.min(20, Math.max(0, (avgGlu - 6.0) * 6));
   const sAdh = Math.min(18, Math.max(0, (100 - avgAdherence) * 0.28));
@@ -236,26 +718,43 @@ export function buildSeed(): Tables {
   // ---- islands ----
   for (const i of ISLANDS) t.islands.push({ ...i });
 
-  // ---- facilities (3 per island, + 4 fixed-id "story" facilities) ----
+  // ---- facilities ----
+  // Facilities are sized like real buildings, not like a country. The three-per-
+  // island model used to divide a nation's entire bed capacity between them,
+  // which put 4,093 beds inside Trinidad and Tobago General and 11,000 inside a
+  // single Cuban hospital. National capacity is now read from the island's own
+  // population and bed density on the coordination dashboard, which frees these
+  // rows to describe actual hospitals — and lets populous countries carry the
+  // district hospitals they would really have.
   const facilitiesByIsland: Record<string, Row[]> = {};
   for (const i of ISLANDS) {
     facilitiesByIsland[i.code] = [];
-    // Bed counts scale with population and national bed density, so the three
-    // modelled facilities stand in for the country's capacity rather than every
-    // country reporting the same 202 beds — which would have put Haiti's 11.7M
-    // people on par with Dominica's 72,000.
-    const nationalBeds = Math.round((i.population / 1000) * i.bedsPer1k);
-    const weightTotal = FACILITY_KINDS.reduce((a, f) => a + f.beds, 0);
-    for (const f of FACILITY_KINDS) {
+    const big = i.population > 1_000_000;
+    const districtCount = Math.max(0, Math.min(8, Math.round(i.population / 500_000)));
+    const districtParishes = [...(PARISHES[i.code] ?? [])].slice(0, districtCount);
+    const specs: { name: string; kind: string; beds: number }[] = [
+      {
+        name: `${i.name} General Hospital`,
+        kind: "hospital",
+        beds: big ? int(rng, 520, 880) : int(rng, 120, 340),
+      },
+      { name: `${i.name} Community Clinic`, kind: "clinic", beds: int(rng, 10, 26) },
+      { name: `${i.name} Rural Health Centre`, kind: "clinic", beds: int(rng, 5, 14) },
+      ...districtParishes.map((parish) => ({
+        name: `${parish} District Hospital`,
+        kind: "hospital",
+        beds: int(rng, 90, 260),
+      })),
+    ];
+    for (const f of specs) {
       const occRatio = 0.58 + rng() * 0.38;
-      const beds = Math.max(4, Math.round((nationalBeds * f.beds) / weightTotal));
       const row: Row = {
         id: uuid(rng),
-        name: `${i.name} ${f.suffix}`,
+        name: f.name,
         island_code: i.code,
         kind: f.kind,
-        beds_total: beds,
-        beds_occupied: Math.max(0, Math.round(beds * occRatio)),
+        beds_total: f.beds,
+        beds_occupied: Math.max(0, Math.round(f.beds * occRatio)),
         created_at: daysAgo(400),
       };
       t.facilities.push(row);
@@ -296,7 +795,8 @@ export function buildSeed(): Tables {
                   ? ["es", "ht"]
                   : ["es"]
                 : ["en"];
-      const rate = m.specialty === "General Practice" ? 25 : m.specialty === "Internal Medicine" ? 45 : 70;
+      const rate =
+        m.specialty === "General Practice" ? 25 : m.specialty === "Internal Medicine" ? 45 : 70;
       const row: Row = {
         id: uuid(rng),
         full_name: `Dr. ${pick(rng, FIRST_NAMES_DR)} ${pick(rng, LAST_NAMES_DR)}`,
@@ -321,7 +821,7 @@ export function buildSeed(): Tables {
 
   // ---- availability slots ----
   for (const p of t.providers) {
-    for (let d = 1; d <= 10; d++) {
+    for (let d = 1; d <= 6; d++) {
       for (let s = 0; s < 6; s++) {
         if (!chance(rng, 0.35)) continue;
         const startsAt = new Date();
@@ -362,12 +862,13 @@ export function buildSeed(): Tables {
                 : code === "TT" && chance(rng, 0.15)
                   ? "es"
                   : "en";
+      const sex = chance(rng, 0.56) ? "F" : "M";
       t.patients.push({
         id: uuid(rng),
-        full_name: `${pick(rng, FIRST_NAMES_PT)} ${pick(rng, LAST_NAMES_PT)}`,
+        full_name: nameFor(rng, code, sex),
         phone: `+1${int(rng, 200, 899)}${int(rng, 1000000, 9999999)}`,
         age: int(rng, 34, 79),
-        sex: chance(rng, 0.56) ? "F" : "M",
+        sex,
         island_code: code,
         parish,
         language,
@@ -394,6 +895,30 @@ export function buildSeed(): Tables {
     created_at: daysAgo(700),
   });
 
+  // ---- the deployment site ----
+  // Trinidad and Tobago General is the hospital using the Grid day to day, so
+  // its own catchment is modelled properly: a registered roster, a ward, clinic
+  // lists and named care teams. Everyone else on the Grid arrives through a
+  // referral or a clinic, and is deliberately thinner.
+  const ttGeneralRoster = t.patients.filter((p) => p.island_code === "TT").slice(0, 220);
+  const ttGeneralIds = new Set(ttGeneralRoster.map((p) => p.id as string));
+  // The Jamaican community clinic is the other staffed site in the demo. It is
+  // a clinic, not a hospital, so its roster is smaller and entirely outpatient —
+  // but a chronic-care nurse with one patient on her list is not a clinic
+  // either.
+  const jmClinicRoster = t.patients.filter((p) => p.island_code === "JM").slice(0, 58);
+  const jmClinicIds = new Set(jmClinicRoster.map((p) => p.id as string));
+
+  // Home-monitoring history is expensive to carry and only meaningful where
+  // someone actually opens the chart. The hospital's own patients get a full
+  // three-day cadence; everyone else gets a weekly one, which still spans both
+  // windows the risk score compares (0-14 days against 14-28) so nobody is
+  // scored off a fallback value.
+  const denseVitals = new Set<string>([...ttGeneralIds, ...jmClinicIds]);
+  for (const p of t.patients) {
+    if (!ttGeneralIds.has(p.id as string) && chance(rng, 0.12)) denseVitals.add(p.id as string);
+  }
+
   // ---- conditions + medications ----
   for (const p of t.patients) {
     const isHero = p.id === HERO_PATIENT_ID;
@@ -410,7 +935,10 @@ export function buildSeed(): Tables {
             ? dateDaysAgo(2900)
             : dateDaysAgo(1400)
           : dateDaysAgo(int(rng, 200, 2800)),
-        facility_id: p.island_code === "JM" ? JM_HOSPITAL_ID : facilitiesByIsland[p.island_code as string]?.[0]?.id,
+        facility_id:
+          p.island_code === "JM"
+            ? JM_HOSPITAL_ID
+            : facilitiesByIsland[p.island_code as string]?.[0]?.id,
         sensitivity: "standard",
       };
       t.conditions.push(cond);
@@ -423,9 +951,18 @@ export function buildSeed(): Tables {
           dosage: isHero && name === "Type 2 Diabetes" ? "500mg" : med.dose,
           frequency: isHero && name === "Type 2 Diabetes" ? "twice daily" : "daily",
           adherence_pct: isHero ? (name === "Hypertension" ? 48 : 62) : int(rng, 55, 100),
-          last_refill_on: dateDaysAgo(isHero ? (name === "Hypertension" ? 47 : 31) : int(rng, 0, 40)),
-          days_supply_left: isHero ? (name === "Hypertension" ? 0 : 3) : Math.max(0, int(rng, -2, 30)),
-          facility_id: p.island_code === "JM" ? JM_CLINIC_ID : facilitiesByIsland[p.island_code as string]?.[0]?.id,
+          last_refill_on: dateDaysAgo(
+            isHero ? (name === "Hypertension" ? 47 : 31) : int(rng, 0, 40),
+          ),
+          days_supply_left: isHero
+            ? name === "Hypertension"
+              ? 0
+              : 3
+            : Math.max(0, int(rng, -2, 30)),
+          facility_id:
+            p.island_code === "JM"
+              ? JM_CLINIC_ID
+              : facilitiesByIsland[p.island_code as string]?.[0]?.id,
           sensitivity: "standard",
         });
       }
@@ -435,7 +972,10 @@ export function buildSeed(): Tables {
   // ---- vitals ----
   for (const p of t.patients) {
     if (p.id === HERO_PATIENT_ID) continue; // handled separately below with a deliberate worsening trend
-    for (let d = 0; d <= 87; d += 3) {
+    const dense = denseVitals.has(p.id as string);
+    const span = dense ? 45 : 35;
+    const step = dense ? 3 : 7;
+    for (let d = 0; d <= span; d += step) {
       if (!chance(rng, 0.9)) continue;
       t.vitals.push({
         id: uuid(rng),
@@ -490,18 +1030,37 @@ export function buildSeed(): Tables {
 
   // ---- risk scores (mirrors compute_risk()) ----
   const conditionsByPatient = new Map<string, Row[]>();
-  for (const c of t.conditions) (conditionsByPatient.get(c.patient_id as string) ?? conditionsByPatient.set(c.patient_id as string, []).get(c.patient_id as string)!).push(c);
+  for (const c of t.conditions)
+    (
+      conditionsByPatient.get(c.patient_id as string) ??
+      conditionsByPatient.set(c.patient_id as string, []).get(c.patient_id as string)!
+    ).push(c);
   const medsByPatient = new Map<string, Row[]>();
-  for (const m of t.medications) (medsByPatient.get(m.patient_id as string) ?? medsByPatient.set(m.patient_id as string, []).get(m.patient_id as string)!).push(m);
+  for (const m of t.medications)
+    (
+      medsByPatient.get(m.patient_id as string) ??
+      medsByPatient.set(m.patient_id as string, []).get(m.patient_id as string)!
+    ).push(m);
   const vitalsByPatient = new Map<string, Row[]>();
-  for (const v of t.vitals) (vitalsByPatient.get(v.patient_id as string) ?? vitalsByPatient.set(v.patient_id as string, []).get(v.patient_id as string)!).push(v);
+  for (const v of t.vitals)
+    (
+      vitalsByPatient.get(v.patient_id as string) ??
+      vitalsByPatient.set(v.patient_id as string, []).get(v.patient_id as string)!
+    ).push(v);
 
   for (const p of t.patients) {
     const pid = p.id as string;
     const conds = conditionsByPatient.get(pid) ?? [];
     const meds = medsByPatient.get(pid) ?? [];
-    const vitals = (vitalsByPatient.get(pid) ?? []).slice().sort((a, b) => new Date(b.measured_at as string).getTime() - new Date(a.measured_at as string).getTime());
-    const recent = vitals.filter((v) => new Date(v.measured_at as string).getTime() > nowMs() - 14 * 86400000);
+    const vitals = (vitalsByPatient.get(pid) ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.measured_at as string).getTime() - new Date(a.measured_at as string).getTime(),
+      );
+    const recent = vitals.filter(
+      (v) => new Date(v.measured_at as string).getTime() > nowMs() - 14 * 86400000,
+    );
     const prevWindow = vitals.filter((v) => {
       const age = nowMs() - new Date(v.measured_at as string).getTime();
       return age > 14 * 86400000 && age <= 28 * 86400000;
@@ -513,8 +1072,19 @@ export function buildSeed(): Tables {
     const avgSys = avg(recent, "systolic", 120);
     const avgGlu = avg(recent, "glucose_mmol", 5.5);
     const prevSys = avg(prevWindow, "systolic", avgSys);
-    const avgAdh = meds.length ? meds.reduce((a, m) => a + ((m.adherence_pct as number) ?? 100), 0) / meds.length : 100;
-    const risk = computeRisk(rng, p.age as number, p.km_to_facility as number, conds.length, avgAdh, avgSys, avgGlu, prevSys);
+    const avgAdh = meds.length
+      ? meds.reduce((a, m) => a + ((m.adherence_pct as number) ?? 100), 0) / meds.length
+      : 100;
+    const risk = computeRisk(
+      rng,
+      p.age as number,
+      p.km_to_facility as number,
+      conds.length,
+      avgAdh,
+      avgSys,
+      avgGlu,
+      prevSys,
+    );
     t.risk_scores.push({
       id: uuid(rng),
       patient_id: pid,
@@ -527,7 +1097,9 @@ export function buildSeed(): Tables {
   }
 
   // ---- referrals + consultations (completed cross-island history) ----
-  const highRisk = t.risk_scores.filter((r) => (r.score as number) > 45 && r.patient_id !== HERO_PATIENT_ID);
+  const highRisk = t.risk_scores.filter(
+    (r) => (r.score as number) > 45 && r.patient_id !== HERO_PATIENT_ID,
+  );
   // Historical referral rates deliberately encode the real-world access gap:
   // a patient in Barbados has historically been far more likely to reach a
   // specialist than one in Haiti, at equal clinical risk. This is the baseline
@@ -544,14 +1116,18 @@ export function buildSeed(): Tables {
     if (!chance(rng, HISTORIC_ACCESS[rIsland?.tier ?? "middle"] ?? 0.33)) continue;
     const patient = t.patients.find((p) => p.id === r.patient_id)!;
     const specialty = pick(rng, ["Cardiology", "Endocrinology", "Nephrology"]);
-    const candidates = t.providers.filter((pr) => pr.specialty === specialty && pr.island_code !== patient.island_code);
+    const candidates = t.providers.filter(
+      (pr) => pr.specialty === specialty && pr.island_code !== patient.island_code,
+    );
     if (!candidates.length) continue;
     const provider = pick(rng, candidates);
     const daysAgoCreated = int(rng, 0, 55);
     // Need reflects the patient's own country: no local capacity in that
     // specialty, a thin workforce, and out-of-pocket payment all raise it.
     const island = ISLANDS.find((i) => i.code === patient.island_code);
-    const hasLocal = PROVIDER_MIX.some((m) => m.island === patient.island_code && m.specialty === specialty);
+    const hasLocal = PROVIDER_MIX.some(
+      (m) => m.island === patient.island_code && m.specialty === specialty,
+    );
     let needScore = hasLocal ? int(rng, 5, 30) : 55;
     if (island?.tier === "under_resourced") needScore += 20;
     if (island?.tier === "clinician_rich") needScore -= 10;
@@ -628,10 +1204,30 @@ export function buildSeed(): Tables {
 
   // ---- treating window policies (static reference table) ----
   t.treating_window_policies = [
-    { facility_kind: "emergency", label: "ED / A&E", days: 7, rationale: "Short handover and re-presentation window" },
-    { facility_kind: "hospital", label: "Acute inpatient hospital", days: 30, rationale: "Discharge summary, readmission and complications" },
-    { facility_kind: "specialist", label: "Outpatient / specialist clinic", days: 90, rationale: "Standard follow-up cycle" },
-    { facility_kind: "clinic", label: "Primary care / community clinic", days: 365, rationale: "Continuous longitudinal relationship" },
+    {
+      facility_kind: "emergency",
+      label: "ED / A&E",
+      days: 7,
+      rationale: "Short handover and re-presentation window",
+    },
+    {
+      facility_kind: "hospital",
+      label: "Acute inpatient hospital",
+      days: 30,
+      rationale: "Discharge summary, readmission and complications",
+    },
+    {
+      facility_kind: "specialist",
+      label: "Outpatient / specialist clinic",
+      days: 90,
+      rationale: "Standard follow-up cycle",
+    },
+    {
+      facility_kind: "clinic",
+      label: "Primary care / community clinic",
+      days: 365,
+      rationale: "Continuous longitudinal relationship",
+    },
     { facility_kind: "pharmacy", label: "Pharmacy", days: 30, rationale: "Refill window" },
     { facility_kind: "lab", label: "Lab / imaging", days: 14, rationale: "Result review window" },
   ];
@@ -643,8 +1239,16 @@ export function buildSeed(): Tables {
       reference: "DSA-JM-TT-2026-001",
       from_facility_id: JM_CLINIC_ID,
       to_facility_id: TT_HOSPITAL_ID,
-      purpose: "Standing cardiology and endocrinology referral pipeline (Kingston community clinic to Trinidad General)",
-      scope: ["demographics", "vitals", "conditions", "medications", "referrals", "encounter summaries"],
+      purpose:
+        "Standing cardiology and endocrinology referral pipeline (Kingston community clinic to Trinidad General)",
+      scope: [
+        "demographics",
+        "vitals",
+        "conditions",
+        "medications",
+        "referrals",
+        "encounter summaries",
+      ],
       status: "active",
       executed_on: dateDaysAgo(120),
       expires_at: dateDaysAhead(490),
@@ -683,7 +1287,9 @@ export function buildSeed(): Tables {
   ];
 
   // ---- sensitive grants (one illustrative pending example) ----
-  const cardiologyTT = t.providers.find((p) => p.island_code === "TT" && p.specialty === "Cardiology")!;
+  const cardiologyTT = t.providers.find(
+    (p) => p.island_code === "TT" && p.specialty === "Cardiology",
+  )!;
   // The demo clinician profile points at this provider row, so they are the same
   // person and must carry the same name. They did not: the console showed
   // referrals routed to "Dr. Cheryl Boyce" while the user was signed in as
@@ -724,9 +1330,42 @@ export function buildSeed(): Tables {
 
   // ---- care team + break-glass (fixed, hero patient) ----
   t.care_team_members = [
-    { id: uuid(rng), patient_id: HERO_PATIENT_ID, facility_id: JM_CLINIC_ID, provider_id: ATTENDING_PROVIDER_ID, user_id: null, tier: "attending", encounter_id: null, active_from: daysAgo(200), active_until: null, created_at: daysAgo(200) },
-    { id: uuid(rng), patient_id: HERO_PATIENT_ID, facility_id: JM_CLINIC_ID, provider_id: null, user_id: null, tier: "nursing", encounter_id: null, active_from: daysAgo(200), active_until: null, created_at: daysAgo(200) },
-    { id: uuid(rng), patient_id: HERO_PATIENT_ID, facility_id: TT_HOSPITAL_ID, provider_id: null, user_id: null, tier: "consulting", encounter_id: null, active_from: daysAgo(20), active_until: null, created_at: daysAgo(20) },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: JM_CLINIC_ID,
+      provider_id: ATTENDING_PROVIDER_ID,
+      user_id: null,
+      tier: "attending",
+      encounter_id: null,
+      active_from: daysAgo(200),
+      active_until: null,
+      created_at: daysAgo(200),
+    },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: JM_CLINIC_ID,
+      provider_id: null,
+      user_id: null,
+      tier: "nursing",
+      encounter_id: null,
+      active_from: daysAgo(200),
+      active_until: null,
+      created_at: daysAgo(200),
+    },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: TT_HOSPITAL_ID,
+      provider_id: cardiologyTT.id,
+      user_id: null,
+      tier: "consulting",
+      encounter_id: null,
+      active_from: daysAgo(20),
+      active_until: null,
+      created_at: daysAgo(20),
+    },
   ];
   t.break_glass_events = [
     {
@@ -737,7 +1376,8 @@ export function buildSeed(): Tables {
       user_id: null,
       actor_name: "Dr. Simone Baptiste",
       actor_tier: "attending",
-      reason: "Unresponsive on arrival to A&E; medication and allergy history required immediately.",
+      reason:
+        "Unresponsive on arrival to A&E; medication and allergy history required immediately.",
       started_at: daysAgo(9),
       expires_at: daysAgo(8),
       patient_notified_at: daysAgo(9),
@@ -774,7 +1414,8 @@ export function buildSeed(): Tables {
       consultation_id: null,
       kind: "clinic_visit",
       reason: "Walk-in: headaches and blurred vision",
-      summary: "BP 168/104 at the clinic. Started on amlodipine, referred into the Grid for cardiology.",
+      summary:
+        "BP 168/104 at the clinic. Started on amlodipine, referred into the Grid for cardiology.",
       status: "closed",
       started_at: daysAgo(21),
       ended_at: new Date(nowMs() - 21 * 86400000 + 40 * 60000).toISOString(),
@@ -789,7 +1430,8 @@ export function buildSeed(): Tables {
       consultation_id: null,
       kind: "emergency",
       reason: "A&E presentation: chest tightness",
-      summary: "ECG normal sinus rhythm, troponin negative. Observed 6 hours, discharged with cardiology follow-up.",
+      summary:
+        "ECG normal sinus rhythm, troponin negative. Observed 6 hours, discharged with cardiology follow-up.",
       status: "closed",
       started_at: daysAgo(9),
       ended_at: new Date(nowMs() - 9 * 86400000 + 6 * 3600000).toISOString(),
@@ -813,6 +1455,238 @@ export function buildSeed(): Tables {
     },
   );
 
+  // ---- Trinidad and Tobago General: a hospital in the middle of its day ----
+  // Everything above describes a region. This describes one hospital actually
+  // running on the Grid — who is on the ward right now, who is in clinic today,
+  // and which consultant carries which patient. Without it the deployment site
+  // looked like a pilot with three patients on it, because a clinician's panel
+  // is built from care-team rows and episodes, not from the patient table.
+  const ttProviders = t.providers.filter((pr) => pr.facility_id === TT_HOSPITAL_ID);
+  const ttOtherProviders = ttProviders.filter((pr) => pr.id !== cardiologyTT.id);
+  const wardCohort = ttGeneralRoster.slice(0, 54);
+  const clinicCohort = ttGeneralRoster.slice(54, 150);
+  const dischargedCohort = ttGeneralRoster.slice(150);
+
+  // On the ward now: open episodes, no discharge date.
+  for (const [i, patient] of wardCohort.entries()) {
+    const emergency = i % 5 === 0;
+    const admittedDaysAgo = int(rng, 0, 11);
+    t.encounters.push({
+      id: uuid(rng),
+      patient_id: patient.id,
+      facility_id: TT_HOSPITAL_ID,
+      provider_id: pick(rng, ttProviders).id,
+      consultation_id: null,
+      kind: emergency ? "emergency" : "admission",
+      reason: emergency
+        ? pick(rng, [
+            "A&E: chest pain, rule out acute coronary syndrome",
+            "A&E: hypertensive urgency, systolic above 200",
+            "A&E: hypoglycaemic episode at home",
+            "A&E: breathlessness on exertion, suspected fluid overload",
+          ])
+        : pick(rng, [
+            "Decompensated heart failure — IV diuresis",
+            "Poorly controlled type 2 diabetes — insulin stabilisation",
+            "Hypertensive emergency — inpatient titration",
+            "Diabetic foot infection — IV antibiotics",
+            "Chronic kidney disease, stage 4 — fluid and electrolyte management",
+          ]),
+      summary: "",
+      status: "open",
+      started_at: daysAgo(admittedDaysAgo),
+      ended_at: null,
+      created_at: daysAgo(admittedDaysAgo),
+      sensitivity: "standard",
+    });
+  }
+
+  // In clinic: mostly closed visits over the last quarter, a handful running now.
+  for (const patient of clinicCohort) {
+    const visits = int(rng, 1, 3);
+    for (let v = 0; v < visits; v++) {
+      const startedDaysAgo = int(rng, 0, 88);
+      const runningNow = startedDaysAgo === 0 && chance(rng, 0.5);
+      t.encounters.push({
+        id: uuid(rng),
+        patient_id: patient.id,
+        facility_id: TT_HOSPITAL_ID,
+        provider_id: pick(rng, ttProviders).id,
+        consultation_id: null,
+        kind: "clinic_visit",
+        reason: pick(rng, [
+          "Cardiology outpatient review",
+          "Diabetes clinic — quarterly review",
+          "Hypertension follow-up and medication titration",
+          "Renal clinic — eGFR trend review",
+          "Post-discharge review",
+        ]),
+        summary: runningNow ? "" : "Reviewed, medication adjusted, follow-up arranged.",
+        status: runningNow ? "open" : "closed",
+        started_at: daysAgo(startedDaysAgo),
+        ended_at: runningNow
+          ? null
+          : new Date(nowMs() - startedDaysAgo * 86400000 + 30 * 60000).toISOString(),
+        created_at: daysAgo(startedDaysAgo),
+        sensitivity: "standard",
+      });
+    }
+  }
+
+  // Today's clinic list. Leaving "in clinic now" to a random draw over a 90-day
+  // window produced one or two patients, which is not what a hospital looks
+  // like at eleven in the morning.
+  for (const patient of clinicCohort.slice(0, 22)) {
+    const startedHoursAgo = int(rng, 0, 5);
+    t.encounters.push({
+      id: uuid(rng),
+      patient_id: patient.id,
+      facility_id: TT_HOSPITAL_ID,
+      provider_id: pick(rng, ttProviders).id,
+      consultation_id: null,
+      kind: "clinic_visit",
+      reason: pick(rng, [
+        "Cardiology clinic — today's list",
+        "Diabetes clinic — today's list",
+        "Hypertension clinic — today's list",
+        "Renal clinic — today's list",
+      ]),
+      summary: "",
+      status: "open",
+      started_at: new Date(nowMs() - startedHoursAgo * 3600000).toISOString(),
+      ended_at: null,
+      created_at: new Date(nowMs() - startedHoursAgo * 3600000).toISOString(),
+      sensitivity: "standard",
+    });
+  }
+
+  // Discharged, but inside the 30-day hospital window, so the record is still
+  // lawfully open to the team that treated them.
+  for (const patient of dischargedCohort) {
+    const endedDaysAgo = int(rng, 1, 26);
+    t.encounters.push({
+      id: uuid(rng),
+      patient_id: patient.id,
+      facility_id: TT_HOSPITAL_ID,
+      provider_id: pick(rng, ttProviders).id,
+      consultation_id: null,
+      kind: "admission",
+      reason: "Inpatient episode — chronic disease stabilisation",
+      summary: "Discharged on adjusted regimen with community follow-up.",
+      status: "closed",
+      started_at: daysAgo(endedDaysAgo + int(rng, 2, 8)),
+      ended_at: daysAgo(endedDaysAgo),
+      created_at: daysAgo(endedDaysAgo + 8),
+      sensitivity: "standard",
+    });
+  }
+
+  // Care teams. Membership is explicit — spec §4 is clear that employment at a
+  // facility is not membership — so every roster patient gets a named attending
+  // and a facility-level nursing team, and the cardiology caseload is carried by
+  // the consultant the demo signs in as.
+  const cardiologyCaseload = ttGeneralRoster.filter((_, i) => i % 5 < 2).slice(0, 62);
+  const cardiologyIds = new Set(cardiologyCaseload.map((pt) => pt.id as string));
+  for (const patient of ttGeneralRoster) {
+    const onCardiology = cardiologyIds.has(patient.id as string);
+    t.care_team_members.push({
+      id: uuid(rng),
+      patient_id: patient.id,
+      facility_id: TT_HOSPITAL_ID,
+      provider_id: onCardiology ? cardiologyTT.id : pick(rng, ttOtherProviders).id,
+      user_id: null,
+      tier: "attending",
+      encounter_id: null,
+      active_from: daysAgo(int(rng, 20, 400)),
+      active_until: null,
+      created_at: daysAgo(int(rng, 20, 400)),
+    });
+    t.care_team_members.push({
+      id: uuid(rng),
+      patient_id: patient.id,
+      facility_id: TT_HOSPITAL_ID,
+      provider_id: null,
+      user_id: null,
+      tier: "nursing",
+      encounter_id: null,
+      active_from: daysAgo(int(rng, 1, 60)),
+      active_until: null,
+      created_at: daysAgo(int(rng, 1, 60)),
+    });
+  }
+
+  // Jamaica Community Clinic: rolling outpatient chronic-disease care. A primary
+  // care facility carries a 365-day treating window, so these episodes keep the
+  // clinic's own nursing team lawfully on the record between visits.
+  const jmAttending = t.providers.find((pr) => pr.id === ATTENDING_PROVIDER_ID);
+  for (const patient of jmClinicRoster) {
+    const visits = int(rng, 1, 4);
+    for (let v = 0; v < visits; v++) {
+      const startedDaysAgo = int(rng, 0, 300);
+      t.encounters.push({
+        id: uuid(rng),
+        patient_id: patient.id,
+        facility_id: JM_CLINIC_ID,
+        provider_id: ATTENDING_PROVIDER_ID,
+        consultation_id: null,
+        kind: "clinic_visit",
+        reason: pick(rng, [
+          "Chronic disease check — blood pressure and glucose",
+          "Medication refill and adherence review",
+          "Nurse-led hypertension review",
+          "Diabetes foot check",
+          "Home-reading review from the care line",
+        ]),
+        summary: "Readings reviewed, refill issued, next check scheduled.",
+        status: "closed",
+        started_at: daysAgo(startedDaysAgo),
+        ended_at: new Date(nowMs() - startedDaysAgo * 86400000 + 25 * 60000).toISOString(),
+        created_at: daysAgo(startedDaysAgo),
+        sensitivity: "standard",
+      });
+    }
+    t.care_team_members.push(
+      {
+        id: uuid(rng),
+        patient_id: patient.id,
+        facility_id: JM_CLINIC_ID,
+        provider_id: jmAttending ? ATTENDING_PROVIDER_ID : null,
+        user_id: null,
+        tier: "attending",
+        encounter_id: null,
+        active_from: daysAgo(int(rng, 30, 500)),
+        active_until: null,
+        created_at: daysAgo(int(rng, 30, 500)),
+      },
+      {
+        id: uuid(rng),
+        patient_id: patient.id,
+        facility_id: JM_CLINIC_ID,
+        provider_id: null,
+        user_id: null,
+        tier: "nursing",
+        encounter_id: null,
+        active_from: daysAgo(int(rng, 5, 200)),
+        active_until: null,
+        created_at: daysAgo(int(rng, 5, 200)),
+      },
+    );
+  }
+
+  // Beds occupied should agree with the ward rather than being an unrelated
+  // number sitting next to a list of admitted patients.
+  const ttFacility = t.facilities.find((f) => f.id === TT_HOSPITAL_ID);
+  if (ttFacility) {
+    // Occupancy should agree with the ward list sitting next to it: the modelled
+    // admissions plus the surgical, maternity and paediatric beds the Grid does
+    // not track.
+    const untracked = Math.round((ttFacility["beds_total"] as number) * 0.62);
+    ttFacility["beds_occupied"] = Math.min(
+      ttFacility["beds_total"] as number,
+      wardCohort.length + untracked,
+    );
+  }
+
   // ---- hero patient: triage event, consent grants, access log, messages ----
   const heroTriageId = uuid(rng);
   t.triage_events.push({
@@ -822,7 +1696,8 @@ export function buildSeed(): Tables {
     severity: "urgent",
     category: "Hypertensive crisis risk",
     recommended_level: "specialist",
-    rationale: "Home reading 168/104 with headache and blurred vision, 26 mmHg above her 30-day baseline.",
+    rationale:
+      "Home reading 168/104 with headache and blurred vision, 26 mmHg above her 30-day baseline.",
     red_flags: ["Systolic 168 mmHg", "Symptomatic presentation"],
     confidence: 0.82,
     created_at: daysAgo(0.25),
@@ -865,7 +1740,15 @@ export function buildSeed(): Tables {
   // the access model it opens no record until they accept it.
   const routedReferral = (
     patient: Row,
-    opts: { reason: string; waitLocal: number; waitRouted: number; need: number; retained: number; ageDays: number; triageId?: string },
+    opts: {
+      reason: string;
+      waitLocal: number;
+      waitRouted: number;
+      need: number;
+      retained: number;
+      ageDays: number;
+      triageId?: string;
+    },
   ): Row => ({
     id: uuid(rng),
     patient_id: patient.id,
@@ -887,7 +1770,8 @@ export function buildSeed(): Tables {
   const heroPatient = t.patients.find((p) => p.id === HERO_PATIENT_ID)!;
   t.referrals.push(
     routedReferral(heroPatient, {
-      reason: "Hypertensive crisis pattern on the 60-day trend; no cardiology slot in JM inside the clinical window",
+      reason:
+        "Hypertensive crisis pattern on the 60-day trend; no cardiology slot in JM inside the clinical window",
       waitLocal: 42,
       waitRouted: 1,
       need: 78,
@@ -901,7 +1785,9 @@ export function buildSeed(): Tables {
   // one hero patient.
   const seenPending = new Set<string>([HERO_PATIENT_ID]);
   const pendingCandidates: Row[] = [];
-  for (const r of [...(t.risk_scores ?? [])].sort((a, b) => (b.score as number) - (a.score as number))) {
+  for (const r of [...(t.risk_scores ?? [])].sort(
+    (a, b) => (b.score as number) - (a.score as number),
+  )) {
     if (pendingCandidates.length >= 3) break;
     if (seenPending.has(r.patient_id as string)) continue;
     const p = t.patients.find((x) => x.id === r.patient_id);
@@ -927,8 +1813,30 @@ export function buildSeed(): Tables {
   }
 
   t.messages.push(
-    { id: uuid(rng), patient_id: HERO_PATIENT_ID, direction: "in", body: "Mi head a hurt mi bad and mi nuh see clear. Mi pressure high?", kind: "text", language: "jam", channel: "whatsapp", queued_offline: false, delivered_at: daysAgo(0.26), created_at: daysAgo(0.26) },
-    { id: uuid(rng), patient_id: HERO_PATIENT_ID, direction: "out", body: "Thank you for the message. We have your readings and a care team member is reviewing them now. Please rest, drink water, and do not take any extra tablets until we come back to you.", kind: "text", language: "jam", channel: "whatsapp", queued_offline: false, delivered_at: daysAgo(0.25), created_at: daysAgo(0.25) },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      direction: "in",
+      body: "Mi head a hurt mi bad and mi nuh see clear. Mi pressure high?",
+      kind: "text",
+      language: "jam",
+      channel: "whatsapp",
+      queued_offline: false,
+      delivered_at: daysAgo(0.26),
+      created_at: daysAgo(0.26),
+    },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      direction: "out",
+      body: "Thank you for the message. We have your readings and a care team member is reviewing them now. Please rest, drink water, and do not take any extra tablets until we come back to you.",
+      kind: "text",
+      language: "jam",
+      channel: "whatsapp",
+      queued_offline: false,
+      delivered_at: daysAgo(0.25),
+      created_at: daysAgo(0.25),
+    },
   );
 
   // ---- screening campaigns + targets ----
@@ -939,12 +1847,14 @@ export function buildSeed(): Tables {
     {
       id: CAMPAIGN_1,
       name: "Kingston hypertension sweep",
-      description: "Every hypertensive patient in Jamaica with no blood-pressure reading in 30 days gets a home-reading request.",
+      description:
+        "Every hypertensive patient in Jamaica with no blood-pressure reading in 30 days gets a home-reading request.",
       condition_focus: "hypertension",
       island_code: "JM",
       facility_id: null,
       cohort_rule: { condition: "Hypertension", no_reading_days: 30, risk_min: 30 },
-      message_template: "Hi {name}, this is your CariCare care team. It has been a while since your last blood pressure check. Reply with your reading (e.g. 148/92) or type CHECK and we will find you a free check nearby.",
+      message_template:
+        "Hi {name}, this is your CariCare care team. It has been a while since your last blood pressure check. Reply with your reading (e.g. 148/92) or type CHECK and we will find you a free check nearby.",
       channel: "whatsapp",
       status: "running",
       starts_on: dateDaysAgo(9),
@@ -954,12 +1864,14 @@ export function buildSeed(): Tables {
     {
       id: CAMPAIGN_2,
       name: "Diabetes refill rescue",
-      description: "Patients with under 10 days of medication left, or adherence under 70%, before they run out.",
+      description:
+        "Patients with under 10 days of medication left, or adherence under 70%, before they run out.",
       condition_focus: "diabetes",
       island_code: null,
       facility_id: null,
       cohort_rule: { days_supply_max: 10, adherence_max: 70 },
-      message_template: "Hi {name}, our records show your medication is running low. Reply REFILL and we will confirm stock at your nearest clinic and hold it for you.",
+      message_template:
+        "Hi {name}, our records show your medication is running low. Reply REFILL and we will confirm stock at your nearest clinic and hold it for you.",
       channel: "whatsapp",
       status: "running",
       starts_on: dateDaysAgo(4),
@@ -969,12 +1881,14 @@ export function buildSeed(): Tables {
     {
       id: CAMPAIGN_3,
       name: "Rural undiagnosed screening drive",
-      description: "Rural patients over 40 with no recorded conditions — first-time screening offer with a community health worker.",
+      description:
+        "Rural patients over 40 with no recorded conditions — first-time screening offer with a community health worker.",
       condition_focus: "screening",
       island_code: null,
       facility_id: null,
       cohort_rule: { rural: true, age_min: 40, conditions_max: 0 },
-      message_template: "Hi {name}, free blood pressure and sugar testing is coming to your area this week. Reply YES to reserve a slot — it takes 10 minutes and it is free.",
+      message_template:
+        "Hi {name}, free blood pressure and sugar testing is coming to your area this week. Reply YES to reserve a slot — it takes 10 minutes and it is free.",
       channel: "sms",
       status: "draft",
       starts_on: dateDaysAhead(3),
@@ -982,10 +1896,13 @@ export function buildSeed(): Tables {
       updated_at: daysAgo(0),
     },
   ];
-  const jmPatients = t.patients.filter((p) => p.island_code === "JM" && p.id !== HERO_PATIENT_ID).slice(0, 60);
+  const jmPatients = t.patients
+    .filter((p) => p.island_code === "JM" && p.id !== HERO_PATIENT_ID)
+    .slice(0, 60);
   jmPatients.forEach((p, i) => {
     const n = i + 1;
-    const status = n % 5 === 0 ? "booked" : n % 3 === 0 ? "responded" : n % 7 === 0 ? "queued" : "sent";
+    const status =
+      n % 5 === 0 ? "booked" : n % 3 === 0 ? "responded" : n % 7 === 0 ? "queued" : "sent";
     t.campaign_targets.push({
       id: uuid(rng),
       campaign_id: CAMPAIGN_1,
@@ -1011,7 +1928,9 @@ export function buildSeed(): Tables {
     outcome: "Home reading 168/104 returned — escalated to triage",
     created_at: daysAgo(8),
   });
-  const lowSupplyMeds = t.medications.filter((m) => (m.days_supply_left as number) <= 10).slice(0, 40);
+  const lowSupplyMeds = t.medications
+    .filter((m) => (m.days_supply_left as number) <= 10)
+    .slice(0, 40);
   lowSupplyMeds.forEach((m, i) => {
     const n = i + 1;
     t.campaign_targets.push({
@@ -1036,8 +1955,15 @@ export function buildSeed(): Tables {
     .slice(0, 20);
   for (const r of topRisk) {
     const pid = r.patient_id as string;
-    const vitals = (vitalsByPatient.get(pid) ?? []).slice().sort((a, b) => new Date(b.measured_at as string).getTime() - new Date(a.measured_at as string).getTime());
-    const recent = vitals.filter((v) => nowMs() - new Date(v.measured_at as string).getTime() <= 10 * 86400000);
+    const vitals = (vitalsByPatient.get(pid) ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.measured_at as string).getTime() - new Date(a.measured_at as string).getTime(),
+      );
+    const recent = vitals.filter(
+      (v) => nowMs() - new Date(v.measured_at as string).getTime() <= 10 * 86400000,
+    );
     const baseline = vitals.filter((v) => {
       const age = nowMs() - new Date(v.measured_at as string).getTime();
       return age > 10 * 86400000 && age <= 40 * 86400000;
@@ -1060,7 +1986,10 @@ export function buildSeed(): Tables {
         delta_pct: Number((((cSys - bSys) / bSys) * 100).toFixed(1)),
         severity: cSys >= 160 ? "urgent" : cSys >= 145 ? "elevated" : "watch",
         narrative: `Blood pressure has climbed from ${Math.round(bSys)} to ${Math.round(cSys)} mmHg over the last 10 days.`,
-        recommended_action: cSys >= 160 ? "Call today; consider same-week teleconsult and medication review." : "Send a home-reading request and review adherence.",
+        recommended_action:
+          cSys >= 160
+            ? "Call today; consider same-week teleconsult and medication review."
+            : "Send a home-reading request and review adherence.",
         status: "open",
         detected_at: daysAgo(rng() * 6),
         acknowledged_by: null,
@@ -1079,7 +2008,8 @@ export function buildSeed(): Tables {
     baseline_value: 142,
     delta_pct: 18.3,
     severity: "urgent",
-    narrative: "Home cuff reading of 168/104 returned through the care line, 26 mmHg above her 30-day baseline.",
+    narrative:
+      "Home cuff reading of 168/104 returned through the care line, 26 mmHg above her 30-day baseline.",
     recommended_action: "Same-day teleconsult; cross-island cardiology route if unresolved.",
     status: "open",
     detected_at: daysAgo(0.25),
@@ -1098,15 +2028,26 @@ export function buildSeed(): Tables {
       doc_type: "clinic_card",
       source: "paper_scan",
       storage_path: null,
-      original_text: "MARLENE CAMPBELL  DOB 12/03/1968\nHTN dx 2019  T2DM dx 2021\nBP 156/96 (14/02/25)  BP 148/92 (09/05/25)\nAmlodipine 10mg od; Metformin 1g bd\nNKDA",
+      original_text:
+        "MARLENE CAMPBELL  DOB 12/03/1968\nHTN dx 2019  T2DM dx 2021\nBP 156/96 (14/02/25)  BP 148/92 (09/05/25)\nAmlodipine 10mg od; Metformin 1g bd\nNKDA",
       extraction_status: "complete",
       extracted: {
-        conditions: [{ name: "Hypertension", diagnosed: "2019" }, { name: "Type 2 diabetes", diagnosed: "2021" }],
-        medications: [{ name: "Amlodipine", dosage: "10mg", frequency: "once daily" }, { name: "Metformin", dosage: "1g", frequency: "twice daily" }],
-        vitals: [{ systolic: 156, diastolic: 96, measured_at: "2025-02-14" }, { systolic: 148, diastolic: 92, measured_at: "2025-05-09" }],
+        conditions: [
+          { name: "Hypertension", diagnosed: "2019" },
+          { name: "Type 2 diabetes", diagnosed: "2021" },
+        ],
+        medications: [
+          { name: "Amlodipine", dosage: "10mg", frequency: "once daily" },
+          { name: "Metformin", dosage: "1g", frequency: "twice daily" },
+        ],
+        vitals: [
+          { systolic: 156, diastolic: 96, measured_at: "2025-02-14" },
+          { systolic: 148, diastolic: 92, measured_at: "2025-05-09" },
+        ],
         allergies: "NKDA",
       },
-      extraction_note: "High confidence. Two readings and two medications matched existing records; no conflicts.",
+      extraction_note:
+        "High confidence. Two readings and two medications matched existing records; no conflicts.",
       committed: true,
       uploaded_by: "Sister Yvette Marshall",
       created_at: daysAgo(11),
@@ -1120,7 +2061,8 @@ export function buildSeed(): Tables {
       doc_type: "lab_report",
       source: "fax",
       storage_path: null,
-      original_text: "LAB: Kingston Path Services\nHbA1c 8.9%\nTotal chol 6.2 mmol/L  LDL 4.1  HDL 1.0\nCollected 02/08/2026",
+      original_text:
+        "LAB: Kingston Path Services\nHbA1c 8.9%\nTotal chol 6.2 mmol/L  LDL 4.1  HDL 1.0\nCollected 02/08/2026",
       extraction_status: "complete",
       extracted: {
         labs: [
@@ -1259,9 +2201,64 @@ export function buildSeed(): Tables {
     user_id: id,
     role: persona === "clinic_staff" ? "clinician" : persona,
   }));
+  // A hospital's Grid accounts are people, not job titles. The roster carries
+  // names so the facility console reads like a staff list rather than a list of
+  // anonymous "Grid account" rows.
+  const TTGH_STAFF: [string, string, string][] = [
+    ["Dr. Anjali Seepersad", "doctor", "Consultant endocrinologist"],
+    ["Dr. Roger Alleyne", "doctor", "Consultant nephrologist"],
+    ["Dr. Kwame Providence", "doctor", "Registrar, general medicine"],
+    ["Dr. Sarita Balgobin", "doctor", "Registrar, cardiology"],
+    ["Sister Paulette Grant", "nurse", "Ward sister, medical ward"],
+    ["Sister Indira Maharaj", "nurse", "Ward sister, coronary care"],
+    ["Nurse Kevon Alleyne", "nurse", "Staff nurse, diabetes clinic"],
+    ["Nurse Denise Sookdeo", "nurse", "Staff nurse, outpatients"],
+    ["Camille Boodoo", "front_desk", "Patient registration"],
+    ["Terrence Ali", "front_desk", "Clinic reception"],
+    ["Marva Cumberbatch", "org_admin", "Health records manager"],
+  ];
+  const JM_CLINIC_STAFF: [string, string, string][] = [
+    ["Dr. Marcia Fenwick", "doctor", "Attending, chronic disease clinic"],
+    ["Nurse Hyacinth Bailey", "nurse", "Community outreach nurse"],
+    ["Owen Walters", "front_desk", "Clinic reception"],
+  ];
   t.facility_staff = [
-    { id: uuid(rng), user_id: DEMO_USER_IDS.clinic_staff, facility_id: JM_CLINIC_ID, staff_role: "nurse", title: "Chronic care nurse", created_at: daysAgo(365) },
-    { id: uuid(rng), user_id: DEMO_USER_IDS.clinician, facility_id: TT_HOSPITAL_ID, staff_role: "doctor", title: "Consultant cardiologist", created_at: daysAgo(365) },
+    {
+      id: uuid(rng),
+      user_id: DEMO_USER_IDS.clinic_staff,
+      facility_id: JM_CLINIC_ID,
+      staff_role: "nurse",
+      title: "Chronic care nurse",
+      full_name: "Sister Yvette Marshall",
+      created_at: daysAgo(365),
+    },
+    {
+      id: uuid(rng),
+      user_id: DEMO_USER_IDS.clinician,
+      facility_id: TT_HOSPITAL_ID,
+      staff_role: "doctor",
+      title: "Consultant cardiologist",
+      full_name: "Dr. Anand Rampersad",
+      created_at: daysAgo(365),
+    },
+    ...TTGH_STAFF.map(([full_name, staff_role, title]) => ({
+      id: uuid(rng),
+      user_id: null,
+      facility_id: TT_HOSPITAL_ID,
+      staff_role,
+      title,
+      full_name,
+      created_at: daysAgo(int(rng, 40, 900)),
+    })),
+    ...JM_CLINIC_STAFF.map(([full_name, staff_role, title]) => ({
+      id: uuid(rng),
+      user_id: null,
+      facility_id: JM_CLINIC_ID,
+      staff_role,
+      title,
+      full_name,
+      created_at: daysAgo(int(rng, 40, 900)),
+    })),
   ];
 
   return t;

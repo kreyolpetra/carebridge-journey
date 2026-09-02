@@ -22,6 +22,7 @@ function createStore(): Tables {
 let store: Tables = createStore();
 
 let saveScheduled = false;
+let warnedAboutQuota = false;
 export function persist() {
   if (typeof window === "undefined" || !window.localStorage) return;
   if (saveScheduled) return;
@@ -30,8 +31,20 @@ export function persist() {
     saveScheduled = false;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-    } catch {
-      // demo-only persistence; ignore quota errors
+    } catch (err) {
+      // The dataset is a few megabytes and localStorage caps around five, so
+      // this is a real possibility rather than a theoretical one. Swallowing it
+      // silently meant the app kept working from memory while every change
+      // quietly failed to survive a reload — the worst of both. Warn once and
+      // carry on in memory.
+      if (!warnedAboutQuota) {
+        warnedAboutQuota = true;
+        console.warn(
+          "CariCare Grid: could not persist the mock database (storage quota). " +
+            "The app will keep working, but changes will not survive a reload.",
+          err,
+        );
+      }
     }
   });
 }

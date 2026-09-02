@@ -216,7 +216,7 @@ export const slotsQuery = queryOptions({
 
 export const patientsQuery = queryOptions({
   queryKey: ["patients"],
-  queryFn: async () => unwrap<Patient[]>(await supabase.from("patients").select("*").limit(1000)),
+  queryFn: async () => unwrap<Patient[]>(await supabase.from("patients").select("*").limit(3000)),
   staleTime: 60_000,
 });
 
@@ -228,7 +228,7 @@ export const riskScoresQuery = queryOptions({
         .from("risk_scores")
         .select("*")
         .order("score", { ascending: false })
-        .limit(1000),
+        .limit(3000),
     ),
   staleTime: 30_000,
 });
@@ -255,7 +255,7 @@ export const referralsQuery = queryOptions({
         .from("referrals")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(1000),
+        .limit(3000),
     ),
   staleTime: 15_000,
 });

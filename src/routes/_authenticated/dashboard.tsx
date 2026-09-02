@@ -27,14 +27,22 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { property: "og:title", content: "Coordination Dashboard — Regional NCD Operations" },
       {
         property: "og:description",
-        content: "Ministries and hospital networks see the whole region on one screen, in real time.",
+        content:
+          "Ministries and hospital networks see the whole region on one screen, in real time.",
       },
     ],
   }),
   component: Dashboard,
 });
 
-const SPECIALTIES = ["Cardiology", "Endocrinology", "Nephrology", "Internal Medicine", "Ophthalmology", "Psychiatry"];
+const SPECIALTIES = [
+  "Cardiology",
+  "Endocrinology",
+  "Nephrology",
+  "Internal Medicine",
+  "Ophthalmology",
+  "Psychiatry",
+];
 
 function Dashboard() {
   const islands = useQuery(islandsQuery);
@@ -66,9 +74,16 @@ function Dashboard() {
         const band = latestRisk.get(p.id)?.band;
         return band === "critical" || band === "high";
       }).length;
+      // National capacity comes from the country's own bed density, not from
+      // summing the facilities the Grid happens to model. Those facilities are
+      // a sample — Cuba has hundreds of hospitals and this dataset carries
+      // eight — so summing them either understates a country or, if they are
+      // inflated to make the sum come out right, puts a nation's beds inside
+      // one building. Occupancy is a rate, so the sample does generalise.
       const beds = (facilities.data ?? []).filter((f) => f.island_code === island.code);
-      const bedsTotal = beds.reduce((a, f) => a + f.beds_total, 0);
-      const bedsOcc = beds.reduce((a, f) => a + f.beds_occupied, 0);
+      const bedsTotal = Math.round((island.population / 1000) * island.bedsPer1k);
+      const sampledTotal = beds.reduce((a, f) => a + f.beds_total, 0);
+      const sampledOcc = beds.reduce((a, f) => a + f.beds_occupied, 0);
       const specialists = (providers.data ?? []).filter((p) => p.island_code === island.code);
       const gaps = SPECIALTIES.filter((s) => !specialists.some((p) => p.specialty === s));
       return {
@@ -76,7 +91,7 @@ function Dashboard() {
         patients: rows.length,
         avg,
         critical,
-        occupancy: bedsTotal ? Math.round((bedsOcc / bedsTotal) * 100) : 0,
+        occupancy: sampledTotal ? Math.round((sampledOcc / sampledTotal) * 100) : 0,
         bedsTotal,
         specialists: specialists.length,
         gaps,
@@ -92,7 +107,10 @@ function Dashboard() {
   // routing look far more effective than it is.
   const comparable = refs.filter((r) => r.wait_days_local < 120);
   const avgSaved = comparable.length
-    ? Math.round(comparable.reduce((a, r) => a + (r.wait_days_local - r.wait_days_routed), 0) / comparable.length)
+    ? Math.round(
+        comparable.reduce((a, r) => a + (r.wait_days_local - r.wait_days_routed), 0) /
+          comparable.length,
+      )
     : 0;
 
   // Aggregate throughput hides distribution: the region can look healthy while
@@ -106,7 +124,9 @@ function Dashboard() {
       .map((tier) => {
         const tierIslands = (islands.data ?? []).filter((i) => i.tier === tier);
         const tierRefs = refs.filter((r) => islandTier.get(r.patient_island) === tier);
-        const tierPatients = (patients.data ?? []).filter((p) => islandTier.get(p.island_code) === tier);
+        const tierPatients = (patients.data ?? []).filter(
+          (p) => islandTier.get(p.island_code) === tier,
+        );
         const waits = tierRefs.map((r) => r.wait_days_routed);
         const medianWait = waits.length
           ? waits.slice().sort((a, b) => a - b)[Math.floor(waits.length / 2)]
@@ -157,7 +177,8 @@ function Dashboard() {
   }, [refs]);
 
   const stockouts = (stock.data ?? []).filter((s) => s.status !== "ok").slice(0, 12);
-  const facilityName = (id: string) => facilities.data?.find((f) => f.id === id)?.name ?? "Facility";
+  const facilityName = (id: string) =>
+    facilities.data?.find((f) => f.id === id)?.name ?? "Facility";
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
@@ -173,15 +194,30 @@ function Dashboard() {
           value={(patients.data?.length ?? 0).toLocaleString()}
           hint={`Across ${islands.data?.length ?? 0} countries`}
         />
-        <Stat label="Cross-island referrals" value={crossIsland.length} hint="Capacity shared regionally" tone="signal" />
+        <Stat
+          label="Cross-island referrals"
+          value={crossIsland.length}
+          hint="Capacity shared regionally"
+          tone="signal"
+        />
         <Stat
           label="Wait days avoided"
           value={`${avgSaved}d`}
           hint="Where a local option existed"
           tone="low"
         />
-        <Stat label="Care retained in-region" value={usd(retained)} hint="Instead of overseas transfer" tone="low" />
-        <Stat label="Open alerts" value={alerts.data?.length ?? 0} hint="Clinical, supply, capacity" tone="critical" />
+        <Stat
+          label="Care retained in-region"
+          value={usd(retained)}
+          hint="Instead of overseas transfer"
+          tone="low"
+        />
+        <Stat
+          label="Open alerts"
+          value={alerts.data?.length ?? 0}
+          hint="Clinical, supply, capacity"
+          tone="critical"
+        />
       </div>
 
       <Panel className="mb-4">
@@ -192,14 +228,15 @@ function Dashboard() {
         <div className="p-5">
           {accessGap !== null && (
             <p className="mb-4 text-[13.5px] leading-relaxed text-muted-foreground">
-              At equal clinical risk, patients in under-resourced countries have historically reached a
-              specialist at{" "}
+              At equal clinical risk, patients in under-resourced countries have historically
+              reached a specialist at{" "}
               <strong className={accessGap < 0.8 ? "text-critical" : "text-foreground"}>
                 {Math.round(accessGap * 100)}%
               </strong>{" "}
-              the rate of those in well-resourced ones. Parity is 100%. This is the region as it stands, not a
-              result the Grid has produced — the <strong className="text-foreground">on need</strong> column is
-              the correction now being applied.
+              the rate of those in well-resourced ones. Parity is 100%. This is the region as it
+              stands, not a result the Grid has produced — the{" "}
+              <strong className="text-foreground">on need</strong> column is the correction now
+              being applied.
             </p>
           )}
           <div className="overflow-x-auto">
@@ -218,11 +255,15 @@ function Dashboard() {
               <tbody>
                 {equityByTier.map((row) => (
                   <tr key={row.tier} className="border-b border-border/60 last:border-0">
-                    <td className="py-2.5 pr-3 font-medium text-foreground">{TIER_LABEL[row.tier] ?? row.tier}</td>
+                    <td className="py-2.5 pr-3 font-medium text-foreground">
+                      {TIER_LABEL[row.tier] ?? row.tier}
+                    </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{row.islands.join(", ")}</td>
                     <td className="py-2.5 pr-3 text-right tabular-nums">{row.patients}</td>
                     <td className="py-2.5 pr-3 text-right tabular-nums">{row.referrals}</td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums">{row.accessRate.toFixed(1)}%</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      {row.accessRate.toFixed(1)}%
+                    </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums">
                       {row.medianWait === null ? "—" : `${row.medianWait}d`}
                     </td>
@@ -233,38 +274,48 @@ function Dashboard() {
             </table>
           </div>
           <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-            <strong className="text-foreground">On need</strong> counts referrals the router moved up because the
-            patient's country has no clinician in that specialty at all. Those are the cases a pure
-            soonest-slot algorithm would have placed last.
+            <strong className="text-foreground">On need</strong> counts referrals the router moved
+            up because the patient's country has no clinician in that specialty at all. Those are
+            the cases a pure soonest-slot algorithm would have placed last.
           </p>
         </div>
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <Panel>
-          <PanelHeader title="Island health grid" subtitle="Risk load, bed occupancy and specialist gaps" />
+          <PanelHeader
+            title="Island health grid"
+            subtitle="Risk load, bed occupancy and specialist gaps"
+          />
           <div className="grid gap-3 p-5 md:grid-cols-2">
             {byIsland.map((row) => (
               <div key={row.island.code} className="rounded-xl border border-border bg-surface p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-display text-[14px] font-semibold">{row.island.name}</span>
+                      <span className="font-display text-[14px] font-semibold">
+                        {row.island.name}
+                      </span>
                       {row.island.tier === "under_resourced" && (
-                        <Pill className="bg-critical/15 text-critical border-critical/40">under-resourced</Pill>
+                        <Pill className="bg-critical/15 text-critical border-critical/40">
+                          under-resourced
+                        </Pill>
                       )}
                       {row.island.tier === "clinician_rich" && (
                         <Pill className="bg-low/15 text-low border-low/40">clinician-rich</Pill>
                       )}
                     </div>
                     <div className="text-[11.5px] text-muted-foreground">
-                      {(row.island.population / 1000).toFixed(0)}k people · {row.island.physPer1k} physicians/1,000
+                      {(row.island.population / 1000).toFixed(0)}k people · {row.island.physPer1k}{" "}
+                      physicians/1,000
                       {row.island.connectivity === "poor" && " · low connectivity"}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="mono-num text-[20px] font-semibold">{row.avg}</div>
-                    <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">avg risk</div>
+                    <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">
+                      avg risk
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-background">
@@ -279,7 +330,12 @@ function Dashboard() {
                     <div className="text-muted-foreground">patients</div>
                   </div>
                   <div>
-                    <div className={"mono-num text-[14px] " + (row.occupancy > 88 ? "text-critical" : "text-foreground")}>
+                    <div
+                      className={
+                        "mono-num text-[14px] " +
+                        (row.occupancy > 88 ? "text-critical" : "text-foreground")
+                      }
+                    >
                       {row.occupancy}%
                     </div>
                     <div className="text-muted-foreground">{row.bedsTotal} beds</div>
@@ -314,7 +370,9 @@ function Dashboard() {
                 <div key={a.id} className="px-5 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <Pill className={severityClasses(a.severity)}>{a.kind}</Pill>
-                    <span className="text-[11px] text-muted-foreground">{timeAgo(a.created_at)}</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {timeAgo(a.created_at)}
+                    </span>
                   </div>
                   <div className="mt-1.5 text-[13px] font-medium">{a.title}</div>
                   <p className="text-[12px] text-muted-foreground">{a.detail}</p>
@@ -330,15 +388,23 @@ function Dashboard() {
                 <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-2.5">
                   <div>
                     <div className="text-[13px] font-medium">{s.medication_name}</div>
-                    <div className="text-[11.5px] text-muted-foreground">{facilityName(s.facility_id)}</div>
+                    <div className="text-[11.5px] text-muted-foreground">
+                      {facilityName(s.facility_id)}
+                    </div>
                   </div>
-                  <div className={"mono-num text-[13px] " + (s.days_cover < 7 ? "text-critical" : "text-high")}>
+                  <div
+                    className={
+                      "mono-num text-[13px] " + (s.days_cover < 7 ? "text-critical" : "text-high")
+                    }
+                  >
                     {s.days_cover}d
                   </div>
                 </div>
               ))}
               {!stockouts.length ? (
-                <p className="p-5 text-[13px] text-muted-foreground">All tracked medications above threshold.</p>
+                <p className="p-5 text-[13px] text-muted-foreground">
+                  All tracked medications above threshold.
+                </p>
               ) : null}
             </div>
           </Panel>
@@ -347,12 +413,18 @@ function Dashboard() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Panel>
-          <PanelHeader title="Demand vs. supply by specialty" subtitle="Referrals raised against clinicians available" />
+          <PanelHeader
+            title="Demand vs. supply by specialty"
+            subtitle="Referrals raised against clinicians available"
+          />
           <div className="h-[280px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={specialtyDemand}>
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="specialty" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                <XAxis
+                  dataKey="specialty"
+                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={30} />
                 <Tooltip
                   contentStyle={{
@@ -375,7 +447,10 @@ function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weekly}>
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+                <XAxis
+                  dataKey="week"
+                  tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={30} />
                 <Tooltip
                   contentStyle={{

@@ -920,26 +920,29 @@ export type Database = {
         Row: {
           created_at: string
           facility_id: string
+          full_name: string | null
           id: string
           staff_role: Database["public"]["Enums"]["staff_role"]
           title: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           facility_id: string
+          full_name: string | null
           id?: string
           staff_role?: Database["public"]["Enums"]["staff_role"]
           title?: string
-          user_id: string
+          user_id: string | null
         }
         Update: {
           created_at?: string
           facility_id?: string
+          full_name?: string | null
           id?: string
           staff_role?: Database["public"]["Enums"]["staff_role"]
           title?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {

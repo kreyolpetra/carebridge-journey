@@ -17,10 +17,11 @@ export type Encounter = {
 
 export type FacilityStaff = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   facility_id: string;
   staff_role: string;
   title: string;
+  full_name: string | null;
 };
 
 export const STAFF_ROLE_LABEL: Record<string, string> = {
@@ -47,7 +48,7 @@ export const encountersQuery = (patientId?: string | null) =>
         .from("encounters")
         .select("*")
         .order("started_at", { ascending: false })
-        .limit(patientId ? 200 : 3000);
+        .limit(patientId ? 200 : 8000);
       if (patientId) q = q.eq("patient_id", patientId);
       const { data, error } = await q;
       if (error) throw new Error(error.message);
