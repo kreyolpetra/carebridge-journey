@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { islandsQuery } from "@/lib/api";
+import { resetDb } from "@/lib/mock/db";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -18,10 +19,14 @@ export const Route = createFileRoute("/_authenticated/settings")({
       { title: "Profile & Settings — CariCare Grid" },
       {
         name: "description",
-        content: "Manage your CariCare Grid profile, island, workspace role and notification preferences.",
+        content:
+          "Manage your CariCare Grid profile, island, workspace role and notification preferences.",
       },
       { property: "og:title", content: "Profile & Settings — CariCare Grid" },
-      { property: "og:description", content: "Your account and workspace preferences on the Grid." },
+      {
+        property: "og:description",
+        content: "Your account and workspace preferences on the Grid.",
+      },
     ],
   }),
   component: SettingsPage,
@@ -86,7 +91,10 @@ function SettingsPage() {
 
       <div className="mt-6 grid gap-4">
         <Panel>
-          <PanelHeader title="Your profile" subtitle="Shown across consoles and on every audit entry" />
+          <PanelHeader
+            title="Your profile"
+            subtitle="Shown across consoles and on every audit entry"
+          />
           <div className="grid gap-4 p-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="fullName">Full name</Label>
@@ -127,7 +135,10 @@ function SettingsPage() {
         </Panel>
 
         <Panel>
-          <PanelHeader title="Notifications" subtitle="What the Grid pushes to you while you work" />
+          <PanelHeader
+            title="Notifications"
+            subtitle="What the Grid pushes to you while you work"
+          />
           <div className="divide-y divide-border">
             {[
               {
@@ -168,6 +179,27 @@ function SettingsPage() {
               }}
             >
               Sign out
+            </Button>
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="Demo data" subtitle="Rebuild the seeded dataset in this browser" />
+          <div className="space-y-3 p-4">
+            <p className="max-w-xl text-[13px] leading-relaxed text-muted-foreground">
+              The demo runs on a dataset generated once and kept in this browser, so anything you
+              change here — consent decisions, accepted referrals, break-glass events — stays until
+              you reset it. Rebuilding discards those changes and restores the seeded state.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetDb();
+                toast.success("Demo data rebuilt — reloading");
+                window.setTimeout(() => window.location.reload(), 400);
+              }}
+            >
+              Rebuild demo data
             </Button>
           </div>
         </Panel>

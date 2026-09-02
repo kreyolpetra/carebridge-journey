@@ -7,6 +7,19 @@
 import { makeRng, pick, int, chance, uuid, type Rng } from "./rng";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 
+/**
+ * Bump whenever the generated dataset changes in a way a stale browser copy
+ * would misrepresent — new tables, new cohorts, different volumes.
+ *
+ * The persisted store used a fixed key, so a browser that had opened the app
+ * once kept its original seed forever: the app would run new code against an
+ * old dataset and show, for example, a consultant with three patients because
+ * the hospital roster that fills his panel did not exist yet. Nothing surfaced
+ * the mismatch. The key now carries this version, so an old copy is simply not
+ * found and the seed is rebuilt.
+ */
+export const SEED_VERSION = 2;
+
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
 export const TT_HOSPITAL_ID = "2c65425d-ad09-4e50-a019-f8afa29a14b4";

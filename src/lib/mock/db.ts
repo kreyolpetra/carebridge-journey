@@ -1,6 +1,21 @@
-import { buildSeed, type Tables } from "./seed";
+import { buildSeed, SEED_VERSION, type Tables } from "./seed";
 
-const STORAGE_KEY = "caricare-grid-mock-db-v1";
+const STORAGE_PREFIX = "caricare-grid-mock-db-v";
+const STORAGE_KEY = `${STORAGE_PREFIX}${SEED_VERSION}`;
+
+/** Drop copies written by an earlier seed so they do not sit in storage. */
+function clearSupersededStores() {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith(STORAGE_PREFIX) && key !== STORAGE_KEY) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // storage unavailable; nothing to clean
+  }
+}
 
 function loadPersisted(): Tables | null {
   if (typeof window === "undefined" || !window.localStorage) return null;
@@ -13,6 +28,7 @@ function loadPersisted(): Tables | null {
 }
 
 function createStore(): Tables {
+  clearSupersededStores();
   return loadPersisted() ?? buildSeed();
 }
 
@@ -59,6 +75,7 @@ export function resetDb() {
   if (typeof window !== "undefined" && window.localStorage) {
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      clearSupersededStores();
     } catch {
       // ignore
     }
