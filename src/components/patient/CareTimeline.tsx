@@ -14,14 +14,15 @@
  * specialist works the current episode and sees the rest in summary, and the
  * front desk learns only that an appointment happened.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Hospital, Lock, ShieldAlert } from "lucide-react";
-import { facilitiesQuery, islandsQuery, providersQuery } from "@/lib/api";
+import { facilitiesQuery, islandsQuery, providersQuery, type PatientBundle } from "@/lib/api";
 import { encountersQuery, ENCOUNTER_KIND_LABEL, type Encounter } from "@/lib/org";
 import { agreementsQuery, SENSITIVE_LABEL, TIER_LABEL, type CareTier } from "@/lib/access";
 import type { AccessDecision } from "@/lib/access-basis";
 import { useScope } from "@/hooks/useScope";
+import { VisitDetailDialog } from "@/components/patient/VisitDetailDialog";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { shortDate, timeAgo } from "@/lib/format";
 
@@ -76,12 +77,16 @@ export function CareTimeline({
   patientId,
   decision,
   grantedCategories,
+  bundle,
 }: {
   patientId: string;
   decision: AccessDecision | null;
   /** Sensitive categories the patient has granted, from the chart's own gate. */
   grantedCategories: Set<string>;
+  /** Already loaded by the chart; used for a visit's readings and referral. */
+  bundle: PatientBundle;
 }) {
+  const [openVisit, setOpenVisit] = useState<Encounter | null>(null);
   const { facilityId } = useScope();
   const encounters = useQuery(encountersQuery(patientId));
   const agreements = useQuery(agreementsQuery);
@@ -229,89 +234,132 @@ export function CareTimeline({
             const clinician = providerName(e.provider_id);
 
             return (
-              <li key={e.id} className="px-5 py-3.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-semibold">
-                    {f?.name ?? "Facility"}
-                    {f?.island_code ? (
-                      <span className="font-normal text-muted-foreground"> · {f.island_code}</span>
+              <li key={e.id}>
+                <button
+                  type="button"
+                  onClick={() => setOpenVisit(e)}
+                  className="w-full px-5 py-3.5 text-left transition-colors hover:bg-surface"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[13px] font-semibold">
+                      {f?.name ?? "Facility"}
+                      {f?.island_code ? (
+                        <span className="font-normal text-muted-foreground">
+                          {" "}
+                          · {f.island_code}
+                        </span>
+                      ) : null}
+                    </span>
+                    {mine ? (
+                      <Pill className="border-primary/30 bg-primary/10 text-primary">
+                        your facility
+                      </Pill>
                     ) : null}
-                  </span>
-                  {mine ? (
-                    <Pill className="border-primary/30 bg-primary/10 text-primary">
-                      your facility
+                    <Pill className="border-border bg-surface text-muted-foreground">
+                      {ENCOUNTER_KIND_LABEL[e.kind] ?? e.kind}
                     </Pill>
-                  ) : null}
-                  <Pill className="border-border bg-surface text-muted-foreground">
-                    {ENCOUNTER_KIND_LABEL[e.kind] ?? e.kind}
-                  </Pill>
-                  {e.status === "open" ? (
-                    <Pill className="border-signal/30 bg-signal/10 text-signal">open</Pill>
-                  ) : null}
-                  <span className="ml-auto text-[11.5px] text-muted-foreground">
-                    {shortDate(e.started_at)}
-                    {e.ended_at ? ` — ${shortDate(e.ended_at)}` : ""}
-                  </span>
-                </div>
+                    {e.status === "open" ? (
+                      <Pill className="border-signal/30 bg-signal/10 text-signal">open</Pill>
+                    ) : null}
+                    <span className="ml-auto text-[11.5px] text-muted-foreground">
+                      {shortDate(e.started_at)}
+                      {e.ended_at ? ` — ${shortDate(e.ended_at)}` : ""}
+                    </span>
+                  </div>
 
-                {level === "existence" ? (
-                  <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-muted-foreground">
-                    {restricted ? (
-                      <>
-                        <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-high" />
-                        <span>
-                          Restricted entry —{" "}
-                          {SENSITIVE_LABEL[sensitivity ?? ""] ?? "sensitive category"}. The visit is
-                          shown so the record does not look complete; its content needs the
-                          patient's explicit grant.
-                        </span>
-                      </>
-                    ) : (
-                      <span>Clinical appointment.</span>
-                    )}
-                  </p>
-                ) : (
-                  <>
-                    <p className="mt-1.5 text-[13px]">{e.reason}</p>
-                    {level === "full" ? (
-                      <>
-                        {e.summary ? (
-                          <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-                            {e.summary}
+                  {level === "existence" ? (
+                    <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-muted-foreground">
+                      {restricted ? (
+                        <>
+                          <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-high" />
+                          <span>
+                            Restricted entry —{" "}
+                            {SENSITIVE_LABEL[sensitivity ?? ""] ?? "sensitive category"}. The visit
+                            is shown so the record does not look complete; its content needs the
+                            patient's explicit grant.
+                          </span>
+                        </>
+                      ) : (
+                        <span>Clinical appointment.</span>
+                      )}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-1.5 text-[13px]">{e.reason}</p>
+                      {level === "full" ? (
+                        <>
+                          {e.summary ? (
+                            <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                              {e.summary}
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-[12.5px] italic text-muted-foreground">
+                              No note recorded yet.
+                            </p>
+                          )}
+                          <p className="mt-1 text-[11.5px] text-muted-foreground">
+                            {clinician ? `Seen by ${clinician}` : null}
+                            {clinician && !mine && agreementFacilities.has(e.facility_id)
+                              ? " · "
+                              : null}
+                            {!mine && agreementFacilities.has(e.facility_id)
+                              ? "note shared under a data-sharing agreement"
+                              : null}
                           </p>
-                        ) : (
-                          <p className="mt-1 text-[12.5px] italic text-muted-foreground">
-                            No note recorded yet.
-                          </p>
-                        )}
-                        <p className="mt-1 text-[11.5px] text-muted-foreground">
-                          {clinician ? `Seen by ${clinician}` : null}
-                          {clinician && !mine && agreementFacilities.has(e.facility_id)
-                            ? " · "
-                            : null}
-                          {!mine && agreementFacilities.has(e.facility_id)
-                            ? "note shared under a data-sharing agreement"
-                            : null}
+                        </>
+                      ) : (
+                        <p className="mt-1 flex items-start gap-1.5 text-[12px] text-muted-foreground">
+                          <Lock className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>
+                            The note is held at {f?.name ?? "the treating facility"} and sits
+                            outside your scope
+                            {tier ? ` as ${TIER_LABEL[tier].toLowerCase()}` : ""}. Request it from
+                            them, or ask the patient to grant it.
+                          </span>
                         </p>
-                      </>
-                    ) : (
-                      <p className="mt-1 flex items-start gap-1.5 text-[12px] text-muted-foreground">
-                        <Lock className="mt-0.5 h-3 w-3 shrink-0" />
-                        <span>
-                          The note is held at {f?.name ?? "the treating facility"} and sits outside
-                          your scope
-                          {tier ? ` as ${TIER_LABEL[tier].toLowerCase()}` : ""}. Request it from
-                          them, or ask the patient to grant it.
-                        </span>
-                      </p>
-                    )}
-                  </>
-                )}
+                      )}
+                    </>
+                  )}
+                </button>
               </li>
             );
           })}
         </ol>
       </Panel>
+
+      {openVisit
+        ? (() => {
+            const sensitivity = (openVisit as { sensitivity?: string }).sensitivity;
+            const restricted =
+              !!sensitivity && sensitivity !== "standard" && !grantedCategories.has(sensitivity);
+            return (
+              <VisitDetailDialog
+                encounter={openVisit}
+                onOpenChange={(open) => !open && setOpenVisit(null)}
+                facility={facilityById.get(openVisit.facility_id)}
+                islandName={islandName(facilityById.get(openVisit.facility_id)?.island_code)}
+                clinician={providerName(openVisit.provider_id)}
+                // Resolved the same way as the row it was opened from, so a
+                // dialog can never show more than the timeline promised.
+                disclosure={
+                  restricted
+                    ? "existence"
+                    : disclosureFor(tier, openVisit, facilityId, agreementFacilities)
+                }
+                restricted={restricted}
+                sensitivity={sensitivity}
+                tier={tier}
+                vitals={bundle.vitals}
+                referrals={bundle.referrals}
+                consultations={bundle.consultations}
+                sharedUnderAgreement={
+                  openVisit.facility_id !== facilityId &&
+                  agreementFacilities.has(openVisit.facility_id)
+                }
+              />
+            );
+          })()
+        : null}
     </>
   );
 }

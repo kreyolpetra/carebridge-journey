@@ -292,6 +292,7 @@ export function PatientChart({
             patientId={b.patient.id}
             decision={decision}
             grantedCategories={grantedCategories}
+            bundle={b}
           />
         </TabsContent>
 
