@@ -1,398 +1,607 @@
-/**
- * The patient directory.
- *
- * Two surfaces that look similar and are governed completely differently.
- *
- * "Your panel" is the set of people this clinician has a lawful basis for. Full
- * rows: risk band, drivers, the basis each one rests on.
- *
- * "Find a patient" searches the whole regional index and returns identity only
- * — name, age, sex, parish. Enough to confirm you have the right person and no
- * more. A clinician has to be able to find the patient standing in front of
- * them, and the app had no answer for that before this page: the only lookup
- * was the command palette, which listed every patient in eleven countries
- * complete with their risk score. Finding someone is not reading their record,
- * but a risk score is clinical data, so it does not appear here.
- */
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { Search, Lock, Users, ChevronLeft, ChevronRight } from "lucide-react";
-import { patientsQuery, riskScoresQuery, type Patient, type RiskScore } from "@/lib/api";
-import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Sparkles, Lock, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  HERO_PATIENT_ID,
+  islandsQuery,
+  patientBundleQuery,
+  patientsQuery,
+  providersQuery,
+  riskScoresQuery,
+  workflowEventsQuery,
+  type Patient,
+  type RiskScore,
+} from "@/lib/api";
+import { runClinicianBrief } from "@/lib/agents/clinician";
+import { AgentBrief } from "@/components/app/AgentBrief";
+import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
+import { useLogRecordAccess } from "@/lib/audit";
+import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { BASIS_LABEL, BASIS_TONE } from "@/lib/access";
-import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
+import { PatientChart } from "@/components/patient/PatientChart";
+import { NoBasisPanel } from "@/components/patient/NoBasisPanel";
+import { Panel, PanelHeader, Pill, Loading, Stat } from "@/components/grid";
 import { bandClasses } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/patients")({
   head: () => ({
     meta: [
-      { title: "Patients — CariCare Grid" },
+      { title: "Patients — Worklist & Directory | CariCare Grid" },
       {
         name: "description",
         content:
-          "Your panel of patients, and a regional patient index you can search by name to find someone before establishing a lawful basis to read their record.",
+          "A queue ordered by clinical risk instead of arrival time, with the patient's whole longitudinal record assembled from fragmented island systems.",
+      },
+      { property: "og:title", content: "Patients — Worklist & Directory" },
+      {
+        property: "og:description",
+        content: "See who is deteriorating before they arrive at the emergency room.",
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { patient?: string } =>
+    typeof search["patient"] === "string" ? { patient: search["patient"] as string } : {},
   component: Patients,
 });
 
-type Row = { patient: Patient; risk: RiskScore | null; decision: AccessDecision };
+const PAGE_SIZE = 20;
 
-const PAGE_SIZE = 25;
-
-/**
- * Page numbers to render: the first and last page always, plus a window around
- * the current one, with gaps collapsed. A panel of a hundred patients is five
- * pages, but the regional index runs to hundreds, and a row of three hundred
- * buttons is not navigation.
- */
-function pageWindow(page: number, pageCount: number): (number | "gap")[] {
-  if (pageCount <= 7) return Array.from({ length: pageCount }, (_, i) => i + 1);
-  const out: (number | "gap")[] = [1];
-  const from = Math.max(2, page - 1);
-  const to = Math.min(pageCount - 1, page + 1);
-  if (from > 2) out.push("gap");
-  for (let i = from; i <= to; i++) out.push(i);
-  if (to < pageCount - 1) out.push("gap");
-  out.push(pageCount);
-  return out;
-}
-
-function Pager({
-  page,
-  total,
-  onPage,
-  noun,
-}: {
-  page: number;
-  total: number;
-  onPage: (p: number) => void;
-  noun: string;
-}) {
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (total === 0) return null;
-  const first = (page - 1) * PAGE_SIZE + 1;
-  const last = Math.min(page * PAGE_SIZE, total);
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
-      <p className="text-[12px] text-muted-foreground">
-        Showing <span className="font-semibold text-foreground">{first}</span>–
-        <span className="font-semibold text-foreground">{last}</span> of{" "}
-        <span className="font-semibold text-foreground">{total}</span> {noun}
-      </p>
-      {pageCount > 1 ? (
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Previous page"
-            disabled={page === 1}
-            onClick={() => onPage(page - 1)}
-            className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          {pageWindow(page, pageCount).map((p, i) =>
-            p === "gap" ? (
-              <span key={`gap-${i}`} className="px-1 text-[12px] text-muted-foreground">
-                …
-              </span>
-            ) : (
-              <button
-                key={p}
-                type="button"
-                aria-current={p === page ? "page" : undefined}
-                onClick={() => onPage(p)}
-                className={
-                  "h-7 min-w-7 rounded-md border px-2 text-[12px] font-semibold transition-colors " +
-                  (p === page
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-surface hover:text-foreground")
-                }
-              >
-                {p}
-              </button>
-            ),
-          )}
-          <button
-            type="button"
-            aria-label="Next page"
-            disabled={page === pageCount}
-            onClick={() => onPage(page + 1)}
-            className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+const BANDS = [
+  { key: "critical", label: "Critical", hint: "Contact today", tone: "critical" },
+  { key: "high", label: "High", hint: "Contact this week", tone: "high" },
+  { key: "moderate", label: "Moderate", hint: "Monitoring", tone: "moderate" },
+  { key: "low", label: "Stable", hint: "Self-management", tone: "low" },
+] as const;
 
 function Patients() {
+  const search = Route.useSearch();
+  const { profile } = useAuth();
+  const [selected, setSelected] = useState<string | null>(search.patient ?? null);
+  const [bandFilter, setBandFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
-  const [bandFilter, setBandFilter] = useState("all");
-  const [panelPage, setPanelPage] = useState(1);
-  const [indexPage, setIndexPage] = useState(1);
-
-  // Any change to what is being listed sends both lists back to page one;
-  // otherwise a filter that leaves two results strands the reader on page four.
-  const resetPaging = () => {
-    setPanelPage(1);
-    setIndexPage(1);
-  };
+  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState<"mine" | "find">("mine");
   const patients = useQuery(patientsQuery);
   const risks = useQuery(riskScoresQuery);
-  const { index: access, ready } = useAccessIndex();
+  const providers = useQuery(providersQuery);
+  const workflow = useQuery(workflowEventsQuery);
+  const qc = useQueryClient();
+  const { index: access, ready: accessReady } = useAccessIndex();
   const { isAggregateOnly } = useScope();
 
-  const latestRisk = useMemo(() => {
+  /**
+   * Who this clinician has already contacted today.
+   *
+   * The list resets overnight, because the bands it is sorted by say "contact
+   * today" and "contact this week" — a permanent flag would mean a patient
+   * contacted once in March never resurfaces. Events are per-clinician, so a
+   * consultant clearing their round does not empty the ward nurse's list, and
+   * the most recent event per patient wins so the mark can be undone.
+   */
+  const contacted = useMemo(() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const decided = new Set<string>();
+    const done = new Set<string>();
+    for (const e of workflow.data ?? []) {
+      if (e.action !== "patient_contacted" && e.action !== "patient_contact_cleared") continue;
+      if (e.actor_id && profile?.id && e.actor_id !== profile.id) continue;
+      if (new Date(e.created_at) < startOfDay) continue;
+      if (decided.has(e.patient_id)) continue; // newest first, so this is the latest word
+      decided.add(e.patient_id);
+      if (e.action === "patient_contacted") done.add(e.patient_id);
+    }
+    return done;
+  }, [workflow.data, profile?.id]);
+
+  const setContacted = useMutation({
+    mutationFn: async ({ patientId, done }: { patientId: string; done: boolean }) => {
+      const { error } = await supabase.from("workflow_events").insert({
+        patient_id: patientId,
+        actor_id: profile?.id ?? null,
+        actor_name: profile?.full_name ?? "Clinician",
+        action: done ? "patient_contacted" : "patient_contact_cleared",
+        label: done ? "Marked contacted" : "Contact mark cleared",
+        detail: null,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["workflow_events"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const decision = useMemo<AccessDecision | null>(
+    () => (accessReady && selected ? access.decide(selected) : null),
+    [access, accessReady, selected],
+  );
+
+  // The chart is not fetched at all without a basis. Refusing to render a
+  // record we already pulled into the browser would be theatre, not access
+  // control.
+  const bundle = useQuery({
+    ...patientBundleQuery(selected ?? ""),
+    enabled: Boolean(selected) && decision?.allowed === true,
+  });
+  useLogRecordAccess(selected, "Full clinical record (clinician console)", decision);
+
+  /**
+   * The queue is the reader's own panel, not the region's. Every row is
+   * resolved against the access model; patients with no lawful basis are
+   * counted but never named, so the console still tells a clinician how much
+   * regional need sits outside their reach without leaking who those people
+   * are.
+   */
+  const { queue, restricted } = useMemo(() => {
     const byPatient = new Map<string, RiskScore>();
     for (const r of risks.data ?? []) {
       const prev = byPatient.get(r.patient_id);
       if (!prev || new Date(r.computed_at) > new Date(prev.computed_at))
         byPatient.set(r.patient_id, r);
     }
-    return byPatient;
-  }, [risks.data]);
+    const pmap = new Map((patients.data ?? []).map((p) => [p.id, p] as const));
+    const rows = [...byPatient.values()]
+      .map((r) => ({ risk: r, patient: pmap.get(r.patient_id) }))
+      .filter((row): row is { risk: RiskScore; patient: Patient } => Boolean(row.patient))
+      .filter((row) => bandFilter === "all" || row.risk.band === bandFilter);
 
-  const { panel, outside } = useMemo(() => {
-    if (!ready) return { panel: [] as Row[], outside: [] as Patient[] };
-    const mine: Row[] = [];
-    const rest: Patient[] = [];
-    for (const p of patients.data ?? []) {
-      const decision = access.decide(p.id);
-      if (decision.allowed) mine.push({ patient: p, risk: latestRisk.get(p.id) ?? null, decision });
-      else rest.push(p);
+    if (!accessReady) return { queue: [], restricted: 0 };
+
+    const mine: { risk: RiskScore; patient: Patient; decision: AccessDecision }[] = [];
+    let withheld = 0;
+    for (const row of rows) {
+      const d = access.decide(row.patient.id);
+      if (d.allowed) mine.push({ ...row, decision: d });
+      else withheld += 1;
     }
-    mine.sort((a, b) => (b.risk?.score ?? 0) - (a.risk?.score ?? 0));
-    return { panel: mine, outside: rest };
-  }, [patients.data, access, ready, latestRisk]);
+    const needle = query.trim().toLowerCase();
+    const filtered = needle
+      ? mine.filter(
+          (row) =>
+            row.patient.full_name.toLowerCase().includes(needle) ||
+            row.patient.parish.toLowerCase().includes(needle),
+        )
+      : mine;
 
-  const visiblePanel = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return panel.filter((r) => {
-      if (bandFilter !== "all" && r.risk?.band !== bandFilter) return false;
-      if (!q) return true;
-      return (
-        r.patient.full_name.toLowerCase().includes(q) || r.patient.parish.toLowerCase().includes(q)
-      );
-    });
-  }, [panel, query, bandFilter]);
+    return {
+      // Contacted patients drop to the bottom rather than disappearing, so the
+      // list shows progress and the mark stays reversible.
+      queue: filtered.sort((a, b) => {
+        const ac = contacted.has(a.patient.id);
+        const bc = contacted.has(b.patient.id);
+        if (ac !== bc) return ac ? 1 : -1;
+        return b.risk.score - a.risk.score;
+      }),
+      restricted: withheld,
+    };
+  }, [risks.data, patients.data, bandFilter, access, accessReady, query, contacted]);
 
-  // The index search only runs on a deliberate query. It never lists the region
-  // by default — you look someone up, you do not browse strangers.
+  /**
+   * Everyone else on the Grid: findable by name, identity only, records sealed.
+   * Selecting one puts the refusal panel in the right pane, which is the honest
+   * answer and carries the two ways out of it.
+   */
   const indexMatches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2 || isAggregateOnly) return [];
-    return outside.filter(
-      (p) => p.full_name.toLowerCase().includes(q) || p.parish.toLowerCase().includes(q),
-    );
-  }, [outside, query, isAggregateOnly]);
+    const needle = query.trim().toLowerCase();
+    if (needle.length < 2 || isAggregateOnly || !accessReady) return [];
+    return (patients.data ?? [])
+      .filter((p) => !access.decide(p.id).allowed)
+      .filter(
+        (p) =>
+          p.full_name.toLowerCase().includes(needle) || p.parish.toLowerCase().includes(needle),
+      );
+  }, [patients.data, query, isAggregateOnly, accessReady, access]);
 
-  // Clamp rather than reset: a list that shrinks under the reader (a referral
-  // accepted elsewhere, a grant expiring) should land on the last real page,
-  // not on an empty one.
-  const panelPageSafe = Math.min(
-    panelPage,
-    Math.max(1, Math.ceil(visiblePanel.length / PAGE_SIZE)),
-  );
-  const indexPageSafe = Math.min(
-    indexPage,
-    Math.max(1, Math.ceil(indexMatches.length / PAGE_SIZE)),
-  );
-  const panelRows = visiblePanel.slice((panelPageSafe - 1) * PAGE_SIZE, panelPageSafe * PAGE_SIZE);
+  const indexPageCount = Math.max(1, Math.ceil(indexMatches.length / PAGE_SIZE));
+  const indexPageSafe = Math.min(page, indexPageCount);
   const indexRows = indexMatches.slice((indexPageSafe - 1) * PAGE_SIZE, indexPageSafe * PAGE_SIZE);
+
+  const outstanding = queue.filter((row) => !contacted.has(row.patient.id)).length;
+  const pageCount = Math.max(1, Math.ceil(queue.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, pageCount);
+  const pageRows = queue.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const activeTotal = tab === "mine" ? queue.length : indexMatches.length;
+  const activePageCount = tab === "mine" ? pageCount : indexPageCount;
+  const activePage = tab === "mine" ? pageSafe : indexPageSafe;
+
+  // Open on the top of this clinician's own list rather than a fixed patient —
+  // the hardcoded default landed most users straight on a refusal panel.
+  useEffect(() => {
+    if (selected || !queue.length) return;
+    setSelected(queue[0]!.patient.id);
+  }, [selected, queue]);
+
+  // Band counts follow the same rule: they describe the panel this clinician is
+  // responsible for, not every scored patient in eleven countries.
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { critical: 0, high: 0, moderate: 0, low: 0 };
+    if (!accessReady) return c;
+    const byPatient = new Map<string, RiskScore>();
+    for (const r of risks.data ?? []) {
+      const prev = byPatient.get(r.patient_id);
+      if (!prev || new Date(r.computed_at) > new Date(prev.computed_at))
+        byPatient.set(r.patient_id, r);
+    }
+    for (const r of byPatient.values()) {
+      if (!access.decide(r.patient_id).allowed) continue;
+      if (c[r.band] !== undefined) c[r.band] = (c[r.band] ?? 0) + 1;
+    }
+    return c;
+  }, [risks.data, access, accessReady]);
+
+  const acceptConsult = useMutation({
+    mutationFn: async (referralId: string) => {
+      const { error } = await supabase
+        .from("referrals")
+        .update({ status: "accepted" })
+        .eq("id", referralId);
+      if (error) throw new Error(error.message);
+      await supabase.from("consultations").insert({
+        referral_id: referralId,
+        patient_id: selected!,
+        status: "in_progress",
+        notes: "Teleconsult opened from the clinician console.",
+      });
+    },
+    onSuccess: () => {
+      toast.success("Teleconsult opened — patient notified on WhatsApp");
+      qc.invalidateQueries();
+    },
+  });
+
+  const b = bundle.data;
+  // ---- pre-consult brief agent -------------------------------------------
+  const islands = useQuery(islandsQuery);
+  const [briefFor, setBriefFor] = useState<string | null>(null);
+  const [briefDecision, setBriefDecision] = useState<"accepted" | "dismissed" | null>(null);
+
+  const brief = useMemo(() => {
+    if (!b || briefFor !== selected) return null;
+    const island = (islands.data ?? []).find((i) => i.code === b.patient.island_code);
+    return runClinicianBrief({
+      patient: b.patient,
+      vitals: b.vitals,
+      medications: b.medications,
+      conditions: b.conditions,
+      messages: b.messages,
+      risk: b.risk,
+      referrals: b.referrals,
+      grants: b.grants,
+      actor: { name: profile?.full_name ?? "Clinician", island: profile?.island_code ?? null },
+      localSpecialties: [
+        ...new Set(
+          (providers.data ?? [])
+            .filter((p) => p.island_code === b.patient.island_code)
+            .map((p) => p.specialty),
+        ),
+      ],
+      islandTier: island?.tier,
+    });
+  }, [b, briefFor, selected, islands.data, providers.data, profile]);
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Patients</h1>
-          <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
-            Your panel is everyone you hold a lawful basis for. Search by name to find anyone else
-            on the Grid — you will see who they are, not what is in their record.
-          </p>
-        </div>
+      <div className="mb-5">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Patients</h1>
+        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
+          Your list is everyone you hold a lawful basis for, ordered by deterioration risk rather
+          than arrival time.{" "}
+          {outstanding
+            ? `${outstanding} still to contact.`
+            : queue.length
+              ? "Everyone on your list has been contacted today."
+              : ""}{" "}
+          Search by name to find anyone else on the Grid.
+        </p>
       </div>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Stat
-          label="In your panel"
-          value={panel.length}
-          hint="You may read these records"
-          tone="signal"
-        />
-        <Stat
-          label="Elsewhere in the region"
-          value={outside.length}
-          hint="Findable by name, records sealed"
-        />
-        <Stat
-          label="Critical in your panel"
-          value={panel.filter((r) => r.risk?.band === "critical").length}
-          hint="Contact today"
-          tone="critical"
-        />
+      {/* The band tiles are the filter. They used to look like one and do
+          nothing, while the real control was a small select in the panel
+          header — two controls for one job, and the obvious one was dead. */}
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        {BANDS.map((band) => {
+          const active = bandFilter === band.key;
+          return (
+            <button
+              key={band.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                setBandFilter(active ? "all" : band.key);
+                setPage(1);
+              }}
+              className={
+                "rounded-xl border p-4 text-left transition-colors " +
+                (active
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border bg-card hover:border-primary/30")
+              }
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {band.label}
+              </p>
+              <p
+                className={
+                  "mt-1 font-display text-[26px] font-bold " +
+                  (band.tone === "critical"
+                    ? "text-critical"
+                    : band.tone === "low"
+                      ? "text-low"
+                      : "text-foreground")
+                }
+              >
+                {counts[band.key] ?? 0}
+              </p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
+                {active ? "Filtering — tap to clear" : band.hint}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
-      <Panel className="mb-4">
-        <div className="flex flex-wrap items-center gap-3 p-4">
-          <div className="flex min-w-[280px] flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3">
-            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="grid gap-4 lg:grid-cols-[430px_minmax(0,1fr)]">
+        <Panel className="h-fit">
+          <div className="border-b border-border px-3 py-2.5">
             <input
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
-                resetPaging();
+                setPage(1);
               }}
-              placeholder="Search your panel, or find anyone on the Grid by name…"
-              className="h-10 w-full bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
+              placeholder="Search your list, or find anyone on the Grid…"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-[12.5px] outline-none focus:border-primary"
             />
-          </div>
-          <select
-            value={bandFilter}
-            onChange={(e) => {
-              setBandFilter(e.target.value);
-              resetPaging();
-            }}
-            className="h-10 rounded-lg border border-border bg-background px-3 text-[13px]"
-          >
-            <option value="all">All bands</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="moderate">Moderate</option>
-            <option value="low">Stable</option>
-          </select>
-        </div>
-      </Panel>
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <Panel className="h-fit">
-          <PanelHeader
-            title="Your panel"
-            subtitle={`${visiblePanel.length} of ${panel.length} · every row names the basis you hold`}
-          />
-          {/* The list scrolls inside the panel so the pager and the header stay
-              put; the page itself does not grow with the caseload. */}
-          <div className="max-h-[460px] divide-y divide-border overflow-y-auto">
-            {!ready || patients.isLoading ? <Loading label="Resolving your panel…" /> : null}
-            {panelRows.map(({ patient, risk, decision }) => (
-              <Link
-                key={patient.id}
-                to="/patients/$patientId"
-                params={{ patientId: patient.id }}
-                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface"
+            {/* One list, two scopes. "My list" is the working set — everyone a
+                lawful basis reaches, risk-ranked. "Find a patient" is the rest
+                of the region, identity only. They used to be two screens
+                rendering the same query in the same order. */}
+            <div className="mt-2.5 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("mine");
+                  setPage(1);
+                }}
+                className={
+                  "rounded-lg px-2.5 py-1 text-[12.5px] font-medium transition-colors " +
+                  (tab === "mine"
+                    ? "bg-primary/12 text-primary"
+                    : "text-muted-foreground hover:text-foreground")
+                }
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] font-semibold">
-                    {patient.full_name}
+                My list ({queue.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("find");
+                  setPage(1);
+                }}
+                className={
+                  "rounded-lg px-2.5 py-1 text-[12.5px] font-medium transition-colors " +
+                  (tab === "find"
+                    ? "bg-primary/12 text-primary"
+                    : "text-muted-foreground hover:text-foreground")
+                }
+              >
+                Find a patient{query.trim().length > 1 ? ` (${indexMatches.length})` : ""}
+              </button>
+            </div>
+          </div>
+          <div className="max-h-[620px] overflow-y-auto p-2">
+            {risks.isLoading ? <Loading label="Scoring the panel…" /> : null}
+            {tab === "mine" &&
+              pageRows.map((row) => {
+                const { risk, patient } = row;
+                const done = contacted.has(patient.id);
+                return (
+                  <div
+                    key={patient.id}
+                    className={
+                      "mb-1 rounded-lg transition-colors " +
+                      (patient.id === selected ? "bg-primary/12" : "hover:bg-surface")
+                    }
+                  >
+                    <button
+                      onClick={() => setSelected(patient.id)}
+                      className={"w-full px-3 pt-2.5 text-left " + (done ? "opacity-55" : "")}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[13.5px] font-semibold">
+                          {patient.full_name}
+                        </span>
+                        <span className="mono-num shrink-0 text-[13px] font-semibold">
+                          Risk {risk.score}
+                          <span className="text-[11px] font-normal text-muted-foreground">
+                            /100
+                          </span>
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+                        {patient.age}
+                        {patient.sex} · {patient.parish}, {patient.island_code} · {risk.trend}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <Pill className={bandClasses(risk.band)}>{risk.band}</Pill>
+                        <Pill className={BASIS_TONE[row.decision.basis]}>
+                          {BASIS_LABEL[row.decision.basis]}
+                        </Pill>
+                      </div>
+                    </button>
+                    <div className="px-3 pb-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setContacted.mutate({ patientId: patient.id, done: !done })}
+                        disabled={setContacted.isPending}
+                        className={
+                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-medium transition-colors disabled:opacity-60 " +
+                          (done
+                            ? "border-low/40 bg-low/10 text-low"
+                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary")
+                        }
+                      >
+                        <Check className="h-3 w-3" />
+                        {done ? "Contacted today" : "Mark contacted"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            {tab === "find" &&
+              indexRows.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelected(p.id)}
+                  className={
+                    "mb-1 w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
+                    (p.id === selected ? "bg-primary/12" : "hover:bg-surface")
+                  }
+                >
+                  <span className="block truncate text-[13.5px] font-semibold">{p.full_name}</span>
+                  <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
+                    {p.age}
+                    {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
                   </span>
-                  <span className="block truncate text-[12px] text-muted-foreground">
-                    {patient.age}
-                    {patient.sex} · {patient.parish}, {patient.island_code}
-                  </span>
-                </span>
-                <Pill className={BASIS_TONE[decision.basis]}>{BASIS_LABEL[decision.basis]}</Pill>
-                {risk ? (
-                  <Pill className={bandClasses(risk.band)}>
-                    {risk.band} {Math.round(risk.score)}
+                  <Pill className="mt-1.5 border-border bg-background text-muted-foreground">
+                    <Lock className="h-3 w-3" />
+                    sealed
                   </Pill>
-                ) : (
-                  <Pill className="border-border bg-background text-muted-foreground">
-                    not scored
-                  </Pill>
-                )}
-              </Link>
-            ))}
-            {ready && !visiblePanel.length ? (
-              <p className="px-4 py-8 text-[13px] text-muted-foreground">
-                {panel.length
-                  ? "No one in your panel matches that filter."
-                  : "No patients in your panel yet. A referral you accept, an episode at your facility, or a consent grant from the patient will place someone here."}
+                </button>
+              ))}
+
+            {tab === "mine" && accessReady && !queue.length ? (
+              <p className="px-3 py-6 text-[13px] text-muted-foreground">
+                {query.trim() || bandFilter !== "all"
+                  ? "Nobody on your list matches that. Try “Find a patient” to search the rest of the Grid."
+                  : "No patients on your list. A referral you accept, an episode at your facility, or a consent grant from the patient will place someone here."}
+              </p>
+            ) : null}
+            {tab === "find" && !indexRows.length ? (
+              <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
+                {isAggregateOnly
+                  ? "Your role is aggregate and de-identified only, so the patient index is not available to it."
+                  : query.trim().length < 2
+                    ? "Type at least two characters to look someone up across all eleven countries. The index is never browsed as a list — results appear only for a name you search."
+                    : `Nobody outside your list matches “${query.trim()}”.`}
               </p>
             ) : null}
           </div>
-          <Pager
-            page={panelPageSafe}
-            total={visiblePanel.length}
-            onPage={setPanelPage}
-            noun="patients"
-          />
+          {activeTotal ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+              <p className="text-[12px] text-muted-foreground">
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {(activePage - 1) * PAGE_SIZE + 1}–{Math.min(activePage * PAGE_SIZE, activeTotal)}
+                </span>{" "}
+                of <span className="font-semibold text-foreground">{activeTotal}</span>
+              </p>
+              {activePageCount > 1 ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="Previous page"
+                    disabled={activePage === 1}
+                    onClick={() => setPage(activePage - 1)}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="px-1 text-[12px] text-muted-foreground">
+                    {activePage} / {activePageCount}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Next page"
+                    disabled={activePage === activePageCount}
+                    onClick={() => setPage(activePage + 1)}
+                    className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {restricted > 0 ? (
+            <div className="flex items-start gap-2 border-t border-border px-4 py-3 text-[12px] text-muted-foreground">
+              <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                <strong className="font-semibold text-foreground">{restricted}</strong> further
+                scored {restricted === 1 ? "patient" : "patients"} in the region sit outside your
+                lawful access. Accept a referral, record an episode, or request the patient's
+                consent to see who they are.
+              </span>
+            </div>
+          ) : null}
         </Panel>
 
-        <Panel className="h-fit">
-          <PanelHeader
-            title="Find a patient"
-            subtitle="The regional index · identity only, no clinical content"
-          />
-          {isAggregateOnly ? (
-            <p className="px-4 py-8 text-[13px] text-muted-foreground">
-              Your role is aggregate and de-identified only, so the patient index is not available
-              to it.
-            </p>
-          ) : query.trim().length < 2 ? (
-            <div className="flex flex-col items-start gap-3 px-4 py-8">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-muted-foreground">
-                <Users className="h-4 w-4" />
-              </span>
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Type at least two characters to look someone up across all eleven countries. The
-                index is never browsed as a list — results appear only for a name you search.
-              </p>
-            </div>
+        <div className="space-y-4">
+          {decision && !decision.allowed ? (
+            <NoBasisPanel patientId={selected!} decision={decision} />
+          ) : !b ? (
+            <Panel>
+              <Loading label="Assembling the longitudinal record…" />
+            </Panel>
           ) : (
             <>
-              <div className="max-h-[360px] divide-y divide-border overflow-y-auto">
-                {indexRows.map((p) => (
-                  <Link
-                    key={p.id}
-                    to="/patients/$patientId"
-                    params={{ patientId: p.id }}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface"
+              {brief && (
+                <AgentBrief
+                  run={brief}
+                  decision={briefDecision}
+                  onAccept={() => {
+                    setBriefDecision("accepted");
+                    void supabase.from("workflow_events").insert({
+                      patient_id: b.patient.id,
+                      actor_name: profile?.full_name ?? "Clinician",
+                      action: "agent_brief_accepted",
+                      label: "Pre-consult brief accepted",
+                      detail: JSON.stringify({
+                        engine: brief.model,
+                        findings: brief.findings.length,
+                        confidence: brief.confidence,
+                      }),
+                    });
+                    toast.success("Brief accepted — recorded against this episode");
+                  }}
+                  onDismiss={() => {
+                    setBriefDecision("dismissed");
+                    void supabase.from("workflow_events").insert({
+                      patient_id: b.patient.id,
+                      actor_name: profile?.full_name ?? "Clinician",
+                      action: "agent_brief_dismissed",
+                      label: "Pre-consult brief dismissed",
+                      detail: JSON.stringify({ engine: brief.model }),
+                    });
+                    toast("Brief dismissed — nothing written to the record");
+                  }}
+                />
+              )}
+              <PatientChart
+                bundle={b}
+                decision={decision}
+                providers={providers.data ?? []}
+                onAcceptReferral={(id) => acceptConsult.mutate(id)}
+                headerActions={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBriefFor(selected);
+                      setBriefDecision(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/20"
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13.5px] font-semibold">
-                        {p.full_name}
-                      </span>
-                      <span className="block truncate text-[12px] text-muted-foreground">
-                        {p.age}
-                        {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
-                      </span>
-                    </span>
-                    <Pill className="border-border bg-background text-muted-foreground">
-                      <Lock className="h-3 w-3" />
-                      sealed
-                    </Pill>
-                  </Link>
-                ))}
-                {!indexMatches.length ? (
-                  <p className="px-4 py-8 text-[13px] text-muted-foreground">
-                    Nobody outside your panel matches “{query.trim()}”.
-                  </p>
-                ) : null}
-              </div>
-              {indexMatches.length ? (
-                <>
-                  <Pager
-                    page={indexPageSafe}
-                    total={indexMatches.length}
-                    onPage={setIndexPage}
-                    noun="found"
-                  />
-                  <p className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
-                    Opening one of these shows you who they are and how to get access — a referral
-                    to accept, the patient's consent to request, or an emergency override. It does
-                    not show their record, and the attempt is written to their access log.
-                  </p>
-                </>
-              ) : null}
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {briefFor === selected ? "Re-run brief" : "Prepare consult brief"}
+                  </button>
+                }
+              />
             </>
           )}
-        </Panel>
+        </div>
       </div>
     </div>
   );

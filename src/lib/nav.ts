@@ -22,7 +22,6 @@ export type NavItem = {
     | "/record"
     | "/patient"
     | "/patients"
-    | "/clinician"
     | "/facility"
     | "/detection"
     | "/dashboard"
@@ -83,16 +82,7 @@ export const NAV_ITEMS: NavItem[] = [
     // only, and the chart behind it stays gated by tier like everywhere else.
     tiers: ["attending", "consulting", "nursing", "front_desk"],
     group: "Work",
-    keywords: "patients directory find search lookup panel roster chart record",
-  },
-  {
-    to: "/clinician",
-    label: "Worklist",
-    icon: Stethoscope,
-    roles: ["clinician", "admin"],
-    tiers: CLINICAL_TIERS,
-    group: "Work",
-    keywords: "worklist queue risk patients teleconsult console escalation contact",
+    keywords: "patients worklist directory find search lookup panel roster chart record queue risk contact escalation console",
   },
   {
     to: "/facility",
