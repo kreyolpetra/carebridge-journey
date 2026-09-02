@@ -1,0 +1,206 @@
+import { useState } from "react";
+import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { LogOut, Menu, Search, User2, Radio } from "lucide-react";
+import { NetworkToggle } from "@/components/NetworkToggle";
+import { NotificationsMenu } from "@/components/app/NotificationsMenu";
+import { CommandPalette } from "@/components/app/CommandPalette";
+import { OnboardingDialog } from "@/components/app/OnboardingDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeGrid } from "@/hooks/useRealtime";
+import { navFor } from "@/lib/nav";
+import { ROLE_LABEL } from "@/lib/demo-accounts";
+import { cn } from "@/lib/utils";
+import { firstName, initials } from "@/lib/names";
+
+function Brand() {
+  return (
+    <Link to="/" className="flex shrink-0 items-center gap-2.5">
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/12 text-primary">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M3 12h4l2-6 3 13 3-9 2 2h4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="font-display text-[15px] font-bold tracking-tight">
+        CariCare<span className="text-primary"> Grid</span>
+      </span>
+    </Link>
+  );
+}
+
+function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => void }) {
+  const items = navFor(role);
+  const groups = ["Work", "Account"] as const;
+
+  return (
+    <nav className="flex flex-col gap-4 px-3 py-4">
+      {groups.map((group) => {
+        const groupItems = items.filter((i) => i.group === group);
+        if (!groupItems.length) return null;
+        return (
+          <div key={group}>
+            <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {group}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {groupItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={onNavigate}
+                  activeOptions={{ exact: item.to === "/" }}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+                  activeProps={{ className: "bg-primary/10 !text-primary" }}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function AppShell() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { profile, role, signOut } = useAuth();
+  const navigate = useNavigate();
+  const live = useRealtimeGrid();
+
+  const name = profile?.full_name ?? "Grid user";
+
+  return (
+    <div className="flex min-h-screen">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-border bg-card lg:flex">
+        <div className="flex h-16 items-center border-b border-border px-5">
+          <Brand />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <SidebarNav role={role} />
+        </div>
+        <div className="border-t border-border px-4 py-4">
+          <NetworkToggle />
+        </div>
+      </aside>
+
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            aria-label="Close navigation"
+            className="absolute inset-0 bg-foreground/30"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="absolute inset-y-0 left-0 flex w-[248px] flex-col border-r border-border bg-card">
+            <div className="flex h-16 items-center border-b border-border px-5">
+              <Brand />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <SidebarNav role={role} onNavigate={() => setMobileOpen(false)} />
+            </div>
+            <div className="border-t border-border px-4 py-4">
+              <NetworkToggle />
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-screen w-full flex-col lg:pl-[248px]">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-5">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            onClick={() => setMobileOpen(true)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground lg:hidden"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+          <div className="lg:hidden">
+            <Brand />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="ml-auto flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-[13px] text-muted-foreground transition-colors hover:text-foreground lg:ml-0 lg:w-[380px]"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden lg:inline">Search patients, surfaces, actions…</span>
+            <kbd className="ml-auto hidden rounded border border-border px-1.5 py-0.5 font-mono text-[10.5px] lg:inline">
+              ⌘K
+            </kbd>
+          </button>
+
+          <div className="ml-auto flex items-center gap-2">
+            <span
+              className={cn(
+                "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:flex",
+                live ? "border-low/40 bg-low/10 text-low" : "border-border bg-surface text-muted-foreground",
+              )}
+              title={live ? "Realtime connected" : "Connecting to realtime…"}
+            >
+              <Radio className="h-3 w-3" />
+              {live ? "Live" : "Connecting"}
+            </span>
+
+            <NotificationsMenu />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Account menu"
+                  className="flex h-9 items-center gap-2 rounded-lg border border-border bg-card pl-1 pr-2.5"
+                >
+                  <span className="grid h-7 w-7 place-items-center rounded-md bg-primary/12 text-[11px] font-bold text-primary">
+                    {initials(name)}
+                  </span>
+                  <span className="hidden text-[13px] font-medium sm:inline">{firstName(name)}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>
+                  <p className="text-[13.5px] font-semibold">{name}</p>
+                  <p className="text-[12px] font-normal text-muted-foreground">
+                    {ROLE_LABEL[role] ?? role}
+                    {profile?.organisation ? ` · ${profile.organisation}` : ""}
+                  </p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => void navigate({ to: "/settings" })}>
+                  <User2 className="mr-2 h-4 w-4" /> Profile & settings
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    await signOut();
+                    void navigate({ to: "/auth" });
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <main className="flex-1">
+          <Outlet />
+        </main>
+      </div>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <OnboardingDialog />
+    </div>
+  );
+}

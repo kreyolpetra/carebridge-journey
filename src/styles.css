@@ -1,0 +1,194 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * CariCare Grid design system.
+ * Deep-ocean operations console: navy field, lagoon-teal signal, coral urgency.
+ * All colour lives here as oklch tokens. Components never hardcode colour.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-critical: var(--critical);
+  --color-critical-foreground: var(--critical-foreground);
+  --color-high: var(--high);
+  --color-high-foreground: var(--high-foreground);
+  --color-moderate: var(--moderate);
+  --color-moderate-foreground: var(--moderate-foreground);
+  --color-low: var(--low);
+  --color-low-foreground: var(--low-foreground);
+  --color-signal: var(--signal);
+  --color-chat: var(--chat);
+  --color-chat-foreground: var(--chat-foreground);
+  --color-chat-bubble-in: var(--chat-bubble-in);
+  --color-chat-bubble-out: var(--chat-bubble-out);
+
+  --color-chart-1: var(--critical);
+  --color-chart-2: var(--primary);
+  --color-chart-3: var(--moderate);
+  --color-chart-4: var(--low);
+  --color-chart-5: var(--accent);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Clinical Calm: light clinical field, medical teal signal */
+  --background: oklch(0.981 0.005 230);
+  --foreground: oklch(0.28 0.022 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.28 0.022 250);
+  --surface: oklch(0.958 0.008 230);
+  --surface-foreground: oklch(0.28 0.022 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.022 250);
+
+  --primary: oklch(0.53 0.088 202);
+  --primary-foreground: oklch(0.99 0.003 210);
+  --secondary: oklch(0.945 0.011 225);
+  --secondary-foreground: oklch(0.32 0.022 250);
+  --muted: oklch(0.955 0.008 230);
+  --muted-foreground: oklch(0.53 0.019 245);
+  --accent: oklch(0.6 0.13 45);
+  --accent-foreground: oklch(0.99 0.003 210);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.99 0.003 210);
+
+  --border: oklch(0.905 0.009 235);
+  --input: oklch(0.9 0.009 235);
+  --ring: oklch(0.53 0.088 202);
+
+  --critical: oklch(0.53 0.19 27);
+  --critical-foreground: oklch(0.99 0.003 210);
+  --high: oklch(0.6 0.14 55);
+  --high-foreground: oklch(0.99 0.003 210);
+  --moderate: oklch(0.62 0.12 85);
+  --moderate-foreground: oklch(0.99 0.003 210);
+  --low: oklch(0.53 0.1 165);
+  --low-foreground: oklch(0.99 0.003 210);
+  --signal: oklch(0.53 0.088 202);
+
+  --chat: oklch(0.955 0.012 140);
+  --chat-foreground: oklch(0.28 0.02 160);
+  --chat-bubble-in: oklch(1 0 0);
+  --chat-bubble-out: oklch(0.93 0.085 148);
+
+  --grad-hero: linear-gradient(
+    145deg,
+    oklch(0.985 0.006 225) 0%,
+    oklch(0.955 0.02 210) 50%,
+    oklch(0.93 0.035 195) 100%
+  );
+  --grad-signal: linear-gradient(100deg, oklch(0.53 0.088 202), oklch(0.56 0.1 168));
+  --grad-urgent: linear-gradient(100deg, oklch(0.53 0.19 27), oklch(0.6 0.14 55));
+
+  --shadow-panel: 0 1px 2px 0 oklch(0.28 0.02 250 / 5%), 0 8px 24px -18px oklch(0.28 0.02 250 / 45%);
+  --shadow-lift: 0 18px 40px -24px oklch(0.28 0.02 250 / 40%);
+  --glow-signal: 0 0 0 1px oklch(0.53 0.088 202 / 18%), 0 0 24px -10px oklch(0.53 0.088 202 / 40%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility panel {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-panel);
+}
+
+@utility hero-field {
+  background: var(--grad-hero);
+}
+
+@utility text-signal-gradient {
+  background: var(--grad-signal);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility glow-ring {
+  box-shadow: var(--glow-signal);
+}
+
+@utility grid-lines {
+  background-image:
+    linear-gradient(to right, oklch(0.28 0.02 250 / 4.5%) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.28 0.02 250 / 4.5%) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@utility mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 oklch(0.66 0.205 22 / 55%);
+  }
+  70% {
+    box-shadow: 0 0 0 12px oklch(0.66 0.205 22 / 0%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.66 0.205 22 / 0%);
+  }
+}
+
+@utility pulse-critical {
+  animation: pulse-ring 2s infinite;
+}
