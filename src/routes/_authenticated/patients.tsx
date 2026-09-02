@@ -17,7 +17,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Search, Lock, Users } from "lucide-react";
+import { Search, Lock, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { patientsQuery, riskScoresQuery, type Patient, type RiskScore } from "@/lib/api";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useScope } from "@/hooks/useScope";
@@ -41,9 +41,109 @@ export const Route = createFileRoute("/_authenticated/patients")({
 
 type Row = { patient: Patient; risk: RiskScore | null; decision: AccessDecision };
 
+const PAGE_SIZE = 25;
+
+/**
+ * Page numbers to render: the first and last page always, plus a window around
+ * the current one, with gaps collapsed. A panel of a hundred patients is five
+ * pages, but the regional index runs to hundreds, and a row of three hundred
+ * buttons is not navigation.
+ */
+function pageWindow(page: number, pageCount: number): (number | "gap")[] {
+  if (pageCount <= 7) return Array.from({ length: pageCount }, (_, i) => i + 1);
+  const out: (number | "gap")[] = [1];
+  const from = Math.max(2, page - 1);
+  const to = Math.min(pageCount - 1, page + 1);
+  if (from > 2) out.push("gap");
+  for (let i = from; i <= to; i++) out.push(i);
+  if (to < pageCount - 1) out.push("gap");
+  out.push(pageCount);
+  return out;
+}
+
+function Pager({
+  page,
+  total,
+  onPage,
+  noun,
+}: {
+  page: number;
+  total: number;
+  onPage: (p: number) => void;
+  noun: string;
+}) {
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (total === 0) return null;
+  const first = (page - 1) * PAGE_SIZE + 1;
+  const last = Math.min(page * PAGE_SIZE, total);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+      <p className="text-[12px] text-muted-foreground">
+        Showing <span className="font-semibold text-foreground">{first}</span>–
+        <span className="font-semibold text-foreground">{last}</span> of{" "}
+        <span className="font-semibold text-foreground">{total}</span> {noun}
+      </p>
+      {pageCount > 1 ? (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Previous page"
+            disabled={page === 1}
+            onClick={() => onPage(page - 1)}
+            className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          {pageWindow(page, pageCount).map((p, i) =>
+            p === "gap" ? (
+              <span key={`gap-${i}`} className="px-1 text-[12px] text-muted-foreground">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                aria-current={p === page ? "page" : undefined}
+                onClick={() => onPage(p)}
+                className={
+                  "h-7 min-w-7 rounded-md border px-2 text-[12px] font-semibold transition-colors " +
+                  (p === page
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-surface hover:text-foreground")
+                }
+              >
+                {p}
+              </button>
+            ),
+          )}
+          <button
+            type="button"
+            aria-label="Next page"
+            disabled={page === pageCount}
+            onClick={() => onPage(page + 1)}
+            className="grid h-7 w-7 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Patients() {
   const [query, setQuery] = useState("");
   const [bandFilter, setBandFilter] = useState("all");
+  const [panelPage, setPanelPage] = useState(1);
+  const [indexPage, setIndexPage] = useState(1);
+
+  // Any change to what is being listed sends both lists back to page one;
+  // otherwise a filter that leaves two results strands the reader on page four.
+  const resetPaging = () => {
+    setPanelPage(1);
+    setIndexPage(1);
+  };
   const patients = useQuery(patientsQuery);
   const risks = useQuery(riskScoresQuery);
   const { index: access, ready } = useAccessIndex();
@@ -88,10 +188,24 @@ function Patients() {
   const indexMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (q.length < 2 || isAggregateOnly) return [];
-    return outside
-      .filter((p) => p.full_name.toLowerCase().includes(q) || p.parish.toLowerCase().includes(q))
-      .slice(0, 20);
+    return outside.filter(
+      (p) => p.full_name.toLowerCase().includes(q) || p.parish.toLowerCase().includes(q),
+    );
   }, [outside, query, isAggregateOnly]);
+
+  // Clamp rather than reset: a list that shrinks under the reader (a referral
+  // accepted elsewhere, a grant expiring) should land on the last real page,
+  // not on an empty one.
+  const panelPageSafe = Math.min(
+    panelPage,
+    Math.max(1, Math.ceil(visiblePanel.length / PAGE_SIZE)),
+  );
+  const indexPageSafe = Math.min(
+    indexPage,
+    Math.max(1, Math.ceil(indexMatches.length / PAGE_SIZE)),
+  );
+  const panelRows = visiblePanel.slice((panelPageSafe - 1) * PAGE_SIZE, panelPageSafe * PAGE_SIZE);
+  const indexRows = indexMatches.slice((indexPageSafe - 1) * PAGE_SIZE, indexPageSafe * PAGE_SIZE);
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
@@ -131,14 +245,20 @@ function Patients() {
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                resetPaging();
+              }}
               placeholder="Search your panel, or find anyone on the Grid by name…"
               className="h-10 w-full bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
             />
           </div>
           <select
             value={bandFilter}
-            onChange={(e) => setBandFilter(e.target.value)}
+            onChange={(e) => {
+              setBandFilter(e.target.value);
+              resetPaging();
+            }}
             className="h-10 rounded-lg border border-border bg-background px-3 text-[13px]"
           >
             <option value="all">All bands</option>
@@ -156,9 +276,11 @@ function Patients() {
             title="Your panel"
             subtitle={`${visiblePanel.length} of ${panel.length} · every row names the basis you hold`}
           />
-          <div className="divide-y divide-border">
+          {/* The list scrolls inside the panel so the pager and the header stay
+              put; the page itself does not grow with the caseload. */}
+          <div className="max-h-[460px] divide-y divide-border overflow-y-auto">
             {!ready || patients.isLoading ? <Loading label="Resolving your panel…" /> : null}
-            {visiblePanel.map(({ patient, risk, decision }) => (
+            {panelRows.map(({ patient, risk, decision }) => (
               <Link
                 key={patient.id}
                 to="/patients/$patientId"
@@ -194,6 +316,12 @@ function Patients() {
               </p>
             ) : null}
           </div>
+          <Pager
+            page={panelPageSafe}
+            total={visiblePanel.length}
+            onPage={setPanelPage}
+            noun="patients"
+          />
         </Panel>
 
         <Panel className="h-fit">
@@ -217,41 +345,52 @@ function Patients() {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {indexMatches.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/patients/$patientId"
-                  params={{ patientId: p.id }}
-                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] font-semibold">
-                      {p.full_name}
+            <>
+              <div className="max-h-[360px] divide-y divide-border overflow-y-auto">
+                {indexRows.map((p) => (
+                  <Link
+                    key={p.id}
+                    to="/patients/$patientId"
+                    params={{ patientId: p.id }}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-semibold">
+                        {p.full_name}
+                      </span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {p.age}
+                        {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
+                      </span>
                     </span>
-                    <span className="block truncate text-[12px] text-muted-foreground">
-                      {p.age}
-                      {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
-                    </span>
-                  </span>
-                  <Pill className="border-border bg-background text-muted-foreground">
-                    <Lock className="h-3 w-3" />
-                    sealed
-                  </Pill>
-                </Link>
-              ))}
-              {!indexMatches.length ? (
-                <p className="px-4 py-8 text-[13px] text-muted-foreground">
-                  Nobody outside your panel matches “{query.trim()}”.
-                </p>
-              ) : (
-                <p className="px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
-                  Opening one of these shows you who they are and how to get access — a referral to
-                  accept, the patient's consent to request, or an emergency override. It does not
-                  show their record, and the attempt is written to their access log.
-                </p>
-              )}
-            </div>
+                    <Pill className="border-border bg-background text-muted-foreground">
+                      <Lock className="h-3 w-3" />
+                      sealed
+                    </Pill>
+                  </Link>
+                ))}
+                {!indexMatches.length ? (
+                  <p className="px-4 py-8 text-[13px] text-muted-foreground">
+                    Nobody outside your panel matches “{query.trim()}”.
+                  </p>
+                ) : null}
+              </div>
+              {indexMatches.length ? (
+                <>
+                  <Pager
+                    page={indexPageSafe}
+                    total={indexMatches.length}
+                    onPage={setIndexPage}
+                    noun="found"
+                  />
+                  <p className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
+                    Opening one of these shows you who they are and how to get access — a referral
+                    to accept, the patient's consent to request, or an emergency override. It does
+                    not show their record, and the attempt is written to their access log.
+                  </p>
+                </>
+              ) : null}
+            </>
           )}
         </Panel>
       </div>
