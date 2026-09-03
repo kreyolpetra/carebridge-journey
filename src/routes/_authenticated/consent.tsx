@@ -21,7 +21,8 @@ export const Route = createFileRoute("/_authenticated/consent")({
       { property: "og:title", content: "Consent Ledger — Cross-Border Record Sharing" },
       {
         property: "og:description",
-        content: "Every cross-border access is granted by the patient, scoped to a purpose, and logged.",
+        content:
+          "Every cross-border access is granted by the patient, scoped to a purpose, and logged.",
       },
     ],
   }),
@@ -37,8 +38,10 @@ function Consent() {
   const qc = useQueryClient();
 
   const pname = (id: string) => patients.data?.find((p) => p.id === id)?.full_name ?? "Patient";
-  const provname = (id: string | null) => providers.data?.find((p) => p.id === id)?.full_name ?? "Care team";
-  const provisland = (id: string | null) => providers.data?.find((p) => p.id === id)?.island_code ?? "—";
+  const provname = (id: string | null) =>
+    providers.data?.find((p) => p.id === id)?.full_name ?? "Care team";
+  const provisland = (id: string | null) =>
+    providers.data?.find((p) => p.id === id)?.island_code ?? "—";
 
   const decide = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "active" | "revoked" | "denied" }) => {
@@ -84,14 +87,24 @@ function Consent() {
         title={isPatient ? "Sharing & permissions" : "Consent ledger"}
         blurb={
           isPatient
-            ? "Four ways your record can move: a facility treating you, two facilities under a signed agreement, a one-off request you approve, or an emergency override. Set your permissions here — the receipts live in \"Who has looked at my record\"."
+            ? 'Four ways your record can move: a facility treating you, two facilities under a signed agreement, a one-off request you approve, or an emergency override. Set your permissions here — the receipts live in "Who has looked at my record".'
             : "Records only move when the patient says so. Each grant names the clinician, the island, the exact data scope, the clinical purpose and an expiry — and every read is written to an immutable access log the patient can see."
         }
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat label={isPatient ? "Awaiting your approval" : "Awaiting patient"} value={pending.length} hint="Cross-island requests" tone="critical" />
-        <Stat label="Active grants" value={active.length} hint="Scoped and time-limited" tone="low" />
+        <Stat
+          label={isPatient ? "Awaiting your approval" : "Awaiting patient"}
+          value={pending.length}
+          hint="Cross-island requests"
+          tone="critical"
+        />
+        <Stat
+          label="Active grants"
+          value={active.length}
+          hint="Scoped and time-limited"
+          tone="low"
+        />
         <Stat label="Revoked / denied" value={revoked.length} hint="Access closed immediately" />
         <Stat
           label="Logged accesses"
@@ -103,14 +116,23 @@ function Consent() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
         <Panel>
-          <PanelHeader title="Grants" subtitle={isPatient ? "Requests to view your record" : "Patient-controlled sharing across borders"} />
+          <PanelHeader
+            title="Grants"
+            subtitle={
+              isPatient
+                ? "Requests to view your record"
+                : "Patient-controlled sharing across borders"
+            }
+          />
           <div className="max-h-[640px] divide-y divide-border overflow-y-auto">
             {all.map((g) => (
               <div key={g.id} className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="text-[14px] font-semibold">
-                      {isPatient ? provname(g.provider_id) : `${pname(g.patient_id)} → ${provname(g.provider_id)}`}
+                      {isPatient
+                        ? provname(g.provider_id)
+                        : `${pname(g.patient_id)} → ${provname(g.provider_id)}`}
                     </div>
                     <div className="text-[12px] text-muted-foreground">
                       {provisland(g.provider_id)} · {g.purpose} · requested {timeAgo(g.created_at)}
@@ -125,13 +147,22 @@ function Consent() {
                           : "border-border bg-surface text-muted-foreground"
                     }
                   >
-                    {g.status === "active" ? <ShieldCheck className="h-3 w-3" /> : g.status === "pending" ? <Clock className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
+                    {g.status === "active" ? (
+                      <ShieldCheck className="h-3 w-3" />
+                    ) : g.status === "pending" ? (
+                      <Clock className="h-3 w-3" />
+                    ) : (
+                      <ShieldX className="h-3 w-3" />
+                    )}
                     {g.status}
                   </Pill>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {g.scope.map((s) => (
-                    <span key={s} className="rounded-md border border-border bg-surface px-2 py-0.5 text-[11.5px] text-muted-foreground">
+                    <span
+                      key={s}
+                      className="rounded-md border border-border bg-surface px-2 py-0.5 text-[11.5px] text-muted-foreground"
+                    >
                       {s}
                     </span>
                   ))}
@@ -163,7 +194,8 @@ function Consent() {
             ))}
             {!all.length ? (
               <p className="p-5 text-[13px] text-muted-foreground">
-                No grants yet — trigger a cross-island referral on the patient line and it will appear here.
+                No grants yet — trigger a cross-island referral from messages and it will appear
+                here.
               </p>
             ) : null}
           </div>
@@ -184,7 +216,8 @@ function Consent() {
                 <div>
                   <div className="text-[13px] font-medium">{provname(row.provider_id)}</div>
                   <div className="text-[11.5px] text-muted-foreground">
-                    {row.resource}{isPatient ? "" : ` · ${pname(row.patient_id)}`}
+                    {row.resource}
+                    {isPatient ? "" : ` · ${pname(row.patient_id)}`}
                   </div>
                   <div className="mt-1">
                     <Pill
@@ -199,10 +232,16 @@ function Consent() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={row.allowed ? "text-[11.5px] text-low" : "text-[11.5px] text-critical"}>
+                  <div
+                    className={
+                      row.allowed ? "text-[11.5px] text-low" : "text-[11.5px] text-critical"
+                    }
+                  >
                     {row.allowed ? "allowed" : "blocked"}
                   </div>
-                  <div className="text-[11px] text-muted-foreground">{timeAgo(row.accessed_at)}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {timeAgo(row.accessed_at)}
+                  </div>
                 </div>
               </div>
             ))}
@@ -217,4 +256,3 @@ function Consent() {
     </div>
   );
 }
-

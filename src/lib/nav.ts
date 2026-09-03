@@ -82,12 +82,18 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: "/patient",
-    label: "Patient line",
+    // "Patient line" read two wrong ways in a hospital: as the waiting queue
+    // (which is what /patients actually is) and as a vascular line. Every
+    // clinical tool a judge has used calls this Messages, and the screen's own
+    // main panel was already titled "Inbox" — so the nav and the page were
+    // disagreeing. "Care line" survives as the product's term for the thread
+    // itself; only the signpost changes.
+    label: "Messages",
     icon: MessageSquareText,
     roles: ["patient", "clinician", "admin"],
     tiers: CLINICAL_TIERS,
     group: "Work",
-    keywords: "whatsapp chat intake triage message",
+    keywords: "whatsapp chat intake triage message care line inbox conversation",
   },
   {
     to: "/appointments",
@@ -170,7 +176,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 const PATIENT_LABELS: Record<string, string> = {
   "/": "My health",
-  "/patient": "My care line",
+  "/patient": "My messages",
   "/appointments": "My appointments",
   "/record": "My record",
   "/consent": "Sharing & permissions",

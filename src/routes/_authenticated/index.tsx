@@ -61,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/")({
       {
         name: "description",
         content:
-          "Your role-aware CariCare Grid home: patient line, clinician queue, regional coordination or insurer engine, personalised to your sign-in.",
+          "Your role-aware CariCare Grid home: messages, clinician queue, regional coordination or insurer engine, personalised to your sign-in.",
       },
       { property: "og:title", content: "CariCare Grid — The Front Door to Caribbean Healthcare" },
       {
@@ -245,7 +245,7 @@ function PatientHome() {
             <li className="flex gap-2.5 rounded-lg border border-border bg-surface p-3">
               <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>
-                Feeling unwell? Message the patient line in plain language — Patois or English — and
+                Feeling unwell? Message your care team in plain language — Patois or English — and
                 the AI triage will route you.
               </span>
             </li>
@@ -255,7 +255,7 @@ function PatientHome() {
               to="/patient"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
             >
-              Open my patient line <ArrowRight className="h-4 w-4" />
+              Open my messages <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/record"

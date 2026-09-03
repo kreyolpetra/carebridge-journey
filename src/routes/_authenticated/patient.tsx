@@ -41,13 +41,13 @@ import type { TriageResult } from "@/lib/triage.server";
 export const Route = createFileRoute("/_authenticated/patient")({
   head: () => ({
     meta: [
-      { title: "Patient Line — WhatsApp Intake & AI Triage | CariCare Grid" },
+      { title: "Messages — WhatsApp Intake & AI Triage | CariCare Grid" },
       {
         name: "description",
         content:
           "Simulated WhatsApp intake for Caribbean NCD patients: home readings, voice notes and local language varieties, triaged by AI in seconds.",
       },
-      { property: "og:title", content: "Patient Line — WhatsApp Intake & AI Triage" },
+      { property: "og:title", content: "Messages — WhatsApp Intake & AI Triage" },
       {
         property: "og:description",
         content:
