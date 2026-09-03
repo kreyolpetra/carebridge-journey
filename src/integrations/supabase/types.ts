@@ -596,6 +596,7 @@ export type Database = {
           created_at: string
           facility_id: string | null
           id: string
+          kind: string
           notes: string
           patient_id: string
           plan: string
@@ -609,6 +610,7 @@ export type Database = {
           created_at?: string
           facility_id?: string | null
           id?: string
+          kind?: string
           notes?: string
           patient_id: string
           plan?: string
@@ -622,6 +624,7 @@ export type Database = {
           created_at?: string
           facility_id?: string | null
           id?: string
+          kind?: string
           notes?: string
           patient_id?: string
           plan?: string

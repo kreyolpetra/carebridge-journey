@@ -1,0 +1,203 @@
+/**
+ * Booking a teleconsult or clinic appointment from a patient's chart.
+ *
+ * Until now a slot was only ever booked automatically, by triage routing. A
+ * clinician looking at a chart and deciding "I should see her Thursday" had no
+ * way to say so. Module 01 of the brief asks for capacity-aware scheduling; the
+ * capacity was modelled and never offered to the person making the decision.
+ *
+ * The confirmation goes back down the care line as an interactive message,
+ * because the brief's whole premise is that the patient's interface is WhatsApp
+ * and nothing else.
+ */
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { CalendarPlus, Video, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { slotsQuery, type Patient } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { shortDate, clockTime } from "@/lib/format";
+
+const CONFIRM_COPY: Record<
+  string,
+  { body: (when: string, tele: boolean) => string; yes: string; move: string; no: string }
+> = {
+  en: {
+    body: (when, tele) =>
+      `You have an appointment on ${when}. ${tele ? "It is a video consult — we will call you here on WhatsApp, so there is nothing to install." : "Please come to the clinic."}`,
+    yes: "Confirm",
+    move: "Ask for another time",
+    no: "I cannot make it",
+  },
+  jam: {
+    body: (when, tele) =>
+      `Yuh have a appointment pon ${when}. ${tele ? "It a video consult — wi wi call yuh right yah so pon WhatsApp, nutten fi install." : "Please come to di clinic."}`,
+    yes: "Confirm it",
+    move: "Ask fi anodda time",
+    no: "Mi cyaan mek it",
+  },
+  ht: {
+    body: (when, tele) =>
+      `Ou gen yon randevou ${when}. ${tele ? "Se yon konsiltasyon videyo — n ap rele w isit la sou WhatsApp, ou pa bezwen enstale anyen." : "Tanpri vini nan klinik la."}`,
+    yes: "Konfime",
+    move: "Mande yon lòt lè",
+    no: "Mwen pa ka vini",
+  },
+  es: {
+    body: (when, tele) =>
+      `Tiene una cita el ${when}. ${tele ? "Es una consulta por video — le llamaremos aquí por WhatsApp, no hay nada que instalar." : "Por favor venga a la clínica."}`,
+    yes: "Confirmar",
+    move: "Pedir otra hora",
+    no: "No puedo asistir",
+  },
+};
+
+export function BookAppointment({ patient }: { patient: Patient }) {
+  const { profile } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"teleconsult" | "in_person">("teleconsult");
+  const slots = useQuery(slotsQuery);
+  const qc = useQueryClient();
+
+  const mySlots = (slots.data ?? [])
+    .filter((s) => s.status === "open" && s.provider_id === profile?.provider_id)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    .slice(0, 12);
+
+  const book = useMutation({
+    mutationFn: async (slotId: string) => {
+      const slot = mySlots.find((s) => s.id === slotId);
+      if (!slot) throw new Error("That slot has just been taken");
+
+      await supabase.from("availability_slots").update({ status: "booked" }).eq("id", slot.id);
+      await supabase.from("consultations").insert({
+        referral_id: null,
+        patient_id: patient.id,
+        provider_id: profile?.provider_id ?? null,
+        facility_id: profile?.facility_id ?? null,
+        scheduled_at: slot.starts_at,
+        kind,
+        status: "scheduled",
+        notes:
+          kind === "teleconsult"
+            ? "Teleconsult booked from the chart"
+            : "Clinic appointment booked from the chart",
+        plan: "",
+      });
+
+      // The patient hears about it on the only channel they use.
+      const copy = CONFIRM_COPY[patient.language] ?? CONFIRM_COPY["en"]!;
+      const when = `${shortDate(slot.starts_at)}, ${clockTime(slot.starts_at)}`;
+      await supabase.from("messages").insert({
+        patient_id: patient.id,
+        direction: "out",
+        body: copy.body(when, kind === "teleconsult"),
+        kind: "text",
+        language: patient.language,
+        channel: "whatsapp",
+        actions: [
+          { label: copy.yes, action: "reply" },
+          { label: copy.move, action: "reply" },
+          { label: copy.no, action: "reply" },
+        ],
+      });
+    },
+    onSuccess: () => {
+      toast.success("Booked — confirmation sent to the patient's care line");
+      setOpen(false);
+      void qc.invalidateQueries();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:border-primary/40 hover:text-primary"
+      >
+        <CalendarPlus className="h-3.5 w-3.5" />
+        Book
+      </button>
+
+      {open ? (
+        <Dialog open onOpenChange={setOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-display text-[18px]">
+                Book an appointment · {patient.full_name}
+              </DialogTitle>
+              <DialogDescription className="text-[13px]">
+                Your open slots. The confirmation goes to their care line in{" "}
+                {patient.language === "jam"
+                  ? "Jamaican Patois"
+                  : patient.language === "ht"
+                    ? "Haitian Kreyòl"
+                    : patient.language === "es"
+                      ? "Spanish"
+                      : "English"}
+                .
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center gap-1.5">
+              {(
+                [
+                  { k: "teleconsult" as const, label: "Teleconsult", icon: Video },
+                  { k: "in_person" as const, label: "In person", icon: MapPin },
+                ] satisfies { k: "teleconsult" | "in_person"; label: string; icon: typeof Video }[]
+              ).map((o) => (
+                <button
+                  key={o.k}
+                  type="button"
+                  onClick={() => setKind(o.k)}
+                  className={
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors " +
+                    (kind === o.k
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground")
+                  }
+                >
+                  <o.icon className="h-3.5 w-3.5" />
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="max-h-[320px] divide-y divide-border overflow-y-auto rounded-lg border border-border">
+              {mySlots.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  disabled={book.isPending}
+                  onClick={() => book.mutate(s.id)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-surface disabled:opacity-60"
+                >
+                  <span className="font-medium">
+                    {shortDate(s.starts_at)} · {clockTime(s.starts_at)}
+                  </span>
+                  <span className="text-[12px] text-muted-foreground">{s.minutes} min</span>
+                </button>
+              ))}
+              {!mySlots.length ? (
+                <p className="px-3 py-6 text-[13px] text-muted-foreground">
+                  You have no open slots. Slots come from your availability, which the routing
+                  engine also books against.
+                </p>
+              ) : null}
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+    </>
+  );
+}

@@ -184,12 +184,29 @@ export type Consultation = {
   referral_id: string | null;
   patient_id: string;
   provider_id: string | null;
+  facility_id: string | null;
   scheduled_at: string;
+  /** "teleconsult" | "in_person" — how the appointment is delivered. */
+  kind: string;
   status: string;
   notes: string;
   plan: string;
   created_at: string;
 };
+
+/** Appointments across every patient, for the schedule. */
+export const consultationsQuery = queryOptions({
+  queryKey: ["consultations"],
+  staleTime: 5_000,
+  queryFn: async () =>
+    unwrap<Consultation[]>(
+      await supabase
+        .from("consultations")
+        .select("*")
+        .order("scheduled_at", { ascending: false })
+        .limit(3000),
+    ),
+});
 export type Medication = {
   id: string;
   patient_id: string;

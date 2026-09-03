@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 4;
+export const SEED_VERSION = 6;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -1179,6 +1179,7 @@ export function buildSeed(): Tables {
       provider_id: provider.id,
       facility_id: provider.facility_id,
       scheduled_at: daysAgo(daysAgoCreated - 3 < 0 ? 0 : daysAgoCreated - 3),
+      kind: "teleconsult",
       status: "completed",
       notes: "Teleconsult completed via CariCare Grid.",
       plan: "Continue titration, remote monitoring cadence increased to daily.",
@@ -1310,6 +1311,10 @@ export function buildSeed(): Tables {
   // Dr. Anand Rampersad. Harmless while no referral was ever visible; wrong the
   // moment one is.
   cardiologyTT.full_name = DEMO_ACCOUNTS.clinician.name;
+  // ...and at the hospital his profile says he works at. The generator had put
+  // him at whichever TT facility came first, so his own appointments listed a
+  // district hospital he has no staff row for.
+  cardiologyTT.facility_id = TT_HOSPITAL_ID;
   t.sensitive_grants = [
     {
       id: uuid(rng),
@@ -1860,6 +1865,97 @@ export function buildSeed(): Tables {
       delivered_at: daysAgo(0.25),
       created_at: daysAgo(0.25),
     },
+  );
+
+  // ---- the appointment book ----
+  // Every seeded consultation until now was completed and in the past, so a
+  // schedule would have opened on an empty week. Module 01 of the brief asks
+  // for capacity-aware scheduling, and the demo thread turns on a booked
+  // cross-island teleconsult, so the clinicians who carry the demo need a
+  // diary with something in it.
+  const bookableSlots = t.availability_slots
+    .filter((sl) => sl["status"] === "open")
+    .slice()
+    .sort((a, b) => (a["starts_at"] as string).localeCompare(b["starts_at"] as string));
+
+  const bookFor = (
+    patient: Row,
+    provider: Row,
+    kind: string,
+    status: string,
+    startsAt: string,
+    reason: string,
+  ) => {
+    t.consultations.push({
+      id: uuid(rng),
+      referral_id: null,
+      patient_id: patient.id,
+      provider_id: provider.id,
+      facility_id: provider.facility_id,
+      scheduled_at: startsAt,
+      kind,
+      status,
+      notes: reason,
+      plan: "",
+      sensitivity: "standard",
+      created_at: daysAgo(int(rng, 1, 20)),
+    });
+  };
+
+  // The demo consultant's diary: cross-island teleconsults for patients routed
+  // to him, plus clinic appointments for his own hospital's cohort.
+  const ttUpcoming = ttGeneralRoster.slice(0, 9);
+  for (const [i, patient] of ttUpcoming.entries()) {
+    const slot = bookableSlots.find((sl) => sl.provider_id === cardiologyTT.id);
+    const startsAt = slot ? (slot["starts_at"] as string) : daysAhead(1 + i * 0.4 + (i % 3) * 0.15);
+    if (slot) slot["status"] = "booked";
+    bookFor(
+      patient,
+      cardiologyTT,
+      i % 3 === 0 ? "teleconsult" : "in_person",
+      "scheduled",
+      startsAt,
+      i % 3 === 0
+        ? "Cross-island cardiology teleconsult"
+        : "Cardiology clinic — blood pressure review",
+    );
+  }
+
+  // A couple already done this week, so "past" is not empty either.
+  for (const [i, patient] of ttGeneralRoster.slice(9, 13).entries()) {
+    bookFor(
+      patient,
+      cardiologyTT,
+      "teleconsult",
+      "completed",
+      daysAgo(1 + i),
+      "Teleconsult completed — titration reviewed",
+    );
+  }
+
+  // The community clinic nurse's list, so the second staffed persona has one too.
+  const jmAttendingProvider = t.providers.find((pr) => pr.id === ATTENDING_PROVIDER_ID);
+  if (jmAttendingProvider) {
+    for (const [i, patient] of jmClinicRoster.slice(0, 7).entries()) {
+      bookFor(
+        patient,
+        jmAttendingProvider,
+        i % 4 === 0 ? "teleconsult" : "in_person",
+        "scheduled",
+        daysAhead(0.2 + i * 0.5),
+        i % 4 === 0 ? "Follow-up teleconsult" : "Chronic care clinic — refill and review",
+      );
+    }
+  }
+
+  // Marlene's is the one the demo thread produces: booked, cross-island, soon.
+  bookFor(
+    heroPatient,
+    cardiologyTT,
+    "teleconsult",
+    "scheduled",
+    daysAhead(1),
+    "Cross-island cardiology teleconsult — hypertensive crisis pattern",
   );
 
   // ---- care-line conversations ----

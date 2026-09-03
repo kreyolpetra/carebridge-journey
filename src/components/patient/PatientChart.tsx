@@ -26,6 +26,7 @@ import type { PatientBundle, Provider } from "@/lib/api";
 import { BASIS_LABEL, BASIS_TONE, TIER_LABEL, TIER_SCOPE, isGrantActive } from "@/lib/access";
 import type { AccessDecision } from "@/lib/access-basis";
 import { CareTimeline } from "@/components/patient/CareTimeline";
+import { BookAppointment } from "@/components/patient/BookAppointment";
 import { PatientLine as CareLine } from "@/routes/_authenticated/patient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
@@ -112,6 +113,7 @@ export function PatientChart({
               {b.risk ? (
                 <Pill className={bandClasses(b.risk.band)}>risk {b.risk.score}</Pill>
               ) : null}
+              <BookAppointment patient={b.patient} />
               {headerActions}
             </div>
           }

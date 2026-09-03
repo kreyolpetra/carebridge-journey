@@ -12,6 +12,7 @@ import {
   Radar,
   Settings,
   Users,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import { STAFF_ROLE_TIER, type CareTier } from "@/lib/access";
@@ -22,6 +23,7 @@ export type NavItem = {
     | "/record"
     | "/patient"
     | "/patients"
+    | "/appointments"
     | "/facility"
     | "/detection"
     | "/dashboard"
@@ -82,7 +84,17 @@ export const NAV_ITEMS: NavItem[] = [
     // only, and the chart behind it stays gated by tier like everywhere else.
     tiers: ["attending", "consulting", "nursing", "front_desk"],
     group: "Work",
-    keywords: "patients worklist directory find search lookup panel roster chart record queue risk contact escalation console",
+    keywords:
+      "patients worklist directory find search lookup panel roster chart record queue risk contact escalation console",
+  },
+  {
+    to: "/appointments",
+    label: "Appointments",
+    icon: CalendarDays,
+    roles: ["patient", "clinician", "admin"],
+    tiers: ["attending", "consulting", "nursing", "front_desk"],
+    group: "Work",
+    keywords: "appointments diary schedule teleconsult clinic booking calendar slots",
   },
   {
     to: "/facility",
@@ -149,6 +161,7 @@ export const NAV_ITEMS: NavItem[] = [
 const PATIENT_LABELS: Record<string, string> = {
   "/": "My health",
   "/patient": "My care line",
+  "/appointments": "My appointments",
   "/record": "My record",
   "/consent": "Sharing & permissions",
   "/access-log": "Who has looked at my record",

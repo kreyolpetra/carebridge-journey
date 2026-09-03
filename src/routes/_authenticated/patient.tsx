@@ -34,6 +34,7 @@ import { Panel, PanelHeader, Pill, Loading } from "@/components/grid";
 import { severityClasses, clockTime, LANGUAGE_LABEL } from "@/lib/format";
 import { useNetworkOnline } from "@/lib/offline";
 import { useScope } from "@/hooks/useScope";
+import { CallOverlay, formatCallTime, type CallMode } from "@/components/patient/CallOverlay";
 import { useAccessIndex } from "@/lib/access-basis";
 import type { TriageResult } from "@/lib/triage.server";
 
@@ -86,11 +87,6 @@ const QUICK = [
 
 type PendingMessage = { id: string; body: string; kind: string; created_at: string };
 
-function formatCallTime(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-  return `${m}:${String(sec).padStart(2, "0")}`;
-}
 type Thread = { patient: Patient; last: Message; awaitingReply: boolean; count: number };
 
 /**
@@ -108,17 +104,10 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
   const patientId = pinnedPatientId ?? (isPatient ? (ownPatientId ?? HERO_PATIENT_ID) : selectedId);
   const [draft, setDraft] = useState("");
   /**
-   * A voice call placed from the care line.
-   *
-   * "ringing" is the second or two before the line picks up; "connected" runs a
-   * timer until someone hangs up, and hanging up writes the call into the
-   * thread the way WhatsApp leaves a call record behind. Nothing here dials a
-   * real network — this is the same simulated channel as the rest of the line.
+   * A call placed from the care line. The overlay owns ringing and the timer;
+   * this only records that one is up and in which mode.
    */
-  const [call, setCall] = useState<{ phase: "ringing" | "connected"; startedAt: number } | null>(
-    null,
-  );
-  const [callSeconds, setCallSeconds] = useState(0);
+  const [call, setCall] = useState<CallMode | null>(null);
   const [queue, setQueue] = useState<PendingMessage[]>([]);
   const [triage, setTriage] = useState<TriageResult | null>(null);
   const [routingNote, setRoutingNote] = useState<string[] | null>(null);
@@ -184,22 +173,6 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
     setSelectedId(threads[0]!.patient.id);
   }, [embedded, isPatient, threads, selectedId]);
 
-  useEffect(() => {
-    if (!call) return;
-    if (call.phase === "ringing") {
-      const t = window.setTimeout(
-        () => setCall({ phase: "connected", startedAt: Date.now() }),
-        2200,
-      );
-      return () => window.clearTimeout(t);
-    }
-    const t = window.setInterval(
-      () => setCallSeconds(Math.floor((Date.now() - call.startedAt) / 1000)),
-      1000,
-    );
-    return () => window.clearInterval(t);
-  }, [call]);
-
   const endCall = useMutation({
     mutationFn: async (seconds: number) => {
       const { error } = await supabase.from("messages").insert({
@@ -217,10 +190,8 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const hangUp = () => {
-    const seconds = call?.phase === "connected" ? callSeconds : 0;
+  const hangUp = (seconds: number) => {
     setCall(null);
-    setCallSeconds(0);
     endCall.mutate(seconds);
   };
 
@@ -519,50 +490,11 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
 
       <Panel className="relative flex h-[720px] flex-col overflow-hidden">
         {call ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-between bg-foreground/95 px-6 py-10 text-background">
-            <div className="flex flex-col items-center gap-3 pt-10">
-              <span className="grid h-20 w-20 place-items-center rounded-full bg-background/10 text-background">
-                <Phone className="h-8 w-8" />
-              </span>
-              <p className="font-display text-[20px] font-semibold">
-                {isPatient ? "CariCare Grid care line" : (b?.patient.full_name ?? "Patient")}
-              </p>
-              <p className="text-[13px] text-background/70">
-                {call.phase === "ringing" ? "Ringing…" : formatCallTime(callSeconds)}
-              </p>
-              {call.phase === "connected" ? (
-                <p className="max-w-xs text-center text-[12px] leading-relaxed text-background/60">
-                  Voice call over WhatsApp — no data plan needed, and it is logged to the record
-                  like any other contact.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                aria-label="Mute"
-                className="grid h-12 w-12 place-items-center rounded-full bg-background/10 text-background transition-colors hover:bg-background/20"
-              >
-                <MicOff className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={hangUp}
-                aria-label="End call"
-                className="grid h-14 w-14 place-items-center rounded-full bg-critical text-white transition-transform hover:scale-105"
-              >
-                <PhoneOff className="h-6 w-6" />
-              </button>
-              <button
-                type="button"
-                aria-label="Speaker"
-                className="grid h-12 w-12 place-items-center rounded-full bg-background/10 text-background transition-colors hover:bg-background/20"
-              >
-                <Volume2 className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+          <CallOverlay
+            mode={call}
+            title={isPatient ? "CariCare Grid care line" : (b?.patient.full_name ?? "Patient")}
+            onEnd={hangUp}
+          />
         ) : null}
         {!b ? (
           <Loading />
@@ -663,8 +595,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
                               type="button"
                               onClick={() => {
                                 if (a.action === "call") {
-                                  setCallSeconds(0);
-                                  setCall({ phase: "ringing", startedAt: Date.now() });
+                                  setCall("voice");
                                 } else {
                                   void send.mutate(a.label);
                                 }
