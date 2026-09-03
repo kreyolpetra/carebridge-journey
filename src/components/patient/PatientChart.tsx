@@ -28,7 +28,6 @@ import type { AccessDecision } from "@/lib/access-basis";
 import { CareTimeline } from "@/components/patient/CareTimeline";
 import { BookAppointment } from "@/components/patient/BookAppointment";
 import { AddPaperRecord } from "@/components/patient/AddPaperRecord";
-import { PaperRecords } from "@/components/patient/PaperRecords";
 import { PatientLine as CareLine } from "@/routes/_authenticated/patient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
@@ -338,10 +337,6 @@ export function PatientChart({
             grantedCategories={grantedCategories}
             bundle={b}
           />
-          {/* History is the longitudinal record, and the paper era is part of
-              it — so what came off a clinic card belongs here rather than in a
-              tab of its own that would usually hold nothing. */}
-          <PaperRecords patientId={b.patient.id} />
         </TabsContent>
 
         <TabsContent value="referrals" className="mt-4">
