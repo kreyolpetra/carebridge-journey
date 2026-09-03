@@ -88,7 +88,12 @@ function PatientProfile() {
               </div>
             </Panel>
           ) : null}
-          <NoBasisPanel patientId={patientId} decision={decision} />
+          <NoBasisPanel
+            patientId={patientId}
+            patientName={patient?.full_name}
+            patientMrn={patient?.mrn}
+            decision={decision}
+          />
         </div>
       ) : !b ? (
         <Panel>

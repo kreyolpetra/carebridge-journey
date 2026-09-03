@@ -25,9 +25,14 @@ import { Panel } from "@/components/grid";
 
 export function NoBasisPanel({
   patientId,
+  patientName,
+  patientMrn,
   decision,
 }: {
   patientId: string;
+  /** Known where identity is shown alongside the refusal; absent otherwise. */
+  patientName?: string | undefined;
+  patientMrn?: string | undefined;
   decision: AccessDecision;
 }) {
   const { profile } = useAuth();
@@ -101,6 +106,21 @@ export function NoBasisPanel({
           <h3 className="font-display text-[17px] font-semibold tracking-tight">
             No lawful basis for this record
           </h3>
+          {/* Where the surface already shows the directory entry, withholding
+              the name here buys no privacy and costs safety: the two actions
+              below — asking this patient for consent, breaking glass on this
+              patient — are consequential, and the reader has to know who they
+              are about to take them against. */}
+          {patientName ? (
+            <p className="mt-1 text-[13.5px] font-semibold text-foreground">
+              {patientName}
+              {patientMrn ? (
+                <span className="ml-2 font-mono text-[12px] font-medium text-muted-foreground">
+                  {patientMrn}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           <p className="mt-1.5 max-w-xl text-[13.5px] leading-relaxed text-muted-foreground">
             {decision.detail}
           </p>
@@ -135,7 +155,7 @@ export function NoBasisPanel({
             >
               Request the patient's consent
             </button>
-            <BreakGlassButton patientId={patientId} />
+            <BreakGlassButton patientId={patientId} patientName={patientName} />
           </div>
         )}
       </div>

@@ -11,7 +11,13 @@ import { STAFF_ROLE_TIER } from "@/lib/access";
  * lasts 24 hours, the patient is notified immediately, and the event is
  * flagged in the ledger for mandatory governance review.
  */
-export function BreakGlassButton({ patientId }: { patientId: string }) {
+export function BreakGlassButton({
+  patientId,
+  patientName,
+}: {
+  patientId: string;
+  patientName?: string | undefined;
+}) {
   const { role, profile } = useAuth();
   const qc = useQueryClient();
   // Spec §5: licensed clinical staff only. Front desk and facility admins can
@@ -25,8 +31,10 @@ export function BreakGlassButton({ patientId }: { patientId: string }) {
 
   const trigger = useMutation({
     mutationFn: async () => {
+      // Name the patient in the prompt. An override typed against the wrong
+      // chart is the failure this control is most likely to produce.
       const reason = window.prompt(
-        "Break-glass access is logged and reviewed. State the clinical emergency:",
+        `Break-glass access to ${patientName ?? "this patient"}'s record is logged, the patient is notified, and a governance panel reviews it.\n\nState the clinical emergency:`,
         "Patient unresponsive; immediate medication and allergy history required.",
       );
       if (!reason) return null;

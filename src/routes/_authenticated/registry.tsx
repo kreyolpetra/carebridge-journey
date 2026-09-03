@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, Upload, Download, FileSpreadsheet, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  UserPlus,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { islandsQuery, patientsQuery } from "@/lib/api";
@@ -43,7 +50,9 @@ export function RegistryPage() {
   const staffFileRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<"patients" | "staff">("patients");
-  const [results, setResults] = useState<{ kind: string; ok: number; failed: RowResult[] } | null>(null);
+  const [results, setResults] = useState<{ kind: string; ok: number; failed: RowResult[] } | null>(
+    null,
+  );
   const [csvPreview, setCsvPreview] = useState<{ title: string; text: string } | null>(null);
 
   // Manual patient form
@@ -67,7 +76,8 @@ export function RegistryPage() {
 
   const byIsland = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const p of patients.data ?? []) counts.set(p.island_code, (counts.get(p.island_code) ?? 0) + 1);
+    for (const p of patients.data ?? [])
+      counts.set(p.island_code, (counts.get(p.island_code) ?? 0) + 1);
     return (islands.data ?? [])
       .map((i) => ({ code: i.code, name: i.name, tier: i.tier, count: counts.get(i.code) ?? 0 }))
       .sort((a, b) => b.count - a.count);
@@ -112,19 +122,31 @@ export function RegistryPage() {
       const existing = (patients.data ?? []).find((p) => (p as { mrn?: string }).mrn === mrn);
       if (existing) throw new Error(`MRN ${mrn} already exists on the Grid`);
 
-      const { conditions, ...patientFields } = row.value as Record<string, unknown> & { conditions: string[] };
-      const { data: created, error } = await supabase.from("patients").insert(patientFields).select().single();
+      const { conditions, ...patientFields } = row.value as Record<string, unknown> & {
+        conditions: string[];
+      };
+      const { data: created, error } = await supabase
+        .from("patients")
+        .insert(patientFields as never)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
 
       for (const name of conditions) {
-        await supabase.from("conditions").insert({ patient_id: created.id, name, diagnosed_on: null, sensitivity: "standard" });
+        await supabase
+          .from("conditions")
+          .insert({ patient_id: created.id, name, diagnosed_on: null, sensitivity: "standard" });
       }
       await audit("patient.create", true, `Created ${patientFields.full_name} (${mrn})`);
       return created;
     },
     onSuccess: (created) => {
       toast.success(`${created.full_name} added to the registry`);
-      setMrn(""); setFirstName(""); setLastName(""); setDob(""); setParish("");
+      setMrn("");
+      setFirstName("");
+      setLastName("");
+      setDob("");
+      setParish("");
       void qc.invalidateQueries();
     },
     onError: async (e: Error) => {
@@ -144,13 +166,16 @@ export function RegistryPage() {
       // Staff added through the registry by their own facility are verified by
       // that act — a named admin vouched for them — so they skip the pending
       // queue that self-signup lands in.
-      const { error } = await supabase.from("profiles").insert({ ...row.value, verification_status: "verified" } as never);
+      const { error } = await supabase
+        .from("profiles")
+        .insert({ ...row.value, verification_status: "verified" } as never);
       if (error) throw new Error(error.message);
       await audit("staff.create", true, `Created ${staffName} (${staffRole})`);
     },
     onSuccess: () => {
       toast.success(`${staffName} added`);
-      setStaffName(""); setStaffEmail("");
+      setStaffName("");
+      setStaffEmail("");
       void qc.invalidateQueries();
     },
     onError: async (e: Error) => {
@@ -187,23 +212,46 @@ export function RegistryPage() {
     for (const r of good) {
       try {
         if (kind === "patients") {
-          const { conditions, ...fields } = r.value as Record<string, unknown> & { conditions: string[] };
-          const { data: created, error } = await supabase.from("patients").insert(fields).select().single();
+          const { conditions, ...fields } = r.value as Record<string, unknown> & {
+            conditions: string[];
+          };
+          const { data: created, error } = await supabase
+            .from("patients")
+            .insert(fields as never)
+            .select()
+            .single();
           if (error) throw new Error(error.message);
           for (const name of conditions ?? []) {
-            await supabase.from("conditions").insert({ patient_id: created.id, name, diagnosed_on: null, sensitivity: "standard" });
+            await supabase
+              .from("conditions")
+              .insert({
+                patient_id: created.id,
+                name,
+                diagnosed_on: null,
+                sensitivity: "standard",
+              });
           }
         } else {
-          const { error } = await supabase.from("profiles").insert({ ...r.value, verification_status: "verified" } as never);
+          const { error } = await supabase
+            .from("profiles")
+            .insert({ ...r.value, verification_status: "verified" } as never);
           if (error) throw new Error(error.message);
         }
         written++;
       } catch (e) {
-        failed.push({ line: r.line, ok: false, error: e instanceof Error ? e.message : "write failed" });
+        failed.push({
+          line: r.line,
+          ok: false,
+          error: e instanceof Error ? e.message : "write failed",
+        });
       }
     }
 
-    await audit(`${kind}.import`, failed.length === 0, `${written} imported, ${failed.length} rejected`);
+    await audit(
+      `${kind}.import`,
+      failed.length === 0,
+      `${written} imported, ${failed.length} rejected`,
+    );
     setResults({ kind, ok: written, failed });
     void qc.invalidateQueries();
     toast[failed.length ? "warning" : "success"](
@@ -218,8 +266,29 @@ export function RegistryPage() {
     const headers = kind === "patients" ? PATIENT_TEMPLATE_HEADERS : STAFF_TEMPLATE_HEADERS;
     const example =
       kind === "patients"
-        ? [{ mrn: "HT-2026-0001", first_name: "Mirlande", last_name: "Pierre", date_of_birth: "1972-04-18", sex: "F", phone: "+50937000000", island_code: "HT", parish: "Ouest", language: "ht", conditions: "Hypertension;Type 2 Diabetes" }]
-        : [{ name: "Dr. Jean Baptiste", email: "jbaptiste@example.ht", role: "clinician", island_code: "HT", facility: "Hôpital Universitaire" }];
+        ? [
+            {
+              mrn: "HT-2026-0001",
+              first_name: "Mirlande",
+              last_name: "Pierre",
+              date_of_birth: "1972-04-18",
+              sex: "F",
+              phone: "+50937000000",
+              island_code: "HT",
+              parish: "Ouest",
+              language: "ht",
+              conditions: "Hypertension;Type 2 Diabetes",
+            },
+          ]
+        : [
+            {
+              name: "Dr. Jean Baptiste",
+              email: "jbaptiste@example.ht",
+              role: "clinician",
+              island_code: "HT",
+              facility: "Hôpital Universitaire",
+            },
+          ];
     const csv = toCsv(headers, example);
     downloadCsv(`caricare-${kind}-template.csv`, csv);
     setCsvPreview({ title: `${kind} template`, text: csv });
@@ -238,17 +307,29 @@ export function RegistryPage() {
     <div className="page">
       <header className="mb-5">
         <p className="eyebrow">Registry &amp; onboarding</p>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Get a clinic onto the Grid</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">
+          Get a clinic onto the Grid
+        </h1>
         <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-muted-foreground">
-          Most clinics in this region keep records on paper or in a spreadsheet, not in a system with an API.
-          Bulk CSV import is the realistic first step — and the only one that works where an integration
-          engine never will. Rows are validated individually, so a bad line rejects itself instead of the file.
+          Most clinics in this region keep records on paper or in a spreadsheet, not in a system
+          with an API. Bulk CSV import is the realistic first step — and the only one that works
+          where an integration engine never will. Rows are validated individually, so a bad line
+          rejects itself instead of the file.
         </p>
       </header>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Patients on the Grid" value={(patients.data?.length ?? 0).toLocaleString()} hint="Across all countries" />
-        <Stat label="Countries" value={islands.data?.length ?? 0} hint="Connected health systems" tone="signal" />
+        <Stat
+          label="Patients on the Grid"
+          value={(patients.data?.length ?? 0).toLocaleString()}
+          hint="Across all countries"
+        />
+        <Stat
+          label="Countries"
+          value={islands.data?.length ?? 0}
+          hint="Connected health systems"
+          tone="signal"
+        />
         <Stat label="Rows per import" value={MAX_ROWS} hint="Validated line by line" />
         <Stat
           label="Largest cohort"
@@ -282,9 +363,24 @@ export function RegistryPage() {
               <PanelHeader title="Add a patient" subtitle="One record, entered by hand" />
               <div className="grid gap-3 p-5 sm:grid-cols-2">
                 <Field label="MRN" value={mrn} onChange={setMrn} placeholder="HT-2026-0001" />
-                <Field label="Date of birth" value={dob} onChange={setDob} placeholder="1972-04-18" />
-                <Field label="First name" value={firstName} onChange={setFirstName} placeholder="Mirlande" />
-                <Field label="Last name" value={lastName} onChange={setLastName} placeholder="Pierre" />
+                <Field
+                  label="Date of birth"
+                  value={dob}
+                  onChange={setDob}
+                  placeholder="1972-04-18"
+                />
+                <Field
+                  label="First name"
+                  value={firstName}
+                  onChange={setFirstName}
+                  placeholder="Mirlande"
+                />
+                <Field
+                  label="Last name"
+                  value={lastName}
+                  onChange={setLastName}
+                  placeholder="Pierre"
+                />
                 <label className="grid gap-1.5">
                   <span className="text-[12px] font-medium text-muted-foreground">Country</span>
                   <select
@@ -299,7 +395,12 @@ export function RegistryPage() {
                     ))}
                   </select>
                 </label>
-                <Field label="Parish / department" value={parish} onChange={setParish} placeholder="Ouest" />
+                <Field
+                  label="Parish / department"
+                  value={parish}
+                  onChange={setParish}
+                  placeholder="Ouest"
+                />
                 <label className="grid gap-1.5">
                   <span className="text-[12px] font-medium text-muted-foreground">Language</span>
                   <select
@@ -329,10 +430,23 @@ export function RegistryPage() {
             </Panel>
           ) : (
             <Panel>
-              <PanelHeader title="Add a staff member" subtitle="Directory entry and workspace role" />
+              <PanelHeader
+                title="Add a staff member"
+                subtitle="Directory entry and workspace role"
+              />
               <div className="grid gap-3 p-5 sm:grid-cols-2">
-                <Field label="Full name" value={staffName} onChange={setStaffName} placeholder="Dr. Jean Baptiste" />
-                <Field label="Email" value={staffEmail} onChange={setStaffEmail} placeholder="jbaptiste@example.ht" />
+                <Field
+                  label="Full name"
+                  value={staffName}
+                  onChange={setStaffName}
+                  placeholder="Dr. Jean Baptiste"
+                />
+                <Field
+                  label="Email"
+                  value={staffEmail}
+                  onChange={setStaffEmail}
+                  placeholder="jbaptiste@example.ht"
+                />
                 <label className="grid gap-1.5">
                   <span className="text-[12px] font-medium text-muted-foreground">Role</span>
                   <select
@@ -368,7 +482,9 @@ export function RegistryPage() {
             <div className="p-5">
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => (tab === "patients" ? patientFileRef : staffFileRef).current?.click()}
+                  onClick={() =>
+                    (tab === "patients" ? patientFileRef : staffFileRef).current?.click()
+                  }
                   className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-[13.5px] font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   <Upload className="h-4 w-4" /> Choose CSV
@@ -415,12 +531,15 @@ export function RegistryPage() {
               <div className="mt-4 rounded-lg border border-border bg-surface p-3">
                 <p className="text-[12px] font-medium text-muted-foreground">Required columns</p>
                 <code className="mt-1 block break-all font-mono text-[12px] text-foreground">
-                  {(tab === "patients" ? PATIENT_TEMPLATE_HEADERS : STAFF_TEMPLATE_HEADERS).join(", ")}
+                  {(tab === "patients" ? PATIENT_TEMPLATE_HEADERS : STAFF_TEMPLATE_HEADERS).join(
+                    ", ",
+                  )}
                 </code>
                 {tab === "patients" && (
                   <p className="mt-2 text-[12px] text-muted-foreground">
-                    <code className="font-mono">date_of_birth</code> must be <code className="font-mono">YYYY-MM-DD</code>.
-                    Multiple conditions are separated by <code className="font-mono">;</code>.
+                    <code className="font-mono">date_of_birth</code> must be{" "}
+                    <code className="font-mono">YYYY-MM-DD</code>. Multiple conditions are separated
+                    by <code className="font-mono">;</code>.
                   </p>
                 )}
               </div>
@@ -497,7 +616,9 @@ export function RegistryPage() {
                     <span className="font-mono text-[12px] text-muted-foreground">{row.code}</span>
                     <span className="truncate text-[13px]">{row.name}</span>
                     {row.tier === "under_resourced" && (
-                      <Pill className="bg-critical/15 text-critical border-critical/40">low capacity</Pill>
+                      <Pill className="bg-critical/15 text-critical border-critical/40">
+                        low capacity
+                      </Pill>
                     )}
                   </div>
                   <span className="mono-num text-[13px] tabular-nums">{row.count}</span>
@@ -505,9 +626,9 @@ export function RegistryPage() {
               ))}
             </div>
             <p className="mt-4 text-[12px] leading-relaxed text-muted-foreground">
-              Every create and every import writes an audit row — including rejected ones — visible under{" "}
-              <strong className="text-foreground">Access log</strong>. Administrative actions are evidence too,
-              not just clinical reads.
+              Every create and every import writes an audit row — including rejected ones — visible
+              under <strong className="text-foreground">Access log</strong>. Administrative actions
+              are evidence too, not just clinical reads.
             </p>
           </div>
         </Panel>

@@ -1095,8 +1095,10 @@ export type Database = {
         Row: {
           age: number
           created_at: string
+          date_of_birth: string | null
           full_name: string
           id: string
+          mrn: string | null
           insurer: string | null
           island_code: string
           km_to_facility: number
@@ -1109,8 +1111,10 @@ export type Database = {
         Insert: {
           age: number
           created_at?: string
+          date_of_birth?: string | null
           full_name: string
           id?: string
+          mrn?: string | null
           insurer?: string | null
           island_code: string
           km_to_facility?: number
@@ -1123,8 +1127,10 @@ export type Database = {
         Update: {
           age?: number
           created_at?: string
+          date_of_birth?: string | null
           full_name?: string
           id?: string
+          mrn?: string | null
           insurer?: string | null
           island_code?: string
           km_to_facility?: number

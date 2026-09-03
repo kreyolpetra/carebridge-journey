@@ -51,6 +51,22 @@ export function BasisStrip({ decision }: { decision: AccessDecision }) {
   );
 }
 
+/**
+ * A date-only value is a calendar date, not an instant. `new Date("1968-03-14")`
+ * parses as UTC midnight and then renders in local time, which west of Greenwich
+ * shows the 13th — a birth date that disagrees with the record by a day is worse
+ * than none, because it is the thing a clinician reads back to the patient.
+ */
+function longDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function PatientChart({
   bundle: b,
   decision,
@@ -101,12 +117,28 @@ export function PatientChart({
 
   return (
     <>
-      <Panel>
-        <PanelHeader
-          title={`${b.patient.full_name} · ${b.patient.age}${b.patient.sex}`}
-          subtitle={`${b.patient.parish}, ${b.patient.island_code} · ${b.patient.km_to_facility} km from care · ${b.patient.insurer ?? "Uninsured"}`}
-          right={
-            <div className="flex items-center gap-2">
+      {/* Whose record this is, pinned.
+          The identity used to scroll away with the rest of the header, so a
+          clinician typing into the care line or reading a note had nothing on
+          screen telling them whose chart they were in — the classic setup for a
+          wrong-patient action. It also carries two identifiers now, because a
+          name is not one: 82 names in this dataset belong to more than one
+          person, four of them to a "Paulette Cumberbatch". */}
+      <div className="sticky top-16 z-20 -mx-1 px-1 pb-1 pt-1">
+        <Panel className="border-primary/25 shadow-panel">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+            <div className="min-w-0">
+              <p className="truncate font-display text-[16px] font-bold tracking-tight">
+                {b.patient.full_name}
+              </p>
+              <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                <span className="font-medium text-foreground">{b.patient.mrn}</span>
+                {" · born "}
+                {longDate(b.patient.date_of_birth)}
+                {` · ${b.patient.age}${b.patient.sex}`}
+              </p>
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
               {decision ? (
                 <Pill className={BASIS_TONE[decision.basis]}>{BASIS_LABEL[decision.basis]}</Pill>
               ) : null}
@@ -116,7 +148,14 @@ export function PatientChart({
               <BookAppointment patient={b.patient} />
               {headerActions}
             </div>
-          }
+          </div>
+        </Panel>
+      </div>
+
+      <Panel>
+        <PanelHeader
+          title="Summary"
+          subtitle={`${b.patient.parish}, ${b.patient.island_code} · ${b.patient.km_to_facility} km from care · ${b.patient.insurer ?? "Uninsured"}`}
         />
         {decision ? <BasisStrip decision={decision} /> : null}
         <div className="grid gap-4 p-5 md:grid-cols-3">

@@ -129,6 +129,11 @@ function Patients() {
     () => (accessReady && selected ? access.decide(selected) : null),
     [access, accessReady, selected],
   );
+  // Identity is directory-level, so it resolves even when the record does not.
+  const selectedPatient = useMemo(
+    () => (selected ? ((patients.data ?? []).find((p) => p.id === selected) ?? null) : null),
+    [patients.data, selected],
+  );
 
   // The chart is not fetched at all without a basis. Refusing to render a
   // record we already pulled into the browser would be theatre, not access
@@ -458,8 +463,10 @@ function Patients() {
                       (wide
                         ? "mb-0.5 flex items-center gap-3 rounded-lg pr-3 "
                         : "mb-1 rounded-lg ") +
-                      "transition-colors " +
-                      (patient.id === selected ? "bg-primary/12" : "hover:bg-surface")
+                      "border-l-[3px] transition-colors " +
+                      (patient.id === selected
+                        ? "border-primary bg-primary/12 ring-1 ring-inset ring-primary/25"
+                        : "border-transparent hover:bg-surface")
                     }
                   >
                     <button
@@ -482,6 +489,7 @@ function Patients() {
                         </span>
                       </div>
                       <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+                        <span className="font-medium text-foreground/70">{patient.mrn}</span> ·{" "}
                         {patient.age}
                         {patient.sex} · {patient.parish}, {patient.island_code} · {risk.trend}
                       </p>
@@ -547,15 +555,17 @@ function Patients() {
                     key={p.id}
                     onClick={() => setSelected(p.id)}
                     className={
-                      "mb-1 w-full rounded-lg px-3 py-2.5 text-left transition-colors " +
-                      (p.id === selected ? "bg-primary/12" : "hover:bg-surface")
+                      "mb-1 w-full rounded-lg border-l-[3px] px-3 py-2.5 text-left transition-colors " +
+                      (p.id === selected
+                        ? "border-primary bg-primary/12 ring-1 ring-inset ring-primary/25"
+                        : "border-transparent hover:bg-surface")
                     }
                   >
                     <span className="block truncate text-[13.5px] font-semibold">
                       {p.full_name}
                     </span>
                     <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
-                      {p.age}
+                      <span className="font-medium text-foreground/70">{p.mrn}</span> · {p.age}
                       {p.sex} · {p.parish}, {p.island_code} · speaks {p.language}
                     </span>
                     {d?.allowed ? (
@@ -639,7 +649,12 @@ function Patients() {
         {wide ? null : (
           <div className="space-y-4">
             {decision && !decision.allowed ? (
-              <NoBasisPanel patientId={selected!} decision={decision} />
+              <NoBasisPanel
+                patientId={selected!}
+                patientName={selectedPatient?.full_name}
+                patientMrn={selectedPatient?.mrn}
+                decision={decision}
+              />
             ) : !b ? (
               <Panel>
                 <Loading label="Assembling the longitudinal record…" />

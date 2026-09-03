@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 6;
+export const SEED_VERSION = 7;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -41,6 +41,19 @@ const daysAgo = (d: number) => new Date(nowMs() - d * 86400000).toISOString();
 const daysAhead = (d: number) => new Date(nowMs() + d * 86400000).toISOString();
 const dateDaysAgo = (d: number) => new Date(nowMs() - d * 86400000).toISOString().slice(0, 10);
 const dateDaysAhead = (d: number) => new Date(nowMs() + d * 86400000).toISOString().slice(0, 10);
+
+/**
+ * A record number scoped to the country that issued it, and a birth date
+ * consistent with the age already on the record. Two identifiers a clinician
+ * can read back to a patient — a name on its own is not one.
+ */
+function identifiersFor(rng: Rng, islandCode: string, age: number) {
+  const born = new Date(nowMs() - age * 365.25 * 86400000 - int(rng, 0, 364) * 86400000);
+  return {
+    mrn: `${islandCode}-${String(int(rng, 100000, 999999))}`,
+    date_of_birth: born.toISOString().slice(0, 10),
+  };
+}
 
 export type Row = Record<string, unknown>;
 export type Tables = Record<string, Row[]>;
@@ -877,11 +890,13 @@ export function buildSeed(): Tables {
                   ? "es"
                   : "en";
       const sex = chance(rng, 0.56) ? "F" : "M";
+      const age = int(rng, 34, 79);
       t.patients.push({
         id: uuid(rng),
+        ...identifiersFor(rng, code, age),
         full_name: nameFor(rng, code, sex),
         phone: `+1${int(rng, 200, 899)}${int(rng, 1000000, 9999999)}`,
-        age: int(rng, 34, 79),
+        age,
         sex,
         island_code: code,
         parish,
@@ -896,6 +911,8 @@ export function buildSeed(): Tables {
   // Hero patient — Marlene Campbell, referenced directly by id throughout the app.
   t.patients.push({
     id: HERO_PATIENT_ID,
+    mrn: "JM-284016",
+    date_of_birth: "1968-03-14",
     full_name: "Marlene Campbell",
     phone: "+18765550142",
     age: 58,

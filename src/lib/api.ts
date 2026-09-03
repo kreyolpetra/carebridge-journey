@@ -49,6 +49,16 @@ export type Slot = {
 };
 export type Patient = {
   id: string;
+  /**
+   * Medical record number and date of birth — the second and third identifiers.
+   *
+   * A name is not an identifier: 82 names in this dataset are shared by more
+   * than one patient. Safe practice is to confirm two, which is why these are
+   * on the record rather than only in the CSV importer that always asked for
+   * them.
+   */
+  mrn: string;
+  date_of_birth: string;
   full_name: string;
   phone: string;
   age: number;
