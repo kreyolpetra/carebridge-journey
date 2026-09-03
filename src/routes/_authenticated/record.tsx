@@ -20,12 +20,15 @@ import {
   CalendarDays,
   ChevronRight,
   Lock,
+  ScanLine,
+  Keyboard,
 } from "lucide-react";
 import { HERO_PATIENT_ID, patientBundleQuery, providersQuery, type Consultation } from "@/lib/api";
 import { VisitDialog, resultsForVisit } from "@/components/VisitDialog";
 import { CareNetwork } from "@/components/CareNetwork";
 import { CooperativeCard } from "@/components/patient/CooperativeCard";
-import { PaperRecords } from "@/components/patient/PaperRecords";
+import { DocumentDetailDialog } from "@/components/patient/DocumentDetailDialog";
+import { documentsQuery, type ClinicalDocument } from "@/lib/prevention";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import {
@@ -73,7 +76,32 @@ function MyRecord() {
   useLogRecordAccess(isPatient ? null : id, "Full clinical record (record view)", accessDecision);
   const providers = useQuery(providersQuery);
   const [openVisit, setOpenVisit] = useState<Consultation | null>(null);
+  const [openDoc, setOpenDoc] = useState<ClinicalDocument | null>(null);
+  const documents = useQuery(documentsQuery);
+
+  /**
+   * Appointments and paper records in one list, newest first — the same shape
+   * the clinician's chart uses, so a patient asking "what do you have about
+   * me" and a clinician asking the same question are reading the same record
+   * rather than two differently-organised ones.
+   */
+  type MyRow =
+    | { kind: "visit"; at: string; c: Consultation }
+    | { kind: "document"; at: string; d: ClinicalDocument };
+
   const b = bundle.data;
+  const myRows: MyRow[] = useMemo(() => {
+    const docs = (documents.data ?? []).filter((d) => d.patient_id === id);
+    const merged: MyRow[] = [
+      ...(b?.consultations ?? []).map((c) => ({
+        kind: "visit" as const,
+        at: c.scheduled_at,
+        c,
+      })),
+      ...docs.map((d) => ({ kind: "document" as const, at: d.created_at, d })),
+    ];
+    return merged.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
+  }, [b?.consultations, documents.data, id]);
 
   const chartData = useMemo(
     () =>
@@ -270,15 +298,58 @@ function MyRecord() {
 
       <Panel>
         <PanelHeader
-          title="My visits"
-          subtitle="Every appointment, when it happened and what your clinician wrote"
-          right={<Pill className={bandClasses("low")}>{b.consultations.length} on file</Pill>}
+          title="My visits and records"
+          subtitle="Every appointment and every paper record held about you, newest first"
+          right={<Pill className={bandClasses("low")}>{myRows.length} on file</Pill>}
         />
         <div className="divide-y divide-border">
-          {b.consultations.length === 0 ? (
+          {myRows.length === 0 ? (
             <p className="px-5 py-6 text-[13px] text-muted-foreground">No visits booked yet.</p>
           ) : (
-            b.consultations.map((c) => {
+            myRows.map((row) => {
+              if (row.kind === "document") {
+                const d = row.d;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => setOpenDoc(d)}
+                    className="block w-full cursor-pointer px-5 py-4 text-left transition-colors hover:bg-surface focus:bg-surface focus:outline-none"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-[13.5px] font-semibold">
+                        {d.source === "paper_scan" ? (
+                          <ScanLine className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Keyboard className="h-4 w-4 text-primary" />
+                        )}
+                        {d.title}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Pill className="border-border bg-surface text-muted-foreground">
+                          paper record
+                        </Pill>
+                        <span className="text-[11.5px] text-muted-foreground">
+                          captured {shortDate(d.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-1.5 text-[12.5px] text-muted-foreground">
+                      {d.source === "paper_scan" ? "Photographed" : "Typed"} by {d.uploaded_by}
+                    </div>
+                    {d.original_text ? (
+                      <p className="mt-2 line-clamp-2 rounded-lg bg-surface px-3 py-2 font-mono text-[12px] leading-relaxed">
+                        {d.original_text}
+                      </p>
+                    ) : null}
+                    <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
+                      Open the record
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </div>
+                  </button>
+                );
+              }
+              const c = row.c;
               const when = new Date(c.scheduled_at);
               const upcoming = when.getTime() > Date.now();
               const resultCount = resultsForVisit(c.scheduled_at, b.vitals).length;
@@ -447,11 +518,15 @@ function MyRecord() {
         </div>
       </Panel>
 
-      {/* A patient can see what was captured about them off paper, on the same
-          record where they control everything else. */}
-      <PaperRecords patientId={id} />
-
       <CooperativeCard patientId={id} />
+
+      {openDoc ? (
+        <DocumentDetailDialog
+          doc={openDoc}
+          canRead
+          onOpenChange={(open) => !open && setOpenDoc(null)}
+        />
+      ) : null}
 
       <VisitDialog
         visit={openVisit}
