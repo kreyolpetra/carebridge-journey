@@ -10,12 +10,13 @@
  * because the brief's whole premise is that the patient's interface is WhatsApp
  * and nothing else.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarPlus, Video, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { slotsQuery, type Patient } from "@/lib/api";
+import { slotsQuery, patientsQuery, type Patient } from "@/lib/api";
+import { useAccessIndex } from "@/lib/access-basis";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
@@ -60,12 +61,44 @@ const CONFIRM_COPY: Record<
   },
 };
 
-export function BookAppointment({ patient }: { patient: Patient }) {
+export function BookAppointment({
+  patient,
+  trigger = "inline",
+}: {
+  /** Known when booking from a chart; chosen in the dialog when booking from the diary. */
+  patient?: Patient;
+  trigger?: "inline" | "primary";
+}) {
   const { profile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<Patient | null>(null);
+  const [patientQuery, setPatientQuery] = useState("");
   const [kind, setKind] = useState<"teleconsult" | "in_person">("teleconsult");
   const slots = useQuery(slotsQuery);
+  const patients = useQuery(patientsQuery);
+  const { index: access, ready: accessReady } = useAccessIndex();
   const qc = useQueryClient();
+
+  const subject = patient ?? picked;
+
+  /**
+   * You can only book for someone you already hold a lawful basis for. Booking
+   * is a clinical act on a named person, so it is not a route around the access
+   * model — find them in the directory and establish a basis first.
+   */
+  const bookable = useMemo(() => {
+    if (patient || !accessReady) return [];
+    const needle = patientQuery.trim().toLowerCase();
+    return (patients.data ?? [])
+      .filter((p) => access.decide(p.id).allowed)
+      .filter(
+        (p) =>
+          !needle ||
+          p.full_name.toLowerCase().includes(needle) ||
+          p.parish.toLowerCase().includes(needle),
+      )
+      .slice(0, 40);
+  }, [patients.data, patient, patientQuery, access, accessReady]);
 
   const mySlots = (slots.data ?? [])
     .filter((s) => s.status === "open" && s.provider_id === profile?.provider_id)
@@ -76,11 +109,12 @@ export function BookAppointment({ patient }: { patient: Patient }) {
     mutationFn: async (slotId: string) => {
       const slot = mySlots.find((s) => s.id === slotId);
       if (!slot) throw new Error("That slot has just been taken");
+      if (!subject) throw new Error("Choose a patient first");
 
       await supabase.from("availability_slots").update({ status: "booked" }).eq("id", slot.id);
       await supabase.from("consultations").insert({
         referral_id: null,
-        patient_id: patient.id,
+        patient_id: subject.id,
         provider_id: profile?.provider_id ?? null,
         facility_id: profile?.facility_id ?? null,
         scheduled_at: slot.starts_at,
@@ -94,14 +128,14 @@ export function BookAppointment({ patient }: { patient: Patient }) {
       });
 
       // The patient hears about it on the only channel they use.
-      const copy = CONFIRM_COPY[patient.language] ?? CONFIRM_COPY["en"]!;
+      const copy = CONFIRM_COPY[subject.language] ?? CONFIRM_COPY["en"]!;
       const when = `${shortDate(slot.starts_at)}, ${clockTime(slot.starts_at)}`;
       await supabase.from("messages").insert({
-        patient_id: patient.id,
+        patient_id: subject.id,
         direction: "out",
         body: copy.body(when, kind === "teleconsult"),
         kind: "text",
-        language: patient.language,
+        language: subject.language,
         channel: "whatsapp",
         actions: [
           { label: copy.yes, action: "reply" },
@@ -113,6 +147,8 @@ export function BookAppointment({ patient }: { patient: Patient }) {
     onSuccess: () => {
       toast.success("Booked — confirmation sent to the patient's care line");
       setOpen(false);
+      setPicked(null);
+      setPatientQuery("");
       void qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -123,10 +159,14 @@ export function BookAppointment({ patient }: { patient: Patient }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:border-primary/40 hover:text-primary"
+        className={
+          trigger === "primary"
+            ? "inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-primary-foreground"
+            : "inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:border-primary/40 hover:text-primary"
+        }
       >
         <CalendarPlus className="h-3.5 w-3.5" />
-        Book
+        {trigger === "primary" ? "New appointment" : "Book"}
       </button>
 
       {open ? (
@@ -134,67 +174,120 @@ export function BookAppointment({ patient }: { patient: Patient }) {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="font-display text-[18px]">
-                Book an appointment · {patient.full_name}
+                {subject ? `Book an appointment · ${subject.full_name}` : "New appointment"}
               </DialogTitle>
               <DialogDescription className="text-[13px]">
-                Your open slots. The confirmation goes to their care line in{" "}
-                {patient.language === "jam"
-                  ? "Jamaican Patois"
-                  : patient.language === "ht"
-                    ? "Haitian Kreyòl"
-                    : patient.language === "es"
-                      ? "Spanish"
-                      : "English"}
-                .
+                {subject
+                  ? `Your open slots. The confirmation goes to their care line in ${
+                      subject.language === "jam"
+                        ? "Jamaican Patois"
+                        : subject.language === "ht"
+                          ? "Haitian Kreyòl"
+                          : subject.language === "es"
+                            ? "Spanish"
+                            : "English"
+                    }.`
+                  : "Choose a patient from your list, then a slot."}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center gap-1.5">
-              {(
-                [
-                  { k: "teleconsult" as const, label: "Teleconsult", icon: Video },
-                  { k: "in_person" as const, label: "In person", icon: MapPin },
-                ] satisfies { k: "teleconsult" | "in_person"; label: string; icon: typeof Video }[]
-              ).map((o) => (
-                <button
-                  key={o.k}
-                  type="button"
-                  onClick={() => setKind(o.k)}
-                  className={
-                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors " +
-                    (kind === o.k
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:text-foreground")
-                  }
-                >
-                  <o.icon className="h-3.5 w-3.5" />
-                  {o.label}
-                </button>
-              ))}
-            </div>
+            {!subject ? (
+              <>
+                <input
+                  value={patientQuery}
+                  onChange={(e) => setPatientQuery(e.target.value)}
+                  placeholder="Search your patients…"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-primary"
+                />
+                <div className="max-h-[320px] divide-y divide-border overflow-y-auto rounded-lg border border-border">
+                  {bookable.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPicked(p)}
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface"
+                    >
+                      <span className="text-[13px] font-medium">{p.full_name}</span>
+                      <span className="text-[12px] text-muted-foreground">
+                        {p.age}
+                        {p.sex} · {p.parish}, {p.island_code}
+                      </span>
+                    </button>
+                  ))}
+                  {!bookable.length ? (
+                    <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
+                      Nobody on your list matches that. You can only book for a patient you already
+                      hold a lawful basis for — find them under All patients and establish one
+                      first.
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
 
-            <div className="max-h-[320px] divide-y divide-border overflow-y-auto rounded-lg border border-border">
-              {mySlots.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  disabled={book.isPending}
-                  onClick={() => book.mutate(s.id)}
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-surface disabled:opacity-60"
-                >
-                  <span className="font-medium">
-                    {shortDate(s.starts_at)} · {clockTime(s.starts_at)}
-                  </span>
-                  <span className="text-[12px] text-muted-foreground">{s.minutes} min</span>
-                </button>
-              ))}
-              {!mySlots.length ? (
-                <p className="px-3 py-6 text-[13px] text-muted-foreground">
-                  You have no open slots. Slots come from your availability, which the routing
-                  engine also books against.
-                </p>
-              ) : null}
-            </div>
+            {subject ? (
+              <>
+                <div className="flex items-center gap-1.5">
+                  {(
+                    [
+                      { k: "teleconsult" as const, label: "Teleconsult", icon: Video },
+                      { k: "in_person" as const, label: "In person", icon: MapPin },
+                    ] satisfies {
+                      k: "teleconsult" | "in_person";
+                      label: string;
+                      icon: typeof Video;
+                    }[]
+                  ).map((o) => (
+                    <button
+                      key={o.k}
+                      type="button"
+                      onClick={() => setKind(o.k)}
+                      className={
+                        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition-colors " +
+                        (kind === o.k
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:text-foreground")
+                      }
+                    >
+                      <o.icon className="h-3.5 w-3.5" />
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="max-h-[320px] divide-y divide-border overflow-y-auto rounded-lg border border-border">
+                  {mySlots.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={book.isPending}
+                      onClick={() => book.mutate(s.id)}
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-surface disabled:opacity-60"
+                    >
+                      <span className="font-medium">
+                        {shortDate(s.starts_at)} · {clockTime(s.starts_at)}
+                      </span>
+                      <span className="text-[12px] text-muted-foreground">{s.minutes} min</span>
+                    </button>
+                  ))}
+                  {!mySlots.length ? (
+                    <p className="px-3 py-6 text-[13px] text-muted-foreground">
+                      You have no open slots. Slots come from your availability, which the routing
+                      engine also books against.
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+            {!patient && picked ? (
+              <button
+                type="button"
+                onClick={() => setPicked(null)}
+                className="self-start text-[12.5px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                ← Choose a different patient
+              </button>
+            ) : null}
           </DialogContent>
         </Dialog>
       ) : null}

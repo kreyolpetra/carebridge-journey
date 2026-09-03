@@ -59,6 +59,18 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: "home summary grid",
   },
   {
+    to: "/patients",
+    label: "Patients",
+    icon: Users,
+    roles: ["clinician", "admin"],
+    // Front desk may look someone up to register them; the index is identity
+    // only, and the chart behind it stays gated by tier like everywhere else.
+    tiers: ["attending", "consulting", "nursing", "front_desk"],
+    group: "Work",
+    keywords:
+      "patients worklist directory find search lookup panel roster chart record queue risk contact escalation console",
+  },
+  {
     to: "/record",
     label: "My record",
     icon: HeartPulse,
@@ -74,18 +86,6 @@ export const NAV_ITEMS: NavItem[] = [
     tiers: CLINICAL_TIERS,
     group: "Work",
     keywords: "whatsapp chat intake triage message",
-  },
-  {
-    to: "/patients",
-    label: "Patients",
-    icon: Users,
-    roles: ["clinician", "admin"],
-    // Front desk may look someone up to register them; the index is identity
-    // only, and the chart behind it stays gated by tier like everywhere else.
-    tiers: ["attending", "consulting", "nursing", "front_desk"],
-    group: "Work",
-    keywords:
-      "patients worklist directory find search lookup panel roster chart record queue risk contact escalation console",
   },
   {
     to: "/appointments",

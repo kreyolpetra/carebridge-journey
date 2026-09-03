@@ -304,7 +304,7 @@ function Patients() {
             : queue.length
               ? "Everyone on your list has been contacted today."
               : ""}{" "}
-          The Patients tab is the whole Grid directory.
+          The All patients tab is the whole Grid directory.
         </p>
       </div>
 
@@ -398,7 +398,7 @@ function Patients() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                Patients ({indexMatches.length})
+                All patients ({indexMatches.length})
               </button>
             </div>
           </div>
@@ -497,7 +497,7 @@ function Patients() {
             {tab === "mine" && accessReady && !queue.length ? (
               <p className="px-3 py-6 text-[13px] text-muted-foreground">
                 {query.trim() || bandFilter !== "all"
-                  ? "Nobody on your list matches that. The Patients tab searches the whole Grid."
+                  ? "Nobody on your list matches that. The All patients tab searches the whole Grid."
                   : "No patients on your list. A referral you accept, an episode at your facility, or a consent grant from the patient will place someone here."}
               </p>
             ) : null}

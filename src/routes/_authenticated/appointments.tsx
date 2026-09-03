@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
 import { CallOverlay, formatCallTime, type CallMode } from "@/components/patient/CallOverlay";
+import { BookAppointment } from "@/components/patient/BookAppointment";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { shortDate, clockTime } from "@/lib/format";
 
@@ -168,13 +169,16 @@ function Appointments() {
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
-      <div className="mb-5">
-        <h1 className="font-display text-2xl font-bold tracking-tight">Appointments</h1>
-        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
-          {isPatient
-            ? "Your clinic visits and teleconsults. A teleconsult happens on your care line — no app to install."
-            : "Clinics and cross-island teleconsults you are running. Start the consult from the appointment; it is recorded on the chart and the patient's care line."}
-        </p>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Appointments</h1>
+          <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
+            {isPatient
+              ? "Your clinic visits and teleconsults. A teleconsult happens on your care line — no app to install."
+              : "Clinics and cross-island teleconsults you are running. Start the consult from the appointment; it is recorded on the chart and the patient's care line."}
+          </p>
+        </div>
+        {isPatient ? null : <BookAppointment trigger="primary" />}
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
