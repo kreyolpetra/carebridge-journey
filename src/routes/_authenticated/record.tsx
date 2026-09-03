@@ -25,6 +25,7 @@ import { HERO_PATIENT_ID, patientBundleQuery, providersQuery, type Consultation 
 import { VisitDialog, resultsForVisit } from "@/components/VisitDialog";
 import { CareNetwork } from "@/components/CareNetwork";
 import { CooperativeCard } from "@/components/patient/CooperativeCard";
+import { PaperRecords } from "@/components/patient/PaperRecords";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import {
@@ -445,6 +446,10 @@ function MyRecord() {
           )}
         </div>
       </Panel>
+
+      {/* A patient can see what was captured about them off paper, on the same
+          record where they control everything else. */}
+      <PaperRecords patientId={id} />
 
       <CooperativeCard patientId={id} />
 

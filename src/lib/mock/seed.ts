@@ -2355,7 +2355,7 @@ export function buildSeed(): Tables {
       source: "paper_scan",
       storage_path: null,
       original_text:
-        "MARLENE CAMPBELL  DOB 12/03/1968\nHTN dx 2019  T2DM dx 2021\nBP 156/96 (14/02/25)  BP 148/92 (09/05/25)\nAmlodipine 10mg od; Metformin 1g bd\nNKDA",
+        "MARLENE CAMPBELL  DOB 14/03/1968\nHTN dx 2019  T2DM dx 2021\nBP 156/96 (14/02/25)  BP 148/92 (09/05/25)\nAmlodipine 10mg od; Metformin 1g bd\nNKDA",
       extraction_status: "complete",
       extracted: {
         conditions: [
