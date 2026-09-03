@@ -16,7 +16,7 @@ import { CareNetwork } from "@/components/CareNetwork";
 import { CooperativeCard } from "@/components/patient/CooperativeCard";
 import { DocumentDetailDialog } from "@/components/patient/DocumentDetailDialog";
 import { documentsQuery, documentDate, type ClinicalDocument } from "@/lib/prevention";
-import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
+import { Panel, PanelHeader, Pill, Loading } from "@/components/grid";
 import {
   bandClasses,
   severityClasses,
@@ -89,7 +89,6 @@ function MyRecord() {
     return merged.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
   }, [b?.consultations, documents.data, id]);
 
-  const latest = b?.vitals[0];
   const providerName = (pid: string | null) =>
     providers.data?.find((p) => p.id === pid)?.full_name ?? "Care team";
 
@@ -113,30 +112,6 @@ function MyRecord() {
             b.risk ? <Pill className={bandClasses(b.risk.band)}>risk {b.risk.score}</Pill> : null
           }
         />
-        <div className="grid gap-3 p-5 sm:grid-cols-4">
-          <Stat
-            label="Blood pressure"
-            value={latest?.systolic ? `${latest.systolic}/${latest.diastolic ?? "—"}` : "—"}
-            hint={latest ? `Last reading ${timeAgo(latest.measured_at)}` : "No readings yet"}
-            tone={latest?.systolic && latest.systolic >= 160 ? "critical" : "default"}
-          />
-          <Stat
-            label="Blood sugar"
-            value={latest?.glucose_mmol ? `${Number(latest.glucose_mmol).toFixed(1)}` : "—"}
-            hint="mmol/L, most recent"
-          />
-          <Stat
-            label="Medications"
-            value={b.medications.length}
-            hint={`${b.medications.filter((m) => m.days_supply_left <= 7).length} need a refill soon`}
-          />
-          <Stat
-            label="Conditions"
-            value={b.conditions.length}
-            hint="Long-term conditions on file"
-            tone="signal"
-          />
-        </div>
       </Panel>
 
       <CareNetwork patientId={id} patientFirstName={b.patient?.full_name?.split(" ")[0]} />

@@ -16,7 +16,7 @@ import {
   type Provider,
 } from "@/lib/api";
 import { Panel, Stat } from "@/components/grid";
-import { usd, timeAgo } from "@/lib/format";
+import { usd, timeAgo, LANGUAGE_LABEL } from "@/lib/format";
 import { activityQuery, type ActivityItem } from "@/lib/activity";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
@@ -155,6 +155,18 @@ function PatientHome() {
     <>
       <Greeting subtitle="Today’s readings, your medications and what needs your attention. Your visits, referrals and who can see your record live under My record." />
 
+      {/* The context a clinician sees at the top of her chart, on her own
+          home: how far she is from care, what she speaks, who pays. */}
+      {bundle.data?.patient ? (
+        <p className="-mt-2 text-[13px] text-muted-foreground">
+          {bundle.data.patient.age}
+          {bundle.data.patient.sex} · {bundle.data.patient.parish},{" "}
+          {bundle.data.patient.island_code} · {bundle.data.patient.km_to_facility} km from the
+          clinic · {LANGUAGE_LABEL[bundle.data.patient.language] ?? bundle.data.patient.language} ·{" "}
+          {bundle.data.patient.insurer ?? "Uninsured"}
+        </p>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="My risk level"
@@ -163,12 +175,17 @@ function PatientHome() {
           tone={risk?.band === "critical" || risk?.band === "high" ? "critical" : "low"}
         />
         <Stat
-          label="Latest blood pressure"
+          label="Blood pressure"
           value={latestVital?.systolic ? `${latestVital.systolic}/${latestVital.diastolic}` : "—"}
           hint={
-            latestVital ? new Date(latestVital.measured_at).toLocaleDateString() : "No readings yet"
+            latestVital ? `Last reading ${timeAgo(latestVital.measured_at)}` : "No readings yet"
           }
-          tone="signal"
+          tone={latestVital?.systolic && latestVital.systolic >= 160 ? "critical" : "signal"}
+        />
+        <Stat
+          label="Blood sugar"
+          value={latestVital?.glucose_mmol ? Number(latestVital.glucose_mmol).toFixed(1) : "—"}
+          hint="mmol/L, most recent"
         />
         <Stat
           label="Medication adherence"
@@ -178,12 +195,6 @@ function PatientHome() {
               ? `${lowMeds.length} refill${lowMeds.length > 1 ? "s" : ""} due within 7 days`
               : "Refills on track"
           }
-        />
-        <Stat
-          label="Who can see my record"
-          value={activeGrants.length}
-          hint="Active consent grants"
-          tone="signal"
         />
       </section>
 
