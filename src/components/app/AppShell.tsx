@@ -21,6 +21,27 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { cn } from "@/lib/utils";
 import { firstName, initials } from "@/lib/names";
 
+/**
+ * Leave the app by reloading rather than by routing.
+ *
+ * Signing out client-side raced the layout guard: clearing the session makes
+ * `_authenticated`'s beforeLoad throw its own redirect to /auth while the menu
+ * is navigating there too, and with two transitions in flight the app could
+ * lock the main thread outright — reproducibly, with a heartbeat timer
+ * stopping dead on the click.
+ *
+ * A reload cannot race anything. It also tears down every cached query, which
+ * is the behaviour you want when the next thing someone does is sign in as a
+ * different persona: no chance of one role's data lingering behind another's.
+ * The app cold-starts in about 200ms, so this costs nothing a demo would feel.
+ */
+function hardResetToSignIn() {
+  const url = new URL(window.location.href);
+  url.hash = "#/auth";
+  window.location.replace(url.toString());
+  window.location.reload();
+}
+
 function Brand({ onDark = false }: { onDark?: boolean }) {
   return (
     <Link to="/" className="flex shrink-0 items-center gap-2.5">
@@ -160,7 +181,7 @@ export function AppShell() {
     return (
       <PendingVerification
         onSignOut={() => {
-          void signOut().then(() => navigate({ to: "/auth" }));
+          void signOut().then(hardResetToSignIn);
         }}
       />
     );
@@ -278,9 +299,8 @@ export function AppShell() {
                     <User2 className="mr-2 h-4 w-4" /> Profile & settings
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onSelect={async () => {
-                      await signOut();
-                      void navigate({ to: "/auth" });
+                    onSelect={() => {
+                      void signOut().then(hardResetToSignIn);
                     }}
                   >
                     <LogOut className="mr-2 h-4 w-4" /> Sign out

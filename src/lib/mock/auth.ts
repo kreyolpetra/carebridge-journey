@@ -16,9 +16,38 @@ const listeners = new Set<Listener>();
 // straight back to the login screen — so memory is the source of truth.
 let memorySession: MockSession | null = null;
 
+/**
+ * Whether this browser will let us touch localStorage at all.
+ *
+ * Inside a sandboxed iframe — which is how a published artifact runs — every
+ * access can throw a SecurityError. Retrying on each call meant an exception
+ * per route guard, and the guards run on every navigation. Probe once, then
+ * stop asking.
+ */
+let storageUsable: boolean | null = null;
+function storageOk(): boolean {
+  if (storageUsable !== null) return storageUsable;
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      storageUsable = false;
+    } else {
+      window.localStorage.setItem("__ccg_probe", "1");
+      window.localStorage.removeItem("__ccg_probe");
+      storageUsable = true;
+    }
+  } catch {
+    storageUsable = false;
+  }
+  return storageUsable;
+}
+
+/** Memory is the source of truth; storage is only a convenience mirror. */
+let sessionLoaded = false;
 function readSession(): MockSession | null {
   if (memorySession) return memorySession;
-  if (typeof window === "undefined" || !window.localStorage) return null;
+  if (sessionLoaded) return null;
+  sessionLoaded = true;
+  if (!storageOk()) return null;
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
     memorySession = raw ? (JSON.parse(raw) as MockSession) : null;
@@ -30,7 +59,10 @@ function readSession(): MockSession | null {
 
 function writeSession(session: MockSession | null) {
   memorySession = session;
-  if (typeof window === "undefined" || !window.localStorage) return;
+  // A write is also the definitive answer to "is there a session", so the
+  // deferred read above must not later overwrite it from stale storage.
+  sessionLoaded = true;
+  if (!storageOk()) return;
   try {
     if (session) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     else window.localStorage.removeItem(SESSION_KEY);
@@ -44,11 +76,17 @@ function notify(event: AuthChangeEvent, session: MockSession | null) {
 }
 
 function demoPersonaForEmail(email: string): DemoPersona | null {
-  const entry = (Object.entries(DEMO_ACCOUNTS) as [DemoPersona, (typeof DEMO_ACCOUNTS)[DemoPersona]][]).find(([, acc]) => acc.email === email);
+  const entry = (
+    Object.entries(DEMO_ACCOUNTS) as [DemoPersona, (typeof DEMO_ACCOUNTS)[DemoPersona]][]
+  ).find(([, acc]) => acc.email === email);
   return entry ? entry[0] : null;
 }
 
-function sessionFor(userId: string, email: string, metadata: Record<string, unknown> = {}): MockSession {
+function sessionFor(
+  userId: string,
+  email: string,
+  metadata: Record<string, unknown> = {},
+): MockSession {
   return {
     access_token: `mock.${userId}.${Date.now()}`,
     user: { id: userId, email, user_metadata: metadata },
@@ -68,7 +106,8 @@ export const mockAuth = {
 
   async getClaims(token: string) {
     const session = readSession();
-    if (!session || session.access_token !== token) return { data: null, error: { message: "Invalid token" } };
+    if (!session || session.access_token !== token)
+      return { data: null, error: { message: "Invalid token" } };
     return { data: { claims: { sub: session.user.id, email: session.user.email } }, error: null };
   },
 
@@ -80,9 +119,16 @@ export const mockAuth = {
   async signInWithPassword({ email, password }: { email: string; password: string }) {
     const persona = demoPersonaForEmail(email);
     if (persona) {
-      if (password !== DEMO_PASSWORD) return { data: { session: null, user: null }, error: { message: "Invalid login credentials" } };
+      if (password !== DEMO_PASSWORD)
+        return {
+          data: { session: null, user: null },
+          error: { message: "Invalid login credentials" },
+        };
       const userId = DEMO_USER_IDS[persona];
-      const session = sessionFor(userId, email, { full_name: DEMO_ACCOUNTS[persona].name, demo_persona: persona });
+      const session = sessionFor(userId, email, {
+        full_name: DEMO_ACCOUNTS[persona].name,
+        demo_persona: persona,
+      });
       writeSession(session);
       notify("SIGNED_IN", session);
       return { data: { session, user: session.user }, error: null };
@@ -90,17 +136,31 @@ export const mockAuth = {
 
     const users = getTable("auth_users") as { id: string; email: string; password: string }[];
     const found = users.find((u) => u.email === email && u.password === password);
-    if (!found) return { data: { session: null, user: null }, error: { message: "Invalid login credentials" } };
+    if (!found)
+      return {
+        data: { session: null, user: null },
+        error: { message: "Invalid login credentials" },
+      };
     const session = sessionFor(found.id, email);
     writeSession(session);
     notify("SIGNED_IN", session);
     return { data: { session, user: session.user }, error: null };
   },
 
-  async signUp({ email, password, options }: { email: string; password: string; options?: { data?: Record<string, unknown> } }) {
+  async signUp({
+    email,
+    password,
+    options,
+  }: {
+    email: string;
+    password: string;
+    options?: { data?: Record<string, unknown> };
+  }) {
     const users = getTable("auth_users") as { id: string; email: string; password: string }[];
-    if (users.some((u) => u.email === email)) return { data: { user: null, session: null }, error: { message: "User already registered" } };
-    const id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`;
+    if (users.some((u) => u.email === email))
+      return { data: { user: null, session: null }, error: { message: "User already registered" } };
+    const id =
+      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`;
     users.push({ id, email, password });
     const session = sessionFor(id, email, options?.data ?? {});
     writeSession(session);
