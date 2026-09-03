@@ -29,7 +29,7 @@ import { CareTimeline } from "@/components/patient/CareTimeline";
 import { BookAppointment } from "@/components/patient/BookAppointment";
 import { AddPaperRecord } from "@/components/patient/AddPaperRecord";
 import { SafetyPanel } from "@/components/patient/SafetyPanel";
-import { PatientLine as CareLine } from "@/routes/_authenticated/patient";
+import { PatientLine as CareLine } from "@/components/patient/CareLineView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { bandClasses, severityClasses, shortDate, timeAgo } from "@/lib/format";

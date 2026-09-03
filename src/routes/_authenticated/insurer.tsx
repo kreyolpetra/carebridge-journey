@@ -18,7 +18,8 @@ export const Route = createFileRoute("/_authenticated/insurer")({
       { property: "og:title", content: "Insurer Engine — Risk-Adjusted NCD Pricing" },
       {
         property: "og:description",
-        content: "Insurers fund the Grid because avoided admissions are worth more than the platform costs.",
+        content:
+          "Insurers fund the Grid because avoided admissions are worth more than the platform costs.",
       },
     ],
   }),
@@ -34,7 +35,10 @@ function Insurer() {
   const meds = useQuery({
     queryKey: ["med-adherence"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("medications").select("patient_id, adherence_pct").limit(2000);
+      const { data, error } = await supabase
+        .from("medications")
+        .select("patient_id, adherence_pct")
+        .limit(2000);
       if (error) throw new Error(error.message);
       return (data ?? []) as MedRow[];
     },
@@ -90,7 +94,9 @@ function Insurer() {
     }
     return [...m.values()].map((i) => ({
       ...i,
-      avgRisk: i.scores.length ? Math.round(i.scores.reduce((a, b) => a + b, 0) / i.scores.length) : 0,
+      avgRisk: i.scores.length
+        ? Math.round(i.scores.reduce((a, b) => a + b, 0) / i.scores.length)
+        : 0,
     }));
   }, [patients.data, risks.data]);
 
@@ -98,7 +104,9 @@ function Insurer() {
   const retained = (referrals.data ?? [])
     .filter((r) => r.status === "completed")
     .reduce((a, r) => a + r.retained_value_usd, 0);
-  const avoidedAdmissions = Math.round((referrals.data ?? []).filter((r) => r.status !== "pending").length * 0.34);
+  const avoidedAdmissions = Math.round(
+    (referrals.data ?? []).filter((r) => r.status !== "pending").length * 0.34,
+  );
   const creditsIssued = rows.reduce((a, r) => a + (r.basePremium - r.premium), 0);
 
   return (
@@ -110,15 +118,35 @@ function Insurer() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat label="Overseas spend avoided" value={usd(retained)} hint="Care delivered in-region" tone="low" />
-        <Stat label="Estimated admissions avoided" value={avoidedAdmissions} hint="Early routing vs. ER arrival" tone="signal" />
-        <Stat label="Premium credits issued" value={usd(creditsIssued)} hint="Monthly, to engaged members" />
-        <Stat label="Insured lives on the Grid" value={rows.length ? insurers.reduce((a, i) => a + i.lives, 0) : 0} />
+        <Stat
+          label="Overseas spend avoided"
+          value={usd(retained)}
+          hint="Care delivered in-region"
+          tone="low"
+        />
+        <Stat
+          label="Estimated admissions avoided"
+          value={avoidedAdmissions}
+          hint="Early routing vs. ER arrival"
+          tone="signal"
+        />
+        <Stat
+          label="Premium credits issued"
+          value={usd(creditsIssued)}
+          hint="Monthly, to engaged members"
+        />
+        <Stat
+          label="Insured lives on the Grid"
+          value={rows.length ? insurers.reduce((a, i) => a + i.lives, 0) : 0}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Panel>
-          <PanelHeader title="Member engagement ledger" subtitle="Adherence converted into monthly premium credit" />
+          <PanelHeader
+            title="Member engagement ledger"
+            subtitle="Adherence converted into monthly premium credit"
+          />
           <div className="max-h-[620px] overflow-y-auto">
             <table className="w-full text-left text-[13px]">
               <thead className="sticky top-0 bg-card text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -146,7 +174,9 @@ function Insurer() {
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-surface">
                           <div
-                            className={"h-full rounded-full " + (r.adherence >= 85 ? "bg-low" : "bg-high")}
+                            className={
+                              "h-full rounded-full " + (r.adherence >= 85 ? "bg-low" : "bg-high")
+                            }
                             style={{ width: `${r.adherence}%` }}
                           />
                         </div>
@@ -154,7 +184,9 @@ function Insurer() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={r.credit ? "text-low" : "text-muted-foreground"}>-{r.credit}%</span>
+                      <span className={r.credit ? "text-low" : "text-muted-foreground"}>
+                        -{r.credit}%
+                      </span>
                     </td>
                     <td className="mono-num px-5 py-2.5 text-right">
                       <span className="text-muted-foreground line-through">${r.basePremium}</span>{" "}
@@ -175,7 +207,9 @@ function Insurer() {
                 <div key={i.name} className="flex items-center justify-between gap-3 px-5 py-3">
                   <div>
                     <div className="text-[13.5px] font-semibold">{i.name}</div>
-                    <div className="text-[11.5px] text-muted-foreground">{i.lives} lives monitored</div>
+                    <div className="text-[11.5px] text-muted-foreground">
+                      {i.lives} lives monitored
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="mono-num text-[16px] font-semibold">{i.avgRisk}</div>
@@ -190,9 +224,13 @@ function Insurer() {
             <h3 className="font-display text-[15px] font-semibold">Why insurers pay for this</h3>
             <ul className="mt-3 space-y-2 text-[13px] text-muted-foreground">
               <li>• One avoided dialysis start funds thousands of monitored member-months.</li>
-              <li>• Overseas cardiac transfers cost 6–10× the same teleconsult delivered in-region.</li>
+              <li>
+                • Overseas cardiac transfers cost 6–10× the same teleconsult delivered in-region.
+              </li>
               <li>• Adherence data lets pricing follow behaviour instead of age brackets.</li>
-              <li>• Ministries get the population view for free; insurers carry the platform cost.</li>
+              <li>
+                • Ministries get the population view for free; insurers carry the platform cost.
+              </li>
             </ul>
           </Panel>
         </div>

@@ -17,8 +17,7 @@ import {
 } from "@/lib/org";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useScope } from "@/hooks/useScope";
-import { RegistryPage } from "@/routes/_authenticated/registry";
-import { Interop } from "@/routes/_authenticated/interop";
+import { RegistryPage } from "@/components/facility/Registry";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { bandClasses, shortDate, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
@@ -143,7 +142,15 @@ function FacilityConsole() {
         <TabsList>
           <TabsTrigger value="console">Console</TabsTrigger>
           {canAdminister ? <TabsTrigger value="roster">Roster &amp; import</TabsTrigger> : null}
-          {canAdminister ? <TabsTrigger value="records">Records &amp; API</TabsTrigger> : null}
+          {/* "Records & API" is withdrawn. Opening it hard-freezes the main
+              thread in the production bundle — proven with a heartbeat timer
+              that stops dead on the click and never resumes. It predates the
+              current work and the cause is not yet found, so the surface is
+              withdrawn rather than shipped: a demo that locks the browser is
+              worse than a missing tab.
+
+              Nothing is lost from the demo. Digitising a paper record moved
+              into the patient chart, where it belongs and where it works. */}
         </TabsList>
 
         <TabsContent value="console" className="mt-4 space-y-4">
@@ -339,11 +346,6 @@ function FacilityConsole() {
         {canAdminister ? (
           <TabsContent value="roster" className="mt-4">
             <RegistryPage />
-          </TabsContent>
-        ) : null}
-        {canAdminister ? (
-          <TabsContent value="records" className="mt-4">
-            <Interop />
           </TabsContent>
         ) : null}
       </Tabs>

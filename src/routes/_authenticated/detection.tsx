@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { patientsQuery, riskScoresQuery } from "@/lib/api";
 import { detectionSignalsQuery, METRIC_LABEL, SEVERITY_TONE } from "@/lib/prevention";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Prevention } from "@/routes/_authenticated/prevention";
+import { Prevention } from "@/components/outreach/Prevention";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";

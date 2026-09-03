@@ -59,7 +59,8 @@ function AccessLog() {
   const [filter, setFilter] = useState<"all" | AccessBasis>("all");
 
   const pname = (id: string) => patients.data?.find((p) => p.id === id)?.full_name ?? "Patient";
-  const provname = (id: string | null) => providers.data?.find((p) => p.id === id)?.full_name ?? null;
+  const provname = (id: string | null) =>
+    providers.data?.find((p) => p.id === id)?.full_name ?? null;
   const facname = (id: string | null) => facilities.data?.find((f) => f.id === id)?.name ?? null;
 
   const rows = useMemo(() => {
@@ -93,8 +94,17 @@ function AccessLog() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat label="Reads logged" value={scopedAll.length} hint={`${last30} in the last 30 days`} tone="signal" />
-        <Stat label="Facilities treating you" value={openWindows.length} hint="Open access windows" />
+        <Stat
+          label="Reads logged"
+          value={scopedAll.length}
+          hint={`${last30} in the last 30 days`}
+          tone="signal"
+        />
+        <Stat
+          label="Facilities treating you"
+          value={openWindows.length}
+          hint="Open access windows"
+        />
         <Stat label="You approved" value={count("consent")} hint="Consent grants used" tone="low" />
         <Stat
           label="Emergency overrides"
@@ -110,7 +120,9 @@ function AccessLog() {
             key={b}
             onClick={() => setFilter(b)}
             className={`rounded-lg border px-3 py-1.5 text-[12px] font-semibold ${
-              filter === b ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+              filter === b
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             {b === "all" ? `All (${scopedAll.length})` : `${BASIS_LABEL[b]} (${count(b)})`}
@@ -152,29 +164,46 @@ function AccessLog() {
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className={row.allowed ? "text-[11.5px] text-low" : "text-[11.5px] text-critical"}>
+                    <div
+                      className={
+                        row.allowed ? "text-[11.5px] text-low" : "text-[11.5px] text-critical"
+                      }
+                    >
                       {row.allowed ? "allowed" : "blocked"}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">{timeAgo(row.accessed_at)}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {timeAgo(row.accessed_at)}
+                    </div>
                   </div>
                 </div>
               );
             })}
             {!rows.length ? (
-              <p className="p-5 text-[13px] text-muted-foreground">Nothing logged under this basis yet.</p>
+              <p className="p-5 text-[13px] text-muted-foreground">
+                Nothing logged under this basis yet.
+              </p>
             ) : null}
           </div>
         </Panel>
 
         <div className="space-y-4">
           <Panel>
-            <PanelHeader title="Facilities that can read your chart right now" subtitle="Treating access is time-bound and closes on its own" />
+            <PanelHeader
+              title="Facilities that can read your chart right now"
+              subtitle="Treating access is time-bound and closes on its own"
+            />
             <div className="divide-y divide-border">
               {windows.slice(0, 6).map((w) => (
                 <div key={w.facilityId} className="px-5 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[13px] font-semibold">{w.facilityName}</div>
-                    <Pill className={w.open ? "border-low/40 bg-low/10 text-low" : "border-border bg-surface text-muted-foreground"}>
+                    <Pill
+                      className={
+                        w.open
+                          ? "border-low/40 bg-low/10 text-low"
+                          : "border-border bg-surface text-muted-foreground"
+                      }
+                    >
                       {w.open ? "open" : "closed"}
                     </Pill>
                   </div>
@@ -190,14 +219,19 @@ function AccessLog() {
                 </div>
               ))}
               {!windows.length ? (
-                <p className="p-5 text-[13px] text-muted-foreground">No treating relationships on record.</p>
+                <p className="p-5 text-[13px] text-muted-foreground">
+                  No treating relationships on record.
+                </p>
               ) : null}
             </div>
           </Panel>
 
           {(breakGlass.data ?? []).length ? (
             <Panel>
-              <PanelHeader title="Emergency overrides" subtitle="Taken without approval · you were notified · reviewed by governance" />
+              <PanelHeader
+                title="Emergency overrides"
+                subtitle="Taken without approval · you were notified · reviewed by governance"
+              />
               <div className="divide-y divide-border">
                 {(breakGlass.data ?? []).map((b) => (
                   <div key={b.id} className="px-5 py-3">
@@ -218,8 +252,8 @@ function AccessLog() {
                     </div>
                     <p className="mt-1 text-[12px] text-muted-foreground">{b.reason}</p>
                     <p className="mt-1 text-[11.5px] text-muted-foreground">
-                      {facname(b.facility_id) ?? "Facility"} · {timeAgo(b.started_at)} · access expired{" "}
-                      {new Date(b.expires_at).toLocaleString()} ·{" "}
+                      {facname(b.facility_id) ?? "Facility"} · {timeAgo(b.started_at)} · access
+                      expired {new Date(b.expires_at).toLocaleString()} ·{" "}
                       {b.patient_notified_at ? "you were notified" : "notification pending"}
                     </p>
                   </div>
@@ -229,7 +263,10 @@ function AccessLog() {
           ) : null}
 
           <Panel>
-            <PanelHeader title="What the labels mean" subtitle="Five lawful bases, plainly stated" />
+            <PanelHeader
+              title="What the labels mean"
+              subtitle="Five lawful bases, plainly stated"
+            />
             <div className="divide-y divide-border">
               {BASES.map((b) => (
                 <div key={b} className="px-5 py-3">
