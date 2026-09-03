@@ -194,12 +194,15 @@ function Patients() {
   const indexMatches = useMemo(() => {
     if (isAggregateOnly || !accessReady) return [];
     const needle = query.trim().toLowerCase();
+    // You can look anyone up; you cannot read down the list. A directory that
+    // opens as 776 scrollable names is a browsing tool, and browsing strangers
+    // is the one use nobody has a clinical reason for. Searching by name is the
+    // thing a clinician actually needs — finding the person in front of them.
+    if (needle.length < 2) return [];
     return (patients.data ?? [])
       .filter(
         (p) =>
-          !needle ||
-          p.full_name.toLowerCase().includes(needle) ||
-          p.parish.toLowerCase().includes(needle),
+          p.full_name.toLowerCase().includes(needle) || p.parish.toLowerCase().includes(needle),
       )
       .slice()
       .sort((a, b) => a.full_name.localeCompare(b.full_name));
@@ -304,7 +307,7 @@ function Patients() {
             : queue.length
               ? "Everyone on your list has been contacted today."
               : ""}{" "}
-          The All patients tab is the whole Grid directory.
+          Search All patients to find anyone else on the Grid.
         </p>
       </div>
 
@@ -398,7 +401,7 @@ function Patients() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                All patients ({indexMatches.length})
+                All patients{query.trim().length > 1 ? ` (${indexMatches.length})` : ""}
               </button>
             </div>
           </div>
@@ -505,7 +508,9 @@ function Patients() {
               <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
                 {isAggregateOnly
                   ? "Your role is aggregate and de-identified only, so the patient directory is not available to it."
-                  : `Nobody on the Grid matches “${query.trim()}”.`}
+                  : query.trim().length < 2
+                    ? "Search by name to find anyone on the Grid — all eleven countries. You will see who they are, not what is in their record. The directory is not browsable as a list."
+                    : `Nobody on the Grid matches “${query.trim()}”.`}
               </p>
             ) : null}
           </div>
