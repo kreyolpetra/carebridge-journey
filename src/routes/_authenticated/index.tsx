@@ -23,6 +23,8 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
+import { HealthTrends } from "@/components/patient/HealthTrends";
+import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { ActivityFeed } from "@/components/app/ActivityFeed";
 import { isGrantActive } from "@/lib/access";
 import { firstName } from "@/lib/names";
@@ -151,7 +153,7 @@ function PatientHome() {
 
   return (
     <>
-      <Greeting subtitle="Your health on the Grid: today’s readings, your medications, and who can see your record — all in one place." />
+      <Greeting subtitle="Today’s readings, your medications and what needs your attention. Your visits, referrals and who can see your record live under My record." />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
@@ -184,6 +186,13 @@ function PatientHome() {
           tone="signal"
         />
       </section>
+
+      {/* The daily loop: send today's reading, then see what it did to the
+          trend. These were on My record, behind the care network and the visit
+          archive — the wrong depth for the thing a patient opens the app to
+          do. */}
+      {patientId ? <HomeReadingCard patientId={patientId} /> : null}
+      {bundle.data ? <HealthTrends bundle={bundle.data} /> : null}
 
       <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">
