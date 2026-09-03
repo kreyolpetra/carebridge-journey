@@ -77,7 +77,8 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
                   activeOptions={{ exact: item.to === "/" }}
                   className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-raised hover:text-sidebar-foreground"
                   activeProps={{
-                    className: "bg-sidebar-raised !text-sidebar-accent",
+                    className:
+                      "bg-sidebar-raised !text-sidebar-foreground border-l-[3px] border-sidebar-accent pl-[9px]",
                   }}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
@@ -166,130 +167,138 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-        <div className="flex h-16 items-center border-b border-sidebar-border px-5">
-          <Brand onDark />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <SidebarNav role={role} />
-        </div>
-        <div className="border-t border-sidebar-border px-4 py-4">
-          <NetworkToggle onDark />
-        </div>
-      </aside>
-
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            aria-label="Close navigation"
-            className="absolute inset-0 bg-foreground/30"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 flex w-[248px] flex-col border-r border-sidebar-border bg-sidebar">
-            <div className="flex h-16 items-center border-b border-sidebar-border px-5">
-              <Brand onDark />
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <SidebarNav role={role} onNavigate={() => setMobileOpen(false)} />
-            </div>
-            <div className="border-t border-sidebar-border px-4 py-4">
-              <NetworkToggle onDark />
-            </div>
-          </aside>
-        </div>
-      ) : null}
-
-      <div className="flex min-h-screen w-full flex-col lg:pl-[248px]">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-5">
-          <button
-            type="button"
-            aria-label="Open navigation"
-            onClick={() => setMobileOpen(true)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground lg:hidden"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-          <div className="lg:hidden">
-            <Brand />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            className="ml-auto flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-[13px] text-muted-foreground transition-colors hover:text-foreground lg:ml-0 lg:w-[380px]"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden lg:inline">Search patients, surfaces, actions…</span>
-            <kbd className="ml-auto hidden rounded border border-border px-1.5 py-0.5 font-mono text-[10.5px] lg:inline">
-              ⌘K
-            </kbd>
-          </button>
-
-          <div className="ml-auto flex items-center gap-2">
-            <span
-              className={cn(
-                "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:flex",
-                live
-                  ? "border-low/40 bg-low/10 text-low"
-                  : "border-border bg-surface text-muted-foreground",
-              )}
-              title={live ? "Realtime connected" : "Connecting to realtime…"}
-            >
-              <Radio className="h-3 w-3" />
-              {live ? "Live" : "Connecting"}
-            </span>
-
-            <NotificationsMenu />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Account menu"
-                  className="flex h-9 items-center gap-2 rounded-lg border border-border bg-card pl-1 pr-2.5"
-                >
-                  <span className="grid h-7 w-7 place-items-center rounded-md bg-primary/12 text-[11px] font-bold text-primary">
-                    {initials(name)}
-                  </span>
-                  <span className="hidden text-[13px] font-medium sm:inline">
-                    {firstName(name)}
-                  </span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>
-                  <p className="text-[13.5px] font-semibold">{name}</p>
-                  <p className="text-[12px] font-normal text-muted-foreground">
-                    {ROLE_LABEL[role] ?? role}
-                    {profile?.organisation ? ` · ${profile.organisation}` : ""}
-                  </p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => void navigate({ to: "/settings" })}>
-                  <User2 className="mr-2 h-4 w-4" /> Profile & settings
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={async () => {
-                    await signOut();
-                    void navigate({ to: "/auth" });
-                  }}
-                >
-                  <LogOut className="mr-2 h-4 w-4" /> Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <main className="flex-1">
-          <Outlet />
-        </main>
+    <div className="flex min-h-screen flex-col">
+      {/* Said once, permanently, at the top of the product rather than in a
+          pitch deck: what this is, and what it does not decide. */}
+      <div className="w-full bg-sidebar px-4 py-1.5 text-center text-[11.5px] font-medium text-sidebar-muted">
+        Prototype · synthetic data only · no diagnosis, prescribing or discharge decisions —
+        clinical judgement stays human
       </div>
+      <div className="flex min-h-screen">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+          <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+            <Brand onDark />
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <SidebarNav role={role} />
+          </div>
+          <div className="border-t border-sidebar-border px-4 py-4">
+            <NetworkToggle onDark />
+          </div>
+        </aside>
 
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <OnboardingDialog />
+        {mobileOpen ? (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <button
+              aria-label="Close navigation"
+              className="absolute inset-0 bg-foreground/30"
+              onClick={() => setMobileOpen(false)}
+            />
+            <aside className="absolute inset-y-0 left-0 flex w-[248px] flex-col border-r border-sidebar-border bg-sidebar">
+              <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+                <Brand onDark />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <SidebarNav role={role} onNavigate={() => setMobileOpen(false)} />
+              </div>
+              <div className="border-t border-sidebar-border px-4 py-4">
+                <NetworkToggle onDark />
+              </div>
+            </aside>
+          </div>
+        ) : null}
+
+        <div className="flex min-h-screen w-full flex-col lg:pl-[248px]">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-5">
+            <button
+              type="button"
+              aria-label="Open navigation"
+              onClick={() => setMobileOpen(true)}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-foreground lg:hidden"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <div className="lg:hidden">
+              <Brand />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="ml-auto flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-[13px] text-muted-foreground transition-colors hover:text-foreground lg:ml-0 lg:w-[380px]"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden lg:inline">Search patients, surfaces, actions…</span>
+              <kbd className="ml-auto hidden rounded border border-border px-1.5 py-0.5 font-mono text-[10.5px] lg:inline">
+                ⌘K
+              </kbd>
+            </button>
+
+            <div className="ml-auto flex items-center gap-2">
+              <span
+                className={cn(
+                  "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium sm:flex",
+                  live
+                    ? "border-low/40 bg-low/10 text-low"
+                    : "border-border bg-surface text-muted-foreground",
+                )}
+                title={live ? "Realtime connected" : "Connecting to realtime…"}
+              >
+                <Radio className="h-3 w-3" />
+                {live ? "Live" : "Connecting"}
+              </span>
+
+              <NotificationsMenu />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Account menu"
+                    className="flex h-9 items-center gap-2 rounded-lg border border-border bg-card pl-1 pr-2.5"
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-md bg-primary/12 text-[11px] font-bold text-primary">
+                      {initials(name)}
+                    </span>
+                    <span className="hidden text-[13px] font-medium sm:inline">
+                      {firstName(name)}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>
+                    <p className="text-[13.5px] font-semibold">{name}</p>
+                    <p className="text-[12px] font-normal text-muted-foreground">
+                      {ROLE_LABEL[role] ?? role}
+                      {profile?.organisation ? ` · ${profile.organisation}` : ""}
+                    </p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => void navigate({ to: "/settings" })}>
+                    <User2 className="mr-2 h-4 w-4" /> Profile & settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={async () => {
+                      await signOut();
+                      void navigate({ to: "/auth" });
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <main className="flex-1">
+            <Outlet />
+          </main>
+        </div>
+
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <OnboardingDialog />
+      </div>
     </div>
   );
 }

@@ -72,54 +72,58 @@
 }
 
 :root {
-  --radius: 0.75rem;
-
-  /* Deep teal-navy rail against a warm clinical field. The workspace chrome is
-     dark so the record itself is the only bright surface on screen — the chart
-     should be what your eye lands on, not the navigation. */
-  --background: oklch(0.966 0.005 95);
-  --foreground: oklch(0.26 0.022 220);
+  /* CareBridge palette: deep navy, royal cobalt, white, coral accent.
+     Red and amber stay reserved for safety-critical states, per §11 of the
+     PRD — which is why the accent is coral rather than another warm tone that
+     could be mistaken for a warning. */
+  --background: oklch(0.978 0.004 255);
+  --foreground: oklch(0.24 0.042 264);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.26 0.022 220);
-  --surface: oklch(0.945 0.007 95);
-  --surface-foreground: oklch(0.26 0.022 220);
+  --card-foreground: oklch(0.24 0.042 264);
+  --surface: oklch(0.958 0.006 258);
+  --surface-foreground: oklch(0.24 0.042 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.26 0.022 220);
+  --popover-foreground: oklch(0.24 0.042 264);
 
-  --primary: oklch(0.47 0.072 199);
-  --primary-foreground: oklch(0.99 0.003 200);
-  --secondary: oklch(0.94 0.008 200);
-  --secondary-foreground: oklch(0.3 0.022 220);
-  --muted: oklch(0.95 0.006 200);
-  --muted-foreground: oklch(0.52 0.017 225);
-  --accent: oklch(0.72 0.12 181);
-  --accent-foreground: oklch(0.22 0.03 205);
-  --destructive: oklch(0.58 0.172 25);
-  --destructive-foreground: oklch(0.99 0.003 200);
+  --primary: oklch(0.505 0.192 265);
+  --primary-foreground: oklch(0.99 0.002 260);
+  --secondary: oklch(0.945 0.012 262);
+  --secondary-foreground: oklch(0.3 0.04 264);
+  --muted: oklch(0.952 0.008 260);
+  --muted-foreground: oklch(0.52 0.026 262);
+  --accent: oklch(0.66 0.166 33);
+  --accent-foreground: oklch(0.99 0.002 260);
+  --destructive: oklch(0.577 0.19 27);
+  --destructive-foreground: oklch(0.99 0.002 260);
 
-  --border: oklch(0.9 0.008 205);
-  --input: oklch(0.895 0.008 205);
-  --ring: oklch(0.47 0.072 199);
+  --border: oklch(0.9 0.012 260);
+  --input: oklch(0.892 0.013 260);
+  --ring: oklch(0.505 0.192 265);
 
   /* The dark rail. Its own scale, so the light surfaces never have to bend to
      accommodate the navigation. */
-  --sidebar: oklch(0.245 0.028 206);
-  --sidebar-raised: oklch(0.3 0.034 202);
-  --sidebar-foreground: oklch(0.95 0.006 200);
-  --sidebar-muted: oklch(0.7 0.021 208);
-  --sidebar-border: oklch(0.32 0.028 204);
-  --sidebar-accent: oklch(0.78 0.115 180);
+  --sidebar: oklch(0.223 0.058 265);
+  --sidebar-raised: oklch(0.285 0.076 265);
+  --sidebar-foreground: oklch(0.96 0.006 260);
+  --sidebar-muted: oklch(0.7 0.032 262);
+  --sidebar-border: oklch(0.305 0.062 265);
+  --sidebar-accent: oklch(0.78 0.13 262);
 
-  --critical: oklch(0.58 0.172 25);
-  --critical-foreground: oklch(0.99 0.003 200);
+  --critical: oklch(0.577 0.19 27);
+  --critical-foreground: oklch(0.99 0.002 260);
   --high: oklch(0.63 0.135 62);
-  --high-foreground: oklch(0.99 0.003 200);
+  --high-foreground: oklch(0.99 0.002 260);
   --moderate: oklch(0.66 0.115 88);
-  --moderate-foreground: oklch(0.99 0.003 200);
-  --low: oklch(0.55 0.098 173);
-  --low-foreground: oklch(0.99 0.003 200);
-  --signal: oklch(0.55 0.09 196);
+  --moderate-foreground: oklch(0.99 0.002 260);
+  /* Stable reads green, but a cleaner green than the teal this product used as
+     a brand colour — acceptance criterion 17 fails a build carrying the old
+     teal, and a status hue is not a brand hue. */
+  --low: oklch(0.56 0.115 156);
+  --low-foreground: oklch(0.99 0.002 260);
+  --signal: oklch(0.55 0.16 264);
 
+  /* The care line deliberately mimics WhatsApp, so its bubbles keep WhatsApp's
+     green. That is content, not brand. */
   --chat: oklch(0.955 0.011 150);
   --chat-foreground: oklch(0.26 0.02 165);
   --chat-bubble-in: oklch(1 0 0);
@@ -127,17 +131,18 @@
 
   --grad-hero: linear-gradient(
     145deg,
-    oklch(0.985 0.005 100) 0%,
-    oklch(0.955 0.015 195) 50%,
-    oklch(0.928 0.032 192) 100%
+    oklch(0.99 0.003 260) 0%,
+    oklch(0.955 0.018 262) 50%,
+    oklch(0.925 0.045 264) 100%
   );
-  --grad-signal: linear-gradient(100deg, oklch(0.47 0.072 199), oklch(0.58 0.1 172));
+  --grad-signal: linear-gradient(100deg, oklch(0.505 0.192 265), oklch(0.6 0.15 276));
   --grad-urgent: linear-gradient(100deg, oklch(0.53 0.19 27), oklch(0.6 0.14 55));
 
   --shadow-panel:
-    0 1px 2px 0 oklch(0.28 0.02 250 / 5%), 0 8px 24px -18px oklch(0.28 0.02 250 / 45%);
-  --shadow-lift: 0 18px 40px -24px oklch(0.28 0.02 250 / 40%);
-  --glow-signal: 0 0 0 1px oklch(0.53 0.088 202 / 18%), 0 0 24px -10px oklch(0.53 0.088 202 / 40%);
+    0 1px 2px 0 oklch(0.24 0.04 264 / 6%), 0 8px 24px -18px oklch(0.24 0.04 264 / 45%);
+  --shadow-lift: 0 18px 40px -24px oklch(0.24 0.04 264 / 40%);
+  --glow-signal:
+    0 0 0 1px oklch(0.505 0.192 265 / 20%), 0 0 24px -10px oklch(0.505 0.192 265 / 45%);
 }
 
 @layer base {
