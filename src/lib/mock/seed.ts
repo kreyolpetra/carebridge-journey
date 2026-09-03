@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 11;
+export const SEED_VERSION = 12;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -37,6 +37,14 @@ export const DEMO_USER_IDS = {
 } as const;
 
 const nowMs = () => Date.now();
+/** Share of a country's population carrying health insurance, by payment model. */
+const COVERAGE: Record<string, number> = {
+  insured: 0.93,
+  state: 0.97,
+  mixed: 0.64,
+  out_of_pocket: 0.18,
+};
+
 const daysAgo = (d: number) => new Date(nowMs() - d * 86400000).toISOString();
 const daysAhead = (d: number) => new Date(nowMs() + d * 86400000).toISOString();
 const minutesAgo = (m: number) => new Date(nowMs() - m * 60000).toISOString();
@@ -906,7 +914,14 @@ export function buildSeed(): Tables {
         language,
         rural: chance(rng, 0.52),
         km_to_facility: int(rng, 2, 49),
-        insurer: pick(rng, INSURERS),
+        // Coverage follows the country's payment model. Everyone carrying a
+        // carrier made the insurer's "uninsured" figure zero and quietly
+        // erased the population the brief cares most about: in an
+        // out-of-pocket system most people are not insured at all, and that
+        // is the access gap, not a rounding error.
+        insurer: chance(rng, COVERAGE[ISLANDS.find((i) => i.code === code)?.payment ?? ""] ?? 0.7)
+          ? pick(rng, INSURERS)
+          : null,
         created_at: daysAgo(int(rng, 30, 500)),
       });
     }

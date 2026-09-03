@@ -27,6 +27,7 @@ import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPreventionRouteImport } from './routes/_authenticated/prevention'
 import { Route as AuthenticatedRecordRouteImport } from './routes/_authenticated/record'
 import { Route as AuthenticatedRegistryRouteImport } from './routes/_authenticated/registry'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPatientsPatientIdRouteImport } from './routes/_authenticated/patients_.$patientId'
 import { Route as ApiPublicFhirMetadataRouteImport } from './routes/api/public/fhir/metadata'
@@ -124,6 +125,11 @@ const AuthenticatedRegistryRoute = AuthenticatedRegistryRouteImport.update({
   path: '/registry',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/prevention': typeof AuthenticatedPreventionRoute
   '/record': typeof AuthenticatedRecordRoute
   '/registry': typeof AuthenticatedRegistryRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/patients/$patientId': typeof AuthenticatedPatientsPatientIdRoute
   '/api/public/fhir/metadata': typeof ApiPublicFhirMetadataRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/prevention': typeof AuthenticatedPreventionRoute
   '/record': typeof AuthenticatedRecordRoute
   '/registry': typeof AuthenticatedRegistryRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/': typeof AuthenticatedIndexRoute
   '/patients/$patientId': typeof AuthenticatedPatientsPatientIdRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/_authenticated/prevention': typeof AuthenticatedPreventionRoute
   '/_authenticated/record': typeof AuthenticatedRecordRoute
   '/_authenticated/registry': typeof AuthenticatedRegistryRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/patients_/$patientId': typeof AuthenticatedPatientsPatientIdRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/prevention'
     | '/record'
     | '/registry'
+    | '/reports'
     | '/settings'
     | '/patients/$patientId'
     | '/api/public/fhir/metadata'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/prevention'
     | '/record'
     | '/registry'
+    | '/reports'
     | '/settings'
     | '/'
     | '/patients/$patientId'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/_authenticated/prevention'
     | '/_authenticated/record'
     | '/_authenticated/registry'
+    | '/_authenticated/reports'
     | '/_authenticated/settings'
     | '/_authenticated/'
     | '/_authenticated/patients_/$patientId'
@@ -438,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRegistryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -492,6 +511,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPreventionRoute: typeof AuthenticatedPreventionRoute
   AuthenticatedRecordRoute: typeof AuthenticatedRecordRoute
   AuthenticatedRegistryRoute: typeof AuthenticatedRegistryRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedPatientsPatientIdRoute: typeof AuthenticatedPatientsPatientIdRoute
@@ -513,6 +533,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPreventionRoute: AuthenticatedPreventionRoute,
   AuthenticatedRecordRoute: AuthenticatedRecordRoute,
   AuthenticatedRegistryRoute: AuthenticatedRegistryRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedPatientsPatientIdRoute: AuthenticatedPatientsPatientIdRoute,

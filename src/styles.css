@@ -210,3 +210,48 @@
 @utility pulse-critical {
   animation: pulse-ring 2s infinite;
 }
+
+/* ------------------------------------------------------------------ */
+/* Printing a report                                                   */
+/* ------------------------------------------------------------------ */
+/* A report that cannot leave the screen is not a report. Printing drops
+   the app chrome — sidebar, header, the report's own toolbar — and keeps
+   the document: its title, the period it covers, and who generated it.
+   Sections are kept off page breaks so a table is not split across two
+   sheets, which is the difference between a paper someone reads and one
+   they put down. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  aside,
+  header,
+  .report-actions {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* The shell centres itself on screen; on paper the page margin does that. */
+  .report-root {
+    max-width: none;
+    padding: 0;
+  }
+
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Panels are defined by shadow and tint on screen; on paper a hairline
+     reads better and does not drink toner. */
+  .panel,
+  .report-section {
+    box-shadow: none !important;
+    border: 1px solid #d4d4d4 !important;
+    background: #fff !important;
+  }
+}

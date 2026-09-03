@@ -14,6 +14,7 @@ import {
   Users,
   CalendarDays,
   Landmark,
+  FileBarChart,
   type LucideIcon,
 } from "lucide-react";
 import { STAFF_ROLE_TIER, type CareTier } from "@/lib/access";
@@ -32,6 +33,7 @@ export type NavItem = {
     | "/access-log"
     | "/insurer"
     | "/cooperative"
+    | "/reports"
     | "/settings";
   label: string;
   icon: LucideIcon;
@@ -165,6 +167,14 @@ export const NAV_ITEMS: NavItem[] = [
     keywords: "premium credits adherence pricing",
   },
   {
+    to: "/reports",
+    label: "Reports",
+    icon: FileBarChart,
+    roles: ALL,
+    group: "Work",
+    keywords: "report export print pdf summary population panel governance adherence",
+  },
+  {
     to: "/settings",
     label: "Settings",
     icon: Settings,
@@ -179,6 +189,7 @@ const PATIENT_LABELS: Record<string, string> = {
   "/patient": "My messages",
   "/appointments": "My appointments",
   "/record": "My record",
+  "/reports": "My health summary",
   "/consent": "Sharing & permissions",
   "/access-log": "Who has looked at my record",
 };
