@@ -28,6 +28,7 @@ import type { AccessDecision } from "@/lib/access-basis";
 import { CareTimeline } from "@/components/patient/CareTimeline";
 import { BookAppointment } from "@/components/patient/BookAppointment";
 import { AddPaperRecord } from "@/components/patient/AddPaperRecord";
+import { SafetyPanel } from "@/components/patient/SafetyPanel";
 import { PatientLine as CareLine } from "@/routes/_authenticated/patient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
@@ -153,6 +154,10 @@ export function PatientChart({
           </div>
         </Panel>
       </div>
+
+      {/* Above the clinical detail on purpose. A safety stop that sits below
+          the fold is a warning nobody read. */}
+      <SafetyPanel bundle={b} />
 
       <Panel>
         <PanelHeader

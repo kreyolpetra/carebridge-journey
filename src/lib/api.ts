@@ -69,6 +69,12 @@ export type Patient = {
   rural: boolean;
   km_to_facility: number;
   insurer: string | null;
+  /**
+   * Structured, not free text in a note. A safety rule cannot read prose, and
+   * an allergy the system cannot read is one it cannot stop you prescribing
+   * against.
+   */
+  allergies: string[];
 };
 export type Vital = {
   id: string;
@@ -416,6 +422,48 @@ export const dataRequestsQuery = queryOptions({
         .from("data_requests")
         .select("*")
         .order("created_at", { ascending: false })
+        .limit(500),
+    ),
+});
+
+/**
+ * A safety finding someone sent for independent review, and its outcome.
+ *
+ * Findings themselves are computed live from the chart, so there is no stored
+ * copy to drift out of date. What is stored is the human part CareBridge's
+ * §6.10 insists on keeping: who raised it, what the rule read at the time, who
+ * reviewed it, and what they decided.
+ */
+export type SafetyReview = {
+  id: string;
+  patient_id: string;
+  finding_key: string;
+  kind: string;
+  tier: string;
+  title: string;
+  detail: string;
+  evidence: string[];
+  status: string;
+  raised_by_id: string | null;
+  raised_by_name: string;
+  raised_at: string;
+  reviewer_id: string | null;
+  reviewer_name: string | null;
+  decision: string | null;
+  note: string;
+  resolved_at: string | null;
+  created_at: string;
+};
+
+export const safetyReviewsQuery = queryOptions({
+  queryKey: ["safety_reviews"],
+  staleTime: 2_000,
+  queryFn: async () =>
+    unwrap<SafetyReview[]>(
+      await supabase
+        .from("safety_reviews")
+        .select("*")
+        .order("raised_at", { ascending: false })
         .limit(500),
     ),
 });

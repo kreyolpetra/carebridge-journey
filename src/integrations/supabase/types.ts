@@ -1177,6 +1177,7 @@ export type Database = {
           age: number
           created_at: string
           date_of_birth: string | null
+          allergies: string[]
           full_name: string
           id: string
           mrn: string | null
@@ -1193,6 +1194,7 @@ export type Database = {
           age: number
           created_at?: string
           date_of_birth?: string | null
+          allergies?: string[]
           full_name: string
           id?: string
           mrn?: string | null
@@ -1209,6 +1211,7 @@ export type Database = {
           age?: number
           created_at?: string
           date_of_birth?: string | null
+          allergies?: string[]
           full_name?: string
           id?: string
           mrn?: string | null
@@ -1586,6 +1589,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      safety_reviews: {
+        Row: {
+          created_at: string
+          decision: string | null
+          detail: string
+          evidence: string[]
+          finding_key: string
+          id: string
+          kind: string
+          note: string
+          patient_id: string
+          raised_at: string
+          raised_by_id: string | null
+          raised_by_name: string
+          resolved_at: string | null
+          reviewer_id: string | null
+          reviewer_name: string | null
+          status: string
+          tier: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          decision?: string | null
+          detail?: string
+          evidence?: string[]
+          finding_key: string
+          id?: string
+          kind?: string
+          note?: string
+          patient_id: string
+          raised_at?: string
+          raised_by_id?: string | null
+          raised_by_name?: string
+          resolved_at?: string | null
+          reviewer_id?: string | null
+          reviewer_name?: string | null
+          status?: string
+          tier?: string
+          title?: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string | null
+          detail?: string
+          evidence?: string[]
+          finding_key?: string
+          id?: string
+          kind?: string
+          note?: string
+          patient_id?: string
+          raised_at?: string
+          raised_by_id?: string | null
+          raised_by_name?: string
+          resolved_at?: string | null
+          reviewer_id?: string | null
+          reviewer_name?: string | null
+          status?: string
+          tier?: string
+          title?: string
+        }
+        Relationships: []
       }
       stock_items: {
         Row: {

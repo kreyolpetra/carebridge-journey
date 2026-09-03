@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 12;
+export const SEED_VERSION = 16;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -44,6 +44,20 @@ const COVERAGE: Record<string, number> = {
   mixed: 0.64,
   out_of_pocket: 0.18,
 };
+
+/**
+ * Most people have none. The ones who do are the reason the medication safety
+ * rule exists, so the common Caribbean culprits are weighted realistically
+ * rather than sprinkled evenly.
+ */
+const ALLERGENS = ["Penicillin", "Sulfa drugs", "Aspirin", "NSAIDs", "Codeine", "Iodine contrast"];
+function allergiesFor(rng: Rng): string[] {
+  if (!chance(rng, 0.22)) return [];
+  const n = chance(rng, 0.18) ? 2 : 1;
+  const out = new Set<string>();
+  while (out.size < n) out.add(pick(rng, ALLERGENS));
+  return [...out];
+}
 
 const daysAgo = (d: number) => new Date(nowMs() - d * 86400000).toISOString();
 const daysAhead = (d: number) => new Date(nowMs() + d * 86400000).toISOString();
@@ -750,6 +764,7 @@ export function buildSeed(): Tables {
     api_clients: [],
     workflow_events: [],
     cooperative_members: [],
+    safety_reviews: [],
     data_requests: [],
   };
 
@@ -919,6 +934,7 @@ export function buildSeed(): Tables {
         // erased the population the brief cares most about: in an
         // out-of-pocket system most people are not insured at all, and that
         // is the access gap, not a rounding error.
+        allergies: allergiesFor(rng),
         insurer: chance(rng, COVERAGE[ISLANDS.find((i) => i.code === code)?.payment ?? ""] ?? 0.7)
           ? pick(rng, INSURERS)
           : null,
@@ -941,6 +957,7 @@ export function buildSeed(): Tables {
     rural: true,
     km_to_facility: 38,
     insurer: "National Health Fund",
+    allergies: ["Penicillin"],
     created_at: daysAgo(700),
   });
 
@@ -1015,6 +1032,67 @@ export function buildSeed(): Tables {
           sensitivity: "standard",
         });
       }
+
+      /**
+       * Second-line diabetes therapy.
+       *
+       * Metformin alone was the entire diabetes catalogue, which meant no
+       * seeded patient could ever collide with an allergy — the safety rule
+       * had nothing to find and would have looked like a decoration. A
+       * sulfonylurea added when metformin is not holding is ordinary practice,
+       * and it is sulfa-derived, so a patient recorded as allergic to sulfa
+       * drugs now produces a real conflict rather than a contrived one.
+       */
+      if (name === "Type 2 Diabetes" && !isHero && chance(rng, 0.3)) {
+        const isl = p["island_code"] as string;
+        t["medications"]!.push({
+          id: uuid(rng),
+          patient_id: p["id"],
+          name: "Gliclazide",
+          dosage: "80mg",
+          frequency: "twice daily",
+          adherence_pct: int(rng, 55, 100),
+          last_refill_on: dateDaysAgo(int(rng, 0, 40)),
+          days_supply_left: Math.max(0, int(rng, 4, 30)),
+          facility_id: isl === "JM" ? JM_CLINIC_ID : facilitiesByIsland[isl]?.[0]?.["id"],
+          sensitivity: "standard",
+        });
+      }
+    }
+  }
+
+  /**
+   * One deliberate, reachable safety case.
+   *
+   * The random conflicts above are real but rare, and the one the seed happened
+   * to produce sat on a Haitian patient the demo consultant holds no lawful
+   * basis for — so the safety rule was correct, invisible, and undemonstrable
+   * at the same time. This plants a conflict on a patient inside his own
+   * hospital's roster: sulfa allergy, second-line sulfonylurea, both already
+   * ordinary in this cohort.
+   */
+  // Index 1 rather than any index: the cardiology caseload below is
+  // `i % 5 < 2`, so only those patients have the demo consultant named on
+  // their care team. A safety case he cannot open is not a demo.
+  const safetyCase = ttGeneralRoster[1];
+  if (safetyCase) {
+    safetyCase["allergies"] = ["Sulfa drugs", "Penicillin"];
+    const already = (t["medications"] ?? []).some(
+      (m) => m["patient_id"] === safetyCase["id"] && m["name"] === "Gliclazide",
+    );
+    if (!already) {
+      t["medications"]!.push({
+        id: uuid(rng),
+        patient_id: safetyCase["id"],
+        name: "Gliclazide",
+        dosage: "80mg",
+        frequency: "twice daily",
+        adherence_pct: int(rng, 60, 90),
+        last_refill_on: dateDaysAgo(int(rng, 2, 20)),
+        days_supply_left: int(rng, 8, 26),
+        facility_id: TT_HOSPITAL_ID,
+        sensitivity: "standard",
+      });
     }
   }
 
