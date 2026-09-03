@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 9;
+export const SEED_VERSION = 11;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -1344,6 +1344,73 @@ export function buildSeed(): Tables {
     },
   ];
 
+  /**
+   * Discharge follow-up into the community clinic.
+   *
+   * The regional agreements above all point into the tertiary centre, which
+   * left the clinic nurse looking at a directory of nothing but sealed names.
+   * She does not get regional reach — a community clinic is not a referral
+   * destination for the whole Caribbean, and pretending otherwise would
+   * flatten the tier model this product argues for. What she does get is the
+   * ordinary one: the general hospital in her own country sending her the
+   * discharge summaries for patients it sends home to her catchment.
+   */
+  t["data_sharing_agreements"]!.push({
+    id: uuid(rng),
+    reference: "DSA-JM-JM-2026-017",
+    from_facility_id: JM_HOSPITAL_ID,
+    to_facility_id: JM_CLINIC_ID,
+    purpose: "Discharge follow-up and chronic care handover into the community clinic",
+    scope: ["demographics", "vitals", "conditions", "medications", "encounter summaries"],
+    status: "active",
+    executed_on: dateDaysAgo(210),
+    expires_at: dateDaysAhead(430),
+    review_due_on: dateDaysAhead(110),
+    patient_opt_out_allowed: true,
+    created_at: daysAgo(210),
+  });
+
+  /**
+   * The rest of the regional referral network.
+   *
+   * With agreements only from the two Jamaican facilities, almost every name in
+   * the directory resolved to no lawful basis, and a reader browsing All
+   * patients saw a page of nothing but SEALED — which reads as a broken
+   * product rather than a working access model. It also hid the more
+   * interesting half of the model: that a basis can come from an institution
+   * as well as from a care team.
+   *
+   * A tertiary cardiac centre holding standing agreements with the general
+   * hospitals that refer into it is the ordinary arrangement, so the network is
+   * seeded that way. Everyone else stays sealed.
+   */
+  for (const island of ISLANDS) {
+    if (island.code === "TT" || island.code === "JM") continue;
+    const general = (facilitiesByIsland[island.code] ?? []).find((f) => f["kind"] === "hospital");
+    if (!general) continue;
+    t["data_sharing_agreements"]!.push({
+      id: uuid(rng),
+      reference: `DSA-${island.code}-TT-2026-0${int(rng, 10, 99)}`,
+      from_facility_id: general["id"],
+      to_facility_id: TT_HOSPITAL_ID,
+      purpose: `Cardiology and endocrinology referral pathway (${island.name} General to Trinidad General)`,
+      scope: [
+        "demographics",
+        "vitals",
+        "conditions",
+        "medications",
+        "referrals",
+        "encounter summaries",
+      ],
+      status: "active",
+      executed_on: dateDaysAgo(int(rng, 90, 400)),
+      expires_at: dateDaysAhead(int(rng, 200, 600)),
+      review_due_on: dateDaysAhead(int(rng, 60, 200)),
+      patient_opt_out_allowed: true,
+      created_at: daysAgo(int(rng, 90, 400)),
+    });
+  }
+
   // ---- sensitive grants (one illustrative pending example) ----
   const cardiologyTT = t.providers.find(
     (p) => p.island_code === "TT" && p.specialty === "Cardiology",
@@ -1467,6 +1534,50 @@ export function buildSeed(): Tables {
       sensitivity: "standard",
     });
   }
+
+  /**
+   * Hospital attendances at each island's own general hospital.
+   *
+   * The regional agreements above only reach a patient who actually attended
+   * the referring hospital, and encounters were backfilled solely from
+   * consultations — so almost nobody had one and the agreements covered
+   * nobody. A minority of a chronic-disease cohort having been through their
+   * national hospital in the past year is unremarkable, and it is what makes
+   * the institutional basis real rather than declared.
+   */
+  const ATTENDANCE_REASONS = [
+    ["Hypertensive urgency", "BP settled with oral therapy; discharged on review."],
+    ["Poorly controlled diabetes", "Glycaemic control reviewed, insulin titrated."],
+    ["Chest pain — ruled out", "Troponin negative, discharged with cardiology follow-up."],
+    ["Diabetic foot review", "Ulcer dressed, community nursing arranged."],
+    ["Renal function review", "eGFR stable, nephrology follow-up in three months."],
+  ] as const;
+  for (const p of t["patients"] ?? []) {
+    if (p["id"] === HERO_PATIENT_ID) continue;
+    if (!chance(rng, 0.34)) continue;
+    const general = (facilitiesByIsland[p["island_code"] as string] ?? []).find(
+      (f) => f["kind"] === "hospital",
+    );
+    if (!general) continue;
+    const started = int(rng, 20, 330);
+    const reason = pick(rng, ATTENDANCE_REASONS as unknown as (readonly [string, string])[]);
+    t["encounters"]!.push({
+      id: uuid(rng),
+      patient_id: p["id"],
+      facility_id: general["id"],
+      provider_id: null,
+      consultation_id: null,
+      kind: "hospital",
+      reason: reason[0],
+      summary: reason[1],
+      status: "closed",
+      started_at: daysAgo(started),
+      ended_at: daysAgo(started - (rng() < 0.5 ? 0 : 1)),
+      created_at: daysAgo(started),
+      sensitivity: "standard",
+    });
+  }
+
   t.encounters.push(
     {
       id: uuid(rng),
