@@ -369,6 +369,57 @@ export type WorkflowEvent = {
   created_at: string;
 };
 
+/**
+ * Membership of the health data cooperative. A member is a patient who has
+ * opted their de-identified record into the research pool, and who can leave.
+ * Nothing enters an extract without a row here in `active` status.
+ */
+export type CooperativeMember = {
+  id: string;
+  patient_id: string;
+  status: string;
+  scope: string[];
+  joined_at: string;
+  withdrawn_at: string | null;
+  created_at: string;
+};
+
+export const cooperativeMembersQuery = queryOptions({
+  queryKey: ["cooperative_members"],
+  staleTime: 5_000,
+  queryFn: async () =>
+    unwrap<CooperativeMember[]>(await supabase.from("cooperative_members").select("*").limit(3000)),
+});
+
+/** An institution asking for access to a cohort, and the decision on it. */
+export type DataRequest = {
+  id: string;
+  institution: string;
+  requester_unit: string;
+  purpose: string;
+  cohort: string;
+  islands: string[];
+  status: string;
+  fee_usd: number;
+  decided_at: string | null;
+  decided_by: string | null;
+  decision_note: string;
+  created_at: string;
+};
+
+export const dataRequestsQuery = queryOptions({
+  queryKey: ["data_requests"],
+  staleTime: 2_000,
+  queryFn: async () =>
+    unwrap<DataRequest[]>(
+      await supabase
+        .from("data_requests")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ),
+});
+
 export const workflowEventsQuery = queryOptions({
   queryKey: ["workflow_events"],
   staleTime: 2_000,

@@ -12,13 +12,29 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { HeartPulse, Pill as PillIcon, Stethoscope, FileText, CalendarDays, ChevronRight, Lock } from "lucide-react";
+import {
+  HeartPulse,
+  Pill as PillIcon,
+  Stethoscope,
+  FileText,
+  CalendarDays,
+  ChevronRight,
+  Lock,
+} from "lucide-react";
 import { HERO_PATIENT_ID, patientBundleQuery, providersQuery, type Consultation } from "@/lib/api";
 import { VisitDialog, resultsForVisit } from "@/components/VisitDialog";
 import { CareNetwork } from "@/components/CareNetwork";
+import { CooperativeCard } from "@/components/patient/CooperativeCard";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
-import { bandClasses, severityClasses, shortDate, timeAgo, clockTime, LANGUAGE_LABEL } from "@/lib/format";
+import {
+  bandClasses,
+  severityClasses,
+  shortDate,
+  timeAgo,
+  clockTime,
+  LANGUAGE_LABEL,
+} from "@/lib/format";
 import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { SENSITIVE_LABEL, isSensitive, isGrantActive } from "@/lib/access";
@@ -36,7 +52,8 @@ export const Route = createFileRoute("/_authenticated/record")({
       { property: "og:title", content: "My Health Record — CariCare Grid" },
       {
         property: "og:description",
-        content: "Every reading, medication and referral in your chronic-care record, in plain language.",
+        content:
+          "Every reading, medication and referral in your chronic-care record, in plain language.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -91,7 +108,9 @@ function MyRecord() {
         <PanelHeader
           title={`${b.patient.full_name} · ${b.patient.age}${b.patient.sex}`}
           subtitle={`${b.patient.parish}, ${b.patient.island_code} · ${b.patient.km_to_facility} km from the clinic · ${LANGUAGE_LABEL[b.patient.language] ?? b.patient.language} · ${b.patient.insurer ?? "Uninsured"}`}
-          right={b.risk ? <Pill className={bandClasses(b.risk.band)}>risk {b.risk.score}</Pill> : null}
+          right={
+            b.risk ? <Pill className={bandClasses(b.risk.band)}>risk {b.risk.score}</Pill> : null
+          }
         />
         <div className="grid gap-3 p-5 sm:grid-cols-4">
           <Stat
@@ -133,8 +152,20 @@ function MyRecord() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} domain={[50, 200]} />
                 <Tooltip />
-                <Line type="monotone" dataKey="systolic" stroke="var(--color-critical)" dot={false} strokeWidth={2} />
-                <Line type="monotone" dataKey="diastolic" stroke="var(--color-primary)" dot={false} strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="systolic"
+                  stroke="var(--color-critical)"
+                  dot={false}
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="diastolic"
+                  stroke="var(--color-primary)"
+                  dot={false}
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -178,7 +209,8 @@ function MyRecord() {
                       <Pill className="border-high/40 bg-high/10 text-high">
                         <Lock className="h-3 w-3" />
                         sealed ·{" "}
-                        {SENSITIVE_LABEL[(c as { sensitivity?: string }).sensitivity ?? ""] ?? "sensitive"}
+                        {SENSITIVE_LABEL[(c as { sensitivity?: string }).sensitivity ?? ""] ??
+                          "sensitive"}
                       </Pill>
                     ) : null}
                   </span>
@@ -192,10 +224,15 @@ function MyRecord() {
         </Panel>
 
         <Panel>
-          <PanelHeader title="My medications" subtitle="Doses, supply left and how well you are keeping up" />
+          <PanelHeader
+            title="My medications"
+            subtitle="Doses, supply left and how well you are keeping up"
+          />
           <div className="divide-y divide-border">
             {b.medications.length === 0 ? (
-              <p className="px-5 py-6 text-[13px] text-muted-foreground">No medications recorded.</p>
+              <p className="px-5 py-6 text-[13px] text-muted-foreground">
+                No medications recorded.
+              </p>
             ) : (
               b.medications.map((m) => (
                 <div key={m.id} className="px-5 py-3">
@@ -203,7 +240,11 @@ function MyRecord() {
                     <span className="flex items-center gap-2 text-[13.5px] font-semibold">
                       <PillIcon className="h-4 w-4 text-primary" /> {m.name} {m.dosage}
                     </span>
-                    <Pill className={m.days_supply_left <= 7 ? bandClasses("critical") : bandClasses("low")}>
+                    <Pill
+                      className={
+                        m.days_supply_left <= 7 ? bandClasses("critical") : bandClasses("low")
+                      }
+                    >
                       {m.days_supply_left}d left
                     </Pill>
                   </div>
@@ -213,7 +254,8 @@ function MyRecord() {
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface">
                     <div
                       className={
-                        "h-full rounded-full " + (m.adherence_pct < 70 ? "bg-critical" : "bg-primary")
+                        "h-full rounded-full " +
+                        (m.adherence_pct < 70 ? "bg-critical" : "bg-primary")
                       }
                       style={{ width: `${Math.min(100, m.adherence_pct)}%` }}
                     />
@@ -261,7 +303,9 @@ function MyRecord() {
                       <Pill className={bandClasses(upcoming ? "moderate" : "low")}>
                         {upcoming ? "upcoming" : c.status}
                       </Pill>
-                      <span className="text-[11.5px] text-muted-foreground">{timeAgo(c.scheduled_at)}</span>
+                      <span className="text-[11.5px] text-muted-foreground">
+                        {timeAgo(c.scheduled_at)}
+                      </span>
                     </div>
                   </div>
                   <div className="mt-1.5 text-[12.5px] text-muted-foreground">
@@ -291,7 +335,10 @@ function MyRecord() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel>
-          <PanelHeader title="What the Grid found" subtitle="Every time your messages were triaged" />
+          <PanelHeader
+            title="What the Grid found"
+            subtitle="Every time your messages were triaged"
+          />
           <div className="divide-y divide-border">
             {b.triage.length === 0 ? (
               <p className="px-5 py-6 text-[13px] text-muted-foreground">
@@ -305,11 +352,17 @@ function MyRecord() {
               b.triage.map((t) => (
                 <div key={t.id} className="px-5 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <Pill className={severityClasses(t.severity)}>{t.severity.replace("_", " ")}</Pill>
-                    <span className="text-[11.5px] text-muted-foreground">{timeAgo(t.created_at)}</span>
+                    <Pill className={severityClasses(t.severity)}>
+                      {t.severity.replace("_", " ")}
+                    </Pill>
+                    <span className="text-[11.5px] text-muted-foreground">
+                      {timeAgo(t.created_at)}
+                    </span>
                   </div>
                   <div className="mt-1.5 text-[13px] font-semibold">{t.category}</div>
-                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{t.rationale}</p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                    {t.rationale}
+                  </p>
                 </div>
               ))
             )}
@@ -317,7 +370,10 @@ function MyRecord() {
         </Panel>
 
         <Panel>
-          <PanelHeader title="My referrals" subtitle="Where you have been sent and how long it took" />
+          <PanelHeader
+            title="My referrals"
+            subtitle="Where you have been sent and how long it took"
+          />
           <div className="divide-y divide-border">
             {b.referrals.length === 0 ? (
               <p className="px-5 py-6 text-[13px] text-muted-foreground">No referrals on file.</p>
@@ -328,7 +384,9 @@ function MyRecord() {
                     <span className="flex items-center gap-2 text-[13.5px] font-semibold">
                       <Stethoscope className="h-4 w-4 text-primary" /> {r.specialty}
                     </span>
-                    <Pill className={bandClasses(r.status === "completed" ? "low" : "moderate")}>{r.status}</Pill>
+                    <Pill className={bandClasses(r.status === "completed" ? "low" : "moderate")}>
+                      {r.status}
+                    </Pill>
                   </div>
                   <div className="mt-1.5 text-[12.5px] text-muted-foreground">
                     {providerName(r.to_provider_id)}
@@ -357,17 +415,29 @@ function MyRecord() {
         />
         <div className="divide-y divide-border">
           {b.grants.length === 0 ? (
-            <p className="px-5 py-6 text-[13px] text-muted-foreground">Nobody outside your clinic has access.</p>
+            <p className="px-5 py-6 text-[13px] text-muted-foreground">
+              Nobody outside your clinic has access.
+            </p>
           ) : (
             b.grants.map((g) => (
               <div key={g.id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[13.5px] font-semibold">{providerName(g.provider_id)}</div>
+                  <div className="truncate text-[13.5px] font-semibold">
+                    {providerName(g.provider_id)}
+                  </div>
                   <div className="truncate text-[12px] text-muted-foreground">
                     {g.purpose} · {g.scope.join(", ")}
                   </div>
                 </div>
-                <Pill className={bandClasses(isGrantActive(g.status) ? "low" : g.status === "pending" ? "moderate" : "critical")}>
+                <Pill
+                  className={bandClasses(
+                    isGrantActive(g.status)
+                      ? "low"
+                      : g.status === "pending"
+                        ? "moderate"
+                        : "critical",
+                  )}
+                >
                   {g.status}
                 </Pill>
               </div>
@@ -375,6 +445,8 @@ function MyRecord() {
           )}
         </div>
       </Panel>
+
+      <CooperativeCard patientId={id} />
 
       <VisitDialog
         visit={openVisit}

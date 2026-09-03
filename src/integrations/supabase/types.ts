@@ -591,6 +591,81 @@ export type Database = {
           },
         ]
       }
+      cooperative_members: {
+        Row: {
+          created_at: string
+          id: string
+          joined_at: string
+          patient_id: string
+          scope: string[]
+          status: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          patient_id: string
+          scope?: string[]
+          status?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          patient_id?: string
+          scope?: string[]
+          status?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      data_requests: {
+        Row: {
+          cohort: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string
+          fee_usd: number
+          id: string
+          institution: string
+          islands: string[]
+          purpose: string
+          requester_unit: string
+          status: string
+        }
+        Insert: {
+          cohort?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string
+          fee_usd?: number
+          id?: string
+          institution: string
+          islands?: string[]
+          purpose?: string
+          requester_unit?: string
+          status?: string
+        }
+        Update: {
+          cohort?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string
+          fee_usd?: number
+          id?: string
+          institution?: string
+          islands?: string[]
+          purpose?: string
+          requester_unit?: string
+          status?: string
+        }
+        Relationships: []
+      }
       consultations: {
         Row: {
           created_at: string

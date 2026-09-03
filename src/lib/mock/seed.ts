@@ -741,6 +741,8 @@ export function buildSeed(): Tables {
     clinical_documents: [],
     api_clients: [],
     workflow_events: [],
+    cooperative_members: [],
+    data_requests: [],
   };
 
   // ---- islands ----
@@ -2584,6 +2586,128 @@ export function buildSeed(): Tables {
       created_at: daysAgo(int(rng, 40, 900)),
     })),
   ];
+
+  // ---- the health data cooperative ----
+  // Module 07 of the brief. The distinguishing word is "cooperative": the
+  // people whose data it is are members, not sources. So membership is opted
+  // into and revocable, the pool holds only members, releases are governed by
+  // a minimum cohort size, and the money comes back. A version of this that
+  // simply sold regional health data would be the thing the region already
+  // has reason to distrust.
+  const MEMBER_RATE: Record<string, number> = {
+    well_resourced: 0.72,
+    clinician_rich: 0.68,
+    middle: 0.61,
+    under_resourced: 0.47,
+  };
+  for (const patient of t["patients"] ?? []) {
+    const island = ISLANDS.find((i) => i.code === patient["island_code"]);
+    if (!chance(rng, MEMBER_RATE[island?.tier ?? "middle"] ?? 0.6)) continue;
+    // A few people joined and then left. Withdrawal has to be visible in the
+    // data or the consent story is decorative.
+    const withdrawn = chance(rng, 0.05);
+    const joined = int(rng, 20, 400);
+    (t["cooperative_members"] ??= []).push({
+      id: uuid(rng),
+      patient_id: patient["id"],
+      status: withdrawn ? "withdrawn" : "active",
+      scope: ["vitals", "conditions", "medications", "outcomes"],
+      joined_at: daysAgo(joined),
+      withdrawn_at: withdrawn ? daysAgo(int(rng, 1, joined - 1 > 1 ? joined - 1 : 2)) : null,
+      created_at: daysAgo(joined),
+    });
+  }
+
+  const REQUESTS: [string, string, string, string, string[], string, string, number][] = [
+    [
+      "University of the West Indies",
+      "Faculty of Medical Sciences",
+      "Hypertension control rates in adults over 50 across the Anglophone Caribbean",
+      "Home blood pressure series, 90 days, with medication adherence",
+      ["JM", "TT", "BB", "AG", "DM", "GD", "LC", "VC"],
+      "approved",
+      "Cohort well above the minimum. Purpose is public-health research, results published open access.",
+      18000,
+    ],
+    [
+      "Caribbean Public Health Agency",
+      "CARPHA Surveillance Division",
+      "Regional diabetes prevalence and glycaemic control benchmarking",
+      "Glucose series and diagnosis dates, all member islands",
+      ["JM", "TT", "BB", "HT", "DO", "CU", "AG", "DM", "GD", "LC", "VC"],
+      "approved",
+      "Regional public-health mandate. No fee — CARPHA returns the analysis to member states.",
+      0,
+    ],
+    [
+      "Novara Therapeutics",
+      "Real-world evidence group",
+      "Adherence patterns for fixed-dose combination antihypertensives",
+      "Medication adherence and BP outcomes, members on combination therapy",
+      ["JM", "TT", "BB"],
+      "approved",
+      "Commercial research. Fee set at the cooperative's commercial rate; no re-identification permitted; no onward transfer.",
+      64000,
+    ],
+    [
+      "Atlantic Health Analytics",
+      "Data acquisition",
+      "Bulk acquisition of longitudinal Caribbean patient records for resale",
+      "Full record export, all patients",
+      ["JM", "TT", "BB", "HT", "DO", "CU"],
+      "declined",
+      "Declined. Onward resale is incompatible with the terms members agreed to, and the request covers non-members.",
+      0,
+    ],
+    [
+      "Kingston Renal Institute",
+      "Nephrology research unit",
+      "Progression to dialysis among diabetic patients in Dominica",
+      "Renal outcomes, Dominica members only",
+      ["DM"],
+      "pending",
+      "",
+      12000,
+    ],
+    [
+      "PAHO / WHO",
+      "Regional NCD programme",
+      "Effect of teleconsultation access on blood pressure control",
+      "Referral and consultation history against BP outcomes",
+      ["JM", "TT", "HT", "DO", "LC"],
+      "pending",
+      "",
+      0,
+    ],
+    [
+      "Global NCD Alliance",
+      "Policy research",
+      "Cost of untreated hypertension in small island developing states",
+      "Aggregate risk and outcome counts by island",
+      ["JM", "TT", "BB", "HT", "DO", "AG", "DM", "GD", "LC", "VC", "CU"],
+      "pending",
+      "",
+      9500,
+    ],
+  ];
+  for (const [inst, unit, purpose, cohort, islandCodes, status, note, fee] of REQUESTS) {
+    const created = int(rng, 2, 90);
+    (t["data_requests"] ??= []).push({
+      id: uuid(rng),
+      institution: inst,
+      requester_unit: unit,
+      purpose,
+      cohort,
+      islands: islandCodes,
+      status,
+      fee_usd: fee,
+      decided_at:
+        status === "pending" ? null : daysAgo(int(rng, 1, created - 1 > 1 ? created - 1 : 2)),
+      decided_by: status === "pending" ? null : "Regional NCD Coordination Unit",
+      decision_note: note,
+      created_at: daysAgo(created),
+    });
+  }
 
   return t;
 }

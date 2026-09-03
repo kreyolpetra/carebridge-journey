@@ -13,6 +13,7 @@ import {
   Settings,
   Users,
   CalendarDays,
+  Landmark,
   type LucideIcon,
 } from "lucide-react";
 import { STAFF_ROLE_TIER, type CareTier } from "@/lib/access";
@@ -30,6 +31,7 @@ export type NavItem = {
     | "/consent"
     | "/access-log"
     | "/insurer"
+    | "/cooperative"
     | "/settings";
   label: string;
   icon: LucideIcon;
@@ -139,6 +141,14 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ALL,
     group: "Work",
     keywords: "who viewed my record transparency audit access log break glass",
+  },
+  {
+    to: "/cooperative",
+    label: "Data cooperative",
+    icon: Landmark,
+    roles: ["ministry", "admin"],
+    group: "Work",
+    keywords: "research access consent cohort anonymisation governance revenue dividend pharma",
   },
   {
     to: "/insurer",

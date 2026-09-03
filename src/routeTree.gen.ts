@@ -16,6 +16,7 @@ import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 import { Route as AuthenticatedClinicianRouteImport } from './routes/_authenticated/clinician'
 import { Route as AuthenticatedConsentRouteImport } from './routes/_authenticated/consent'
+import { Route as AuthenticatedCooperativeRouteImport } from './routes/_authenticated/cooperative'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDetectionRouteImport } from './routes/_authenticated/detection'
 import { Route as AuthenticatedFacilityRouteImport } from './routes/_authenticated/facility'
@@ -67,6 +68,12 @@ const AuthenticatedConsentRoute = AuthenticatedConsentRouteImport.update({
   path: '/consent',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCooperativeRoute =
+  AuthenticatedCooperativeRouteImport.update({
+    id: '/cooperative',
+    path: '/cooperative',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clinician': typeof AuthenticatedClinicianRoute
   '/consent': typeof AuthenticatedConsentRoute
+  '/cooperative': typeof AuthenticatedCooperativeRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/detection': typeof AuthenticatedDetectionRoute
   '/facility': typeof AuthenticatedFacilityRoute
@@ -174,6 +182,7 @@ export interface FileRoutesByTo {
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clinician': typeof AuthenticatedClinicianRoute
   '/consent': typeof AuthenticatedConsentRoute
+  '/cooperative': typeof AuthenticatedCooperativeRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/detection': typeof AuthenticatedDetectionRoute
   '/facility': typeof AuthenticatedFacilityRoute
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
   '/_authenticated/clinician': typeof AuthenticatedClinicianRoute
   '/_authenticated/consent': typeof AuthenticatedConsentRoute
+  '/_authenticated/cooperative': typeof AuthenticatedCooperativeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/detection': typeof AuthenticatedDetectionRoute
   '/_authenticated/facility': typeof AuthenticatedFacilityRoute
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/appointments'
     | '/clinician'
     | '/consent'
+    | '/cooperative'
     | '/dashboard'
     | '/detection'
     | '/facility'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/appointments'
     | '/clinician'
     | '/consent'
+    | '/cooperative'
     | '/dashboard'
     | '/detection'
     | '/facility'
@@ -271,6 +283,7 @@ export interface FileRouteTypes {
     | '/_authenticated/appointments'
     | '/_authenticated/clinician'
     | '/_authenticated/consent'
+    | '/_authenticated/cooperative'
     | '/_authenticated/dashboard'
     | '/_authenticated/detection'
     | '/_authenticated/facility'
@@ -346,6 +359,13 @@ declare module '@tanstack/react-router' {
       path: '/consent'
       fullPath: '/consent'
       preLoaderRoute: typeof AuthenticatedConsentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cooperative': {
+      id: '/_authenticated/cooperative'
+      path: '/cooperative'
+      fullPath: '/cooperative'
+      preLoaderRoute: typeof AuthenticatedCooperativeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -461,6 +481,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppointmentsRoute: typeof AuthenticatedAppointmentsRoute
   AuthenticatedClinicianRoute: typeof AuthenticatedClinicianRoute
   AuthenticatedConsentRoute: typeof AuthenticatedConsentRoute
+  AuthenticatedCooperativeRoute: typeof AuthenticatedCooperativeRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDetectionRoute: typeof AuthenticatedDetectionRoute
   AuthenticatedFacilityRoute: typeof AuthenticatedFacilityRoute
@@ -481,6 +502,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppointmentsRoute: AuthenticatedAppointmentsRoute,
   AuthenticatedClinicianRoute: AuthenticatedClinicianRoute,
   AuthenticatedConsentRoute: AuthenticatedConsentRoute,
+  AuthenticatedCooperativeRoute: AuthenticatedCooperativeRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDetectionRoute: AuthenticatedDetectionRoute,
   AuthenticatedFacilityRoute: AuthenticatedFacilityRoute,
