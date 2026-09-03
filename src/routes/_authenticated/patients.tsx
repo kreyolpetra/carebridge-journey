@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, Lock, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Sparkles,
+  Lock,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   HERO_PATIENT_ID,
@@ -49,6 +57,8 @@ export const Route = createFileRoute("/_authenticated/patients")({
 });
 
 const PAGE_SIZE = 20;
+/** The wide view drops the chart, so it can afford far more rows per page. */
+const WIDE_PAGE_SIZE = 60;
 
 const BANDS = [
   { key: "critical", label: "Critical", hint: "Contact today", tone: "critical" },
@@ -65,6 +75,7 @@ function Patients() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<"mine" | "find">("mine");
+  const [wide, setWide] = useState(false);
   const patients = useQuery(patientsQuery);
   const risks = useQuery(riskScoresQuery);
   const providers = useQuery(providersQuery);
@@ -194,28 +205,36 @@ function Patients() {
   const indexMatches = useMemo(() => {
     if (isAggregateOnly || !accessReady) return [];
     const needle = query.trim().toLowerCase();
-    // You can look anyone up; you cannot read down the list. A directory that
-    // opens as 776 scrollable names is a browsing tool, and browsing strangers
-    // is the one use nobody has a clinical reason for. Searching by name is the
-    // thing a clinician actually needs — finding the person in front of them.
-    if (needle.length < 2) return [];
+    // Browsable. What protects the patient here is that the directory carries no
+    // clinical content, that opening a sealed record is refused, and that the
+    // attempt lands in their own access log — not whether the list is hidden
+    // behind a search box, which anyone can defeat with two keystrokes.
     return (patients.data ?? [])
       .filter(
         (p) =>
-          p.full_name.toLowerCase().includes(needle) || p.parish.toLowerCase().includes(needle),
+          !needle ||
+          p.full_name.toLowerCase().includes(needle) ||
+          p.parish.toLowerCase().includes(needle),
       )
       .slice()
       .sort((a, b) => a.full_name.localeCompare(b.full_name));
   }, [patients.data, query, isAggregateOnly, accessReady]);
 
-  const indexPageCount = Math.max(1, Math.ceil(indexMatches.length / PAGE_SIZE));
+  const indexPageCount = Math.max(
+    1,
+    Math.ceil(indexMatches.length / (wide ? WIDE_PAGE_SIZE : PAGE_SIZE)),
+  );
   const indexPageSafe = Math.min(page, indexPageCount);
-  const indexRows = indexMatches.slice((indexPageSafe - 1) * PAGE_SIZE, indexPageSafe * PAGE_SIZE);
+  const indexRows = indexMatches.slice(
+    (indexPageSafe - 1) * (wide ? WIDE_PAGE_SIZE : PAGE_SIZE),
+    indexPageSafe * (wide ? WIDE_PAGE_SIZE : PAGE_SIZE),
+  );
 
   const outstanding = queue.filter((row) => !contacted.has(row.patient.id)).length;
-  const pageCount = Math.max(1, Math.ceil(queue.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(queue.length / (wide ? WIDE_PAGE_SIZE : PAGE_SIZE)));
   const pageSafe = Math.min(page, pageCount);
-  const pageRows = queue.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const size = wide ? WIDE_PAGE_SIZE : PAGE_SIZE;
+  const pageRows = queue.slice((pageSafe - 1) * size, pageSafe * size);
   const activeTotal = tab === "mine" ? queue.length : indexMatches.length;
   const activePageCount = tab === "mine" ? pageCount : indexPageCount;
   const activePage = tab === "mine" ? pageSafe : indexPageSafe;
@@ -307,7 +326,7 @@ function Patients() {
             : queue.length
               ? "Everyone on your list has been contacted today."
               : ""}{" "}
-          Search All patients to find anyone else on the Grid.
+          All patients is the whole Grid directory — identity only.
         </p>
       </div>
 
@@ -356,7 +375,7 @@ function Patients() {
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[430px_minmax(0,1fr)]">
+      <div className={"grid gap-4 " + (wide ? "" : "lg:grid-cols-[430px_minmax(0,1fr)]")}>
         <Panel className="h-fit">
           <div className="border-b border-border px-3 py-2.5">
             <input
@@ -401,7 +420,28 @@ function Patients() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                All patients{query.trim().length > 1 ? ` (${indexMatches.length})` : ""}
+                All patients ({indexMatches.length})
+              </button>
+              {/* The chart takes two thirds of the screen and shows one person.
+                  When you are scanning rather than reading, that trade is the
+                  wrong way round — this hands the width back to the list. */}
+              <button
+                type="button"
+                onClick={() => {
+                  setWide((w) => !w);
+                  setPage(1);
+                }}
+                className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                title={
+                  wide ? "Back to the split view with the chart" : "Use the full width for the list"
+                }
+              >
+                {wide ? (
+                  <Minimize2 className="h-3.5 w-3.5" />
+                ) : (
+                  <Maximize2 className="h-3.5 w-3.5" />
+                )}
+                {wide ? "Show chart" : "Wide view"}
               </button>
             </div>
           </div>
@@ -415,13 +455,20 @@ function Patients() {
                   <div
                     key={patient.id}
                     className={
-                      "mb-1 rounded-lg transition-colors " +
+                      (wide
+                        ? "mb-0.5 flex items-center gap-3 rounded-lg pr-3 "
+                        : "mb-1 rounded-lg ") +
+                      "transition-colors " +
                       (patient.id === selected ? "bg-primary/12" : "hover:bg-surface")
                     }
                   >
                     <button
                       onClick={() => setSelected(patient.id)}
-                      className={"w-full px-3 pt-2.5 text-left " + (done ? "opacity-55" : "")}
+                      className={
+                        (wide
+                          ? "min-w-0 flex-1 px-3 py-2 text-left "
+                          : "w-full px-3 pt-2.5 text-left ") + (done ? "opacity-55" : "")
+                      }
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[13.5px] font-semibold">
@@ -438,14 +485,16 @@ function Patients() {
                         {patient.age}
                         {patient.sex} · {patient.parish}, {patient.island_code} · {risk.trend}
                       </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Pill className={bandClasses(risk.band)}>{risk.band}</Pill>
-                        <Pill className={BASIS_TONE[row.decision.basis]}>
-                          {BASIS_LABEL[row.decision.basis]}
-                        </Pill>
-                      </div>
+                      {wide ? null : (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <Pill className={bandClasses(risk.band)}>{risk.band}</Pill>
+                          <Pill className={BASIS_TONE[row.decision.basis]}>
+                            {BASIS_LABEL[row.decision.basis]}
+                          </Pill>
+                        </div>
+                      )}
                     </button>
-                    <div className="px-3 pb-2 pt-1.5">
+                    <div className={wide ? "hidden" : "px-3 pb-2 pt-1.5"}>
                       <button
                         type="button"
                         onClick={() => setContacted.mutate({ patientId: patient.id, done: !done })}
@@ -461,6 +510,32 @@ function Patients() {
                         {done ? "Contacted today" : "Mark contacted"}
                       </button>
                     </div>
+                    {/* Wide rows carry the same information on one line, so a
+                        screenful is thirty patients rather than seven. */}
+                    {wide ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <Pill className={bandClasses(risk.band)}>{risk.band}</Pill>
+                        <Pill className={BASIS_TONE[row.decision.basis]}>
+                          {BASIS_LABEL[row.decision.basis]}
+                        </Pill>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setContacted.mutate({ patientId: patient.id, done: !done })
+                          }
+                          disabled={setContacted.isPending}
+                          title={done ? "Contacted today" : "Mark contacted"}
+                          className={
+                            "grid h-6 w-6 shrink-0 place-items-center rounded-md border transition-colors disabled:opacity-60 " +
+                            (done
+                              ? "border-low/40 bg-low/10 text-low"
+                              : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary")
+                          }
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -508,9 +583,7 @@ function Patients() {
               <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
                 {isAggregateOnly
                   ? "Your role is aggregate and de-identified only, so the patient directory is not available to it."
-                  : query.trim().length < 2
-                    ? "Search by name to find anyone on the Grid — all eleven countries. You will see who they are, not what is in their record. The directory is not browsable as a list."
-                    : `Nobody on the Grid matches “${query.trim()}”.`}
+                  : `Nobody on the Grid matches “${query.trim()}”.`}
               </p>
             ) : null}
           </div>
@@ -519,7 +592,7 @@ function Patients() {
               <p className="text-[12px] text-muted-foreground">
                 Showing{" "}
                 <span className="font-semibold text-foreground">
-                  {(activePage - 1) * PAGE_SIZE + 1}–{Math.min(activePage * PAGE_SIZE, activeTotal)}
+                  {(activePage - 1) * size + 1}–{Math.min(activePage * size, activeTotal)}
                 </span>{" "}
                 of <span className="font-semibold text-foreground">{activeTotal}</span>
               </p>
@@ -563,69 +636,71 @@ function Patients() {
           ) : null}
         </Panel>
 
-        <div className="space-y-4">
-          {decision && !decision.allowed ? (
-            <NoBasisPanel patientId={selected!} decision={decision} />
-          ) : !b ? (
-            <Panel>
-              <Loading label="Assembling the longitudinal record…" />
-            </Panel>
-          ) : (
-            <>
-              {brief && (
-                <AgentBrief
-                  run={brief}
-                  decision={briefDecision}
-                  onAccept={() => {
-                    setBriefDecision("accepted");
-                    void supabase.from("workflow_events").insert({
-                      patient_id: b.patient.id,
-                      actor_name: profile?.full_name ?? "Clinician",
-                      action: "agent_brief_accepted",
-                      label: "Pre-consult brief accepted",
-                      detail: JSON.stringify({
-                        engine: brief.model,
-                        findings: brief.findings.length,
-                        confidence: brief.confidence,
-                      }),
-                    });
-                    toast.success("Brief accepted — recorded against this episode");
-                  }}
-                  onDismiss={() => {
-                    setBriefDecision("dismissed");
-                    void supabase.from("workflow_events").insert({
-                      patient_id: b.patient.id,
-                      actor_name: profile?.full_name ?? "Clinician",
-                      action: "agent_brief_dismissed",
-                      label: "Pre-consult brief dismissed",
-                      detail: JSON.stringify({ engine: brief.model }),
-                    });
-                    toast("Brief dismissed — nothing written to the record");
-                  }}
-                />
-              )}
-              <PatientChart
-                bundle={b}
-                decision={decision}
-                providers={providers.data ?? []}
-                onAcceptReferral={(id) => acceptConsult.mutate(id)}
-                headerActions={
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBriefFor(selected);
-                      setBriefDecision(null);
+        {wide ? null : (
+          <div className="space-y-4">
+            {decision && !decision.allowed ? (
+              <NoBasisPanel patientId={selected!} decision={decision} />
+            ) : !b ? (
+              <Panel>
+                <Loading label="Assembling the longitudinal record…" />
+              </Panel>
+            ) : (
+              <>
+                {brief && (
+                  <AgentBrief
+                    run={brief}
+                    decision={briefDecision}
+                    onAccept={() => {
+                      setBriefDecision("accepted");
+                      void supabase.from("workflow_events").insert({
+                        patient_id: b.patient.id,
+                        actor_name: profile?.full_name ?? "Clinician",
+                        action: "agent_brief_accepted",
+                        label: "Pre-consult brief accepted",
+                        detail: JSON.stringify({
+                          engine: brief.model,
+                          findings: brief.findings.length,
+                          confidence: brief.confidence,
+                        }),
+                      });
+                      toast.success("Brief accepted — recorded against this episode");
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/20"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {briefFor === selected ? "Re-run brief" : "Prepare consult brief"}
-                  </button>
-                }
-              />
-            </>
-          )}
-        </div>
+                    onDismiss={() => {
+                      setBriefDecision("dismissed");
+                      void supabase.from("workflow_events").insert({
+                        patient_id: b.patient.id,
+                        actor_name: profile?.full_name ?? "Clinician",
+                        action: "agent_brief_dismissed",
+                        label: "Pre-consult brief dismissed",
+                        detail: JSON.stringify({ engine: brief.model }),
+                      });
+                      toast("Brief dismissed — nothing written to the record");
+                    }}
+                  />
+                )}
+                <PatientChart
+                  bundle={b}
+                  decision={decision}
+                  providers={providers.data ?? []}
+                  onAcceptReferral={(id) => acceptConsult.mutate(id)}
+                  headerActions={
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBriefFor(selected);
+                        setBriefDecision(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/20"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {briefFor === selected ? "Re-run brief" : "Prepare consult brief"}
+                    </button>
+                  }
+                />
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
