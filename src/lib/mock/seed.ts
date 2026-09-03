@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 8;
+export const SEED_VERSION = 9;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -2376,6 +2376,9 @@ export function buildSeed(): Tables {
         "High confidence. Two readings and two medications matched existing records; no conflicts.",
       committed: true,
       uploaded_by: "Sister Yvette Marshall",
+      // The card's most recent entry, not the day it was photographed.
+      record_date: "2025-05-09",
+      record_time: null,
       created_at: daysAgo(11),
       updated_at: daysAgo(11),
     },
@@ -2402,6 +2405,8 @@ export function buildSeed(): Tables {
       extraction_note: "HbA1c above target — flagged to the attending clinician.",
       committed: true,
       uploaded_by: "Dr. Anika Cadogan",
+      record_date: "2026-08-02",
+      record_time: "08:15",
       created_at: daysAgo(4),
       updated_at: daysAgo(4),
     },

@@ -28,7 +28,7 @@ import { VisitDialog, resultsForVisit } from "@/components/VisitDialog";
 import { CareNetwork } from "@/components/CareNetwork";
 import { CooperativeCard } from "@/components/patient/CooperativeCard";
 import { DocumentDetailDialog } from "@/components/patient/DocumentDetailDialog";
-import { documentsQuery, type ClinicalDocument } from "@/lib/prevention";
+import { documentsQuery, documentDate, type ClinicalDocument } from "@/lib/prevention";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import {
@@ -98,7 +98,7 @@ function MyRecord() {
         at: c.scheduled_at,
         c,
       })),
-      ...docs.map((d) => ({ kind: "document" as const, at: d.created_at, d })),
+      ...docs.map((d) => ({ kind: "document" as const, at: documentDate(d).at, d })),
     ];
     return merged.sort((x, y) => new Date(y.at).getTime() - new Date(x.at).getTime());
   }, [b?.consultations, documents.data, id]);
@@ -330,12 +330,15 @@ function MyRecord() {
                           paper record
                         </Pill>
                         <span className="text-[11.5px] text-muted-foreground">
-                          captured {shortDate(d.created_at)}
+                          {documentDate(d).dated
+                            ? `${shortDate(d.record_date!)}${d.record_time ? ` · ${d.record_time}` : ""}`
+                            : `captured ${shortDate(d.created_at)}`}
                         </span>
                       </div>
                     </div>
                     <div className="mt-1.5 text-[12.5px] text-muted-foreground">
                       {d.source === "paper_scan" ? "Photographed" : "Typed"} by {d.uploaded_by}
+                      {documentDate(d).dated ? ` · captured ${shortDate(d.created_at)}` : ""}
                     </div>
                     {d.original_text ? (
                       <p className="mt-2 line-clamp-2 rounded-lg bg-surface px-3 py-2 font-mono text-[12px] leading-relaxed">

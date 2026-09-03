@@ -49,8 +49,28 @@ export function clockTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/**
+ * A date-only string is a calendar date, not an instant.
+ *
+ * `new Date("2026-08-02")` parses as UTC midnight and then renders in local
+ * time, so anywhere west of Greenwich it prints Aug 1 — a document dated the
+ * 2nd shows as the 1st, and a birth date disagrees with the record by a day.
+ * Timestamps that carry a time are genuine instants and stay local.
+ */
 export function shortDate(iso: string) {
-  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.exec(iso);
+  const d = dateOnly
+    ? new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)))
+    : new Date(iso);
+  // Paper records reach back years, and "Jun 14" in a list of this year's
+  // visits reads as this year. The year is shown only when it is not the
+  // current one, so recent rows stay short.
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
 }
 
 export const LANGUAGE_LABEL: Record<string, string> = {

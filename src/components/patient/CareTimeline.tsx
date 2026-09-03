@@ -24,7 +24,7 @@ import type { AccessDecision } from "@/lib/access-basis";
 import { useScope } from "@/hooks/useScope";
 import { VisitDetailDialog } from "@/components/patient/VisitDetailDialog";
 import { DocumentDetailDialog } from "@/components/patient/DocumentDetailDialog";
-import { documentsQuery, type ClinicalDocument } from "@/lib/prevention";
+import { documentsQuery, documentDate, type ClinicalDocument } from "@/lib/prevention";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { shortDate, timeAgo } from "@/lib/format";
 
@@ -154,7 +154,7 @@ export function CareTimeline({
   const rows: Row[] = useMemo(() => {
     const merged: Row[] = [
       ...encounterRows.map((e) => ({ kind: "encounter" as const, at: e.started_at, e })),
-      ...docRows.map((d) => ({ kind: "document" as const, at: d.created_at, d })),
+      ...docRows.map((d) => ({ kind: "document" as const, at: documentDate(d).at, d })),
     ];
     return merged.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
   }, [encounterRows, docRows]);
@@ -295,10 +295,13 @@ export function CareTimeline({
                       >
                         {d.committed ? "in the chart" : "stored only"}
                       </Pill>
-                      {/* "captured", not the date of the care described — see
-                          the note on the merged list above. */}
+                      {/* A dated record shows its own date; an undated one can
+                          only show its capture, and says so rather than
+                          borrowing the authority of a clinical date. */}
                       <span className="ml-auto text-[11.5px] text-muted-foreground">
-                        captured {shortDate(d.created_at)}
+                        {documentDate(d).dated
+                          ? `${shortDate(d.record_date!)}${d.record_time ? ` · ${d.record_time}` : ""}`
+                          : `captured ${shortDate(d.created_at)}`}
                       </span>
                     </div>
                     {canReadDocs ? (
@@ -313,6 +316,7 @@ export function CareTimeline({
                     )}
                     <p className="mt-1 text-[11.5px] text-muted-foreground">
                       {d.source === "paper_scan" ? "Photographed" : "Typed"} by {d.uploaded_by}
+                      {documentDate(d).dated ? ` · captured ${shortDate(d.created_at)}` : ""}
                     </p>
                   </button>
                 </li>

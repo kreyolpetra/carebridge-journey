@@ -103,6 +103,11 @@ export function DigitiseRecord({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("Handwritten clinic card");
+  // Defaulting to today would silently backdate every card to the day it was
+  // photographed, which is the error this field exists to prevent. Left empty,
+  // so supplying it is a decision rather than an omission.
+  const [recordDate, setRecordDate] = useState("");
+  const [recordTime, setRecordTime] = useState("");
   const [text, setText] = useState("");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -139,6 +144,8 @@ export function DigitiseRecord({
           doc_type: imageDataUrl ? "scan" : "transcription",
           source: imageDataUrl ? "paper_scan" : "typed",
           original_text: text.slice(0, 8000),
+          record_date: recordDate || null,
+          record_time: recordTime || null,
           extraction_status: extraction.degraded ? "needs_review" : "complete",
           extracted: JSON.parse(JSON.stringify(extraction.extracted)),
           extraction_note: extraction.note,
@@ -217,6 +224,8 @@ export function DigitiseRecord({
       setFileName(null);
       setImageDataUrl(null);
       setText("");
+      setRecordDate("");
+      setRecordTime("");
       void qc.invalidateQueries({ queryKey: ["clinical_documents"] });
       void qc.invalidateQueries({ queryKey: ["patient-bundle"] });
       onCommitted?.();
@@ -241,6 +250,36 @@ export function DigitiseRecord({
           className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-[13.5px] font-normal normal-case tracking-normal text-foreground"
         />
       </label>
+
+      {/* When the care happened, which is not when the photograph was taken.
+          Without it the record sorts by upload time and a 2019 clinic card
+          lands at the top of the timeline looking like this morning's news. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Date on the document
+          <input
+            type="date"
+            value={recordDate}
+            onChange={(e) => setRecordDate(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-[13.5px] font-normal normal-case tracking-normal text-foreground"
+          />
+        </label>
+        <label className="block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Time <span className="font-normal normal-case tracking-normal">(if shown)</span>
+          <input
+            type="time"
+            value={recordTime}
+            onChange={(e) => setRecordTime(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-[13.5px] font-normal normal-case tracking-normal text-foreground"
+          />
+        </label>
+      </div>
+      <p className="-mt-1 text-[12px] leading-relaxed text-muted-foreground">
+        {recordDate
+          ? "The record will sit in the patient's history under this date."
+          : "If the card covers a range, use its most recent entry. Left blank, the record files under the date you captured it and says so."}
+      </p>
 
       <input
         ref={fileRef}

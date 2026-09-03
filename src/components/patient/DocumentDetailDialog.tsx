@@ -47,7 +47,18 @@ export function DocumentDetailDialog({
             {doc.title}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
-            {doc.source === "paper_scan" ? "Photographed" : "Typed"} by {doc.uploaded_by} · captured{" "}
+            {/* Two different dates, never collapsed: what the paper says, and
+                when it entered the Grid. A record whose dates disagree is
+                telling you something, and hiding one of them loses it. */}
+            {doc.record_date ? (
+              <>
+                Dated {shortDate(doc.record_date)}
+                {doc.record_time ? ` at ${doc.record_time}` : ""} ·{" "}
+              </>
+            ) : (
+              <>No date on the document · </>
+            )}
+            {doc.source === "paper_scan" ? "photographed" : "typed"} by {doc.uploaded_by}, captured{" "}
             {shortDate(doc.created_at)} ({timeAgo(doc.created_at)})
           </DialogDescription>
         </DialogHeader>
@@ -64,6 +75,13 @@ export function DocumentDetailDialog({
             {doc.committed ? "in the chart" : "stored only"}
           </Pill>
         </div>
+
+        {!doc.record_date && canRead ? (
+          <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
+            Nobody recorded what date this document carries, so it sits in the history under the day
+            it was captured rather than the day the care happened.
+          </p>
+        ) : null}
 
         {!canRead ? (
           <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-foreground">

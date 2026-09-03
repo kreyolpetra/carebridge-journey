@@ -353,6 +353,8 @@ export type Database = {
           facility_id: string | null
           id: string
           original_text: string
+          record_date: string | null
+          record_time: string | null
           patient_id: string | null
           source: string
           storage_path: string | null
@@ -370,6 +372,8 @@ export type Database = {
           facility_id?: string | null
           id?: string
           original_text?: string
+          record_date?: string | null
+          record_time?: string | null
           patient_id?: string | null
           source?: string
           storage_path?: string | null
@@ -387,6 +391,8 @@ export type Database = {
           facility_id?: string | null
           id?: string
           original_text?: string
+          record_date?: string | null
+          record_time?: string | null
           patient_id?: string | null
           source?: string
           storage_path?: string | null

@@ -82,6 +82,14 @@ export type ClinicalDocument = {
   extraction_note: string;
   committed: boolean;
   uploaded_by: string;
+  /**
+   * The date written on the document, which is not the day it was captured.
+   * A card photographed today can describe a visit from 2019, so the record's
+   * own date is what a timeline should order on. Null when nobody supplied it.
+   */
+  record_date: string | null;
+  /** Optional — paper rarely carries a time, but lab draws and admissions do. */
+  record_time: string | null;
   created_at: string;
 };
 
@@ -130,7 +138,10 @@ export const campaignsQuery = queryOptions({
   queryKey: ["campaigns"],
   queryFn: async () =>
     unwrap<Campaign[]>(
-      await supabase.from("screening_campaigns").select("*").order("created_at", { ascending: false }),
+      await supabase
+        .from("screening_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false }),
     ),
   staleTime: 10_000,
 });
@@ -155,11 +166,30 @@ export const detectionSignalsQuery = queryOptions({
   staleTime: 5_000,
 });
 
+/**
+ * When a document belongs in a timeline, and whether that is a real date.
+ *
+ * A record dated by the person who captured it sorts on the care it describes;
+ * one without a date can only sort on its capture, and every surface has to say
+ * which of the two it is showing — "captured" and "dated" are different claims.
+ */
+export function documentDate(d: ClinicalDocument): { at: string; dated: boolean } {
+  if (!d.record_date) return { at: d.created_at, dated: false };
+  const iso = d.record_time ? `${d.record_date}T${d.record_time}` : `${d.record_date}T12:00`;
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return { at: d.created_at, dated: false };
+  return { at: t.toISOString(), dated: true };
+}
+
 export const documentsQuery = queryOptions({
   queryKey: ["clinical_documents"],
   queryFn: async () =>
     unwrap<ClinicalDocument[]>(
-      await supabase.from("clinical_documents").select("*").order("created_at", { ascending: false }).limit(200),
+      await supabase
+        .from("clinical_documents")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
     ),
   staleTime: 5_000,
 });
@@ -272,8 +302,10 @@ export function ruleSummary(rule: CohortRule): string {
   if (rule.adherenceMax !== undefined) bits.push(`adherence ≤ ${rule.adherenceMax}%`);
   if (rule.ruralOnly) bits.push("rural only");
   if (rule.ageMin !== undefined) bits.push(`age ≥ ${rule.ageMin}`);
-  if (typeof rule["no_reading_days"] === "number") bits.push(`no reading in ${rule["no_reading_days"]}d`);
-  if (typeof rule["days_supply_max"] === "number") bits.push(`≤ ${rule["days_supply_max"]}d supply`);
+  if (typeof rule["no_reading_days"] === "number")
+    bits.push(`no reading in ${rule["no_reading_days"]}d`);
+  if (typeof rule["days_supply_max"] === "number")
+    bits.push(`≤ ${rule["days_supply_max"]}d supply`);
   if (typeof rule["adherence_max"] === "number") bits.push(`adherence ≤ ${rule["adherence_max"]}%`);
   if (rule["rural"] === true) bits.push("rural only");
   if (typeof rule["age_min"] === "number") bits.push(`age ≥ ${rule["age_min"]}`);
