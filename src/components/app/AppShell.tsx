@@ -21,10 +21,15 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { cn } from "@/lib/utils";
 import { firstName, initials } from "@/lib/names";
 
-function Brand() {
+function Brand({ onDark = false }: { onDark?: boolean }) {
   return (
     <Link to="/" className="flex shrink-0 items-center gap-2.5">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/12 text-primary">
+      <span
+        className={
+          "grid h-8 w-8 place-items-center rounded-lg " +
+          (onDark ? "bg-sidebar-accent/15 text-sidebar-accent" : "bg-primary/12 text-primary")
+        }
+      >
         <svg
           viewBox="0 0 24 24"
           className="h-4 w-4"
@@ -35,8 +40,14 @@ function Brand() {
           <path d="M3 12h4l2-6 3 13 3-9 2 2h4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
-      <span className="font-display text-[15px] font-bold tracking-tight">
-        CariCare<span className="text-primary"> Grid</span>
+      <span
+        className={
+          "font-display text-[15px] font-bold tracking-tight " +
+          (onDark ? "text-sidebar-foreground" : "")
+        }
+      >
+        CariCare
+        <span className={onDark ? "text-sidebar-accent" : "text-primary"}> Grid</span>
       </span>
     </Link>
   );
@@ -54,7 +65,7 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
         if (!groupItems.length) return null;
         return (
           <div key={group}>
-            <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted/80">
               {group}
             </p>
             <div className="flex flex-col gap-0.5">
@@ -64,8 +75,10 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
                   to={item.to}
                   onClick={onNavigate}
                   activeOptions={{ exact: item.to === "/" }}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
-                  activeProps={{ className: "bg-primary/10 !text-primary" }}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-raised hover:text-sidebar-foreground"
+                  activeProps={{
+                    className: "bg-sidebar-raised !text-sidebar-accent",
+                  }}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   {item.label}
@@ -154,15 +167,15 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-border bg-card lg:flex">
-        <div className="flex h-16 items-center border-b border-border px-5">
-          <Brand />
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+        <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+          <Brand onDark />
         </div>
         <div className="flex-1 overflow-y-auto">
           <SidebarNav role={role} />
         </div>
-        <div className="border-t border-border px-4 py-4">
-          <NetworkToggle />
+        <div className="border-t border-sidebar-border px-4 py-4">
+          <NetworkToggle onDark />
         </div>
       </aside>
 
@@ -173,15 +186,15 @@ export function AppShell() {
             className="absolute inset-0 bg-foreground/30"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[248px] flex-col border-r border-border bg-card">
-            <div className="flex h-16 items-center border-b border-border px-5">
-              <Brand />
+          <aside className="absolute inset-y-0 left-0 flex w-[248px] flex-col border-r border-sidebar-border bg-sidebar">
+            <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+              <Brand onDark />
             </div>
             <div className="flex-1 overflow-y-auto">
               <SidebarNav role={role} onNavigate={() => setMobileOpen(false)} />
             </div>
-            <div className="border-t border-border px-4 py-4">
-              <NetworkToggle />
+            <div className="border-t border-sidebar-border px-4 py-4">
+              <NetworkToggle onDark />
             </div>
           </aside>
         </div>

@@ -1,7 +1,7 @@
 import { useNetworkOnline, setNetworkOnline } from "@/lib/offline";
 import { Wifi, WifiOff } from "lucide-react";
 
-export function NetworkToggle() {
+export function NetworkToggle({ onDark = false }: { onDark?: boolean } = {}) {
   const online = useNetworkOnline();
 
   return (
@@ -12,7 +12,9 @@ export function NetworkToggle() {
       className={
         "flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors " +
         (online
-          ? "border-low/40 bg-low/10 text-low"
+          ? onDark
+            ? "border-sidebar-accent/40 bg-sidebar-accent/12 text-sidebar-accent"
+            : "border-low/40 bg-low/10 text-low"
           : "border-critical/50 bg-critical/15 text-critical")
       }
     >

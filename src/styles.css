@@ -53,6 +53,12 @@
   --color-low: var(--low);
   --color-low-foreground: var(--low-foreground);
   --color-signal: var(--signal);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-raised: var(--sidebar-raised);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
   --color-chat: var(--chat);
   --color-chat-foreground: var(--chat-foreground);
   --color-chat-bubble-in: var(--chat-bubble-in);
@@ -68,56 +74,68 @@
 :root {
   --radius: 0.75rem;
 
-  /* Clinical Calm: light clinical field, medical teal signal */
-  --background: oklch(0.981 0.005 230);
-  --foreground: oklch(0.28 0.022 250);
+  /* Deep teal-navy rail against a warm clinical field. The workspace chrome is
+     dark so the record itself is the only bright surface on screen — the chart
+     should be what your eye lands on, not the navigation. */
+  --background: oklch(0.966 0.005 95);
+  --foreground: oklch(0.26 0.022 220);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.28 0.022 250);
-  --surface: oklch(0.958 0.008 230);
-  --surface-foreground: oklch(0.28 0.022 250);
+  --card-foreground: oklch(0.26 0.022 220);
+  --surface: oklch(0.945 0.007 95);
+  --surface-foreground: oklch(0.26 0.022 220);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.28 0.022 250);
+  --popover-foreground: oklch(0.26 0.022 220);
 
-  --primary: oklch(0.53 0.088 202);
-  --primary-foreground: oklch(0.99 0.003 210);
-  --secondary: oklch(0.945 0.011 225);
-  --secondary-foreground: oklch(0.32 0.022 250);
-  --muted: oklch(0.955 0.008 230);
-  --muted-foreground: oklch(0.53 0.019 245);
-  --accent: oklch(0.6 0.13 45);
-  --accent-foreground: oklch(0.99 0.003 210);
-  --destructive: oklch(0.55 0.19 27);
-  --destructive-foreground: oklch(0.99 0.003 210);
+  --primary: oklch(0.47 0.072 199);
+  --primary-foreground: oklch(0.99 0.003 200);
+  --secondary: oklch(0.94 0.008 200);
+  --secondary-foreground: oklch(0.3 0.022 220);
+  --muted: oklch(0.95 0.006 200);
+  --muted-foreground: oklch(0.52 0.017 225);
+  --accent: oklch(0.72 0.12 181);
+  --accent-foreground: oklch(0.22 0.03 205);
+  --destructive: oklch(0.58 0.172 25);
+  --destructive-foreground: oklch(0.99 0.003 200);
 
-  --border: oklch(0.905 0.009 235);
-  --input: oklch(0.9 0.009 235);
-  --ring: oklch(0.53 0.088 202);
+  --border: oklch(0.9 0.008 205);
+  --input: oklch(0.895 0.008 205);
+  --ring: oklch(0.47 0.072 199);
 
-  --critical: oklch(0.53 0.19 27);
-  --critical-foreground: oklch(0.99 0.003 210);
-  --high: oklch(0.6 0.14 55);
-  --high-foreground: oklch(0.99 0.003 210);
-  --moderate: oklch(0.62 0.12 85);
-  --moderate-foreground: oklch(0.99 0.003 210);
-  --low: oklch(0.53 0.1 165);
-  --low-foreground: oklch(0.99 0.003 210);
-  --signal: oklch(0.53 0.088 202);
+  /* The dark rail. Its own scale, so the light surfaces never have to bend to
+     accommodate the navigation. */
+  --sidebar: oklch(0.245 0.028 206);
+  --sidebar-raised: oklch(0.3 0.034 202);
+  --sidebar-foreground: oklch(0.95 0.006 200);
+  --sidebar-muted: oklch(0.7 0.021 208);
+  --sidebar-border: oklch(0.32 0.028 204);
+  --sidebar-accent: oklch(0.78 0.115 180);
 
-  --chat: oklch(0.955 0.012 140);
-  --chat-foreground: oklch(0.28 0.02 160);
+  --critical: oklch(0.58 0.172 25);
+  --critical-foreground: oklch(0.99 0.003 200);
+  --high: oklch(0.63 0.135 62);
+  --high-foreground: oklch(0.99 0.003 200);
+  --moderate: oklch(0.66 0.115 88);
+  --moderate-foreground: oklch(0.99 0.003 200);
+  --low: oklch(0.55 0.098 173);
+  --low-foreground: oklch(0.99 0.003 200);
+  --signal: oklch(0.55 0.09 196);
+
+  --chat: oklch(0.955 0.011 150);
+  --chat-foreground: oklch(0.26 0.02 165);
   --chat-bubble-in: oklch(1 0 0);
-  --chat-bubble-out: oklch(0.93 0.085 148);
+  --chat-bubble-out: oklch(0.925 0.08 152);
 
   --grad-hero: linear-gradient(
     145deg,
-    oklch(0.985 0.006 225) 0%,
-    oklch(0.955 0.02 210) 50%,
-    oklch(0.93 0.035 195) 100%
+    oklch(0.985 0.005 100) 0%,
+    oklch(0.955 0.015 195) 50%,
+    oklch(0.928 0.032 192) 100%
   );
-  --grad-signal: linear-gradient(100deg, oklch(0.53 0.088 202), oklch(0.56 0.1 168));
+  --grad-signal: linear-gradient(100deg, oklch(0.47 0.072 199), oklch(0.58 0.1 172));
   --grad-urgent: linear-gradient(100deg, oklch(0.53 0.19 27), oklch(0.6 0.14 55));
 
-  --shadow-panel: 0 1px 2px 0 oklch(0.28 0.02 250 / 5%), 0 8px 24px -18px oklch(0.28 0.02 250 / 45%);
+  --shadow-panel:
+    0 1px 2px 0 oklch(0.28 0.02 250 / 5%), 0 8px 24px -18px oklch(0.28 0.02 250 / 45%);
   --shadow-lift: 0 18px 40px -24px oklch(0.28 0.02 250 / 40%);
   --glow-signal: 0 0 0 1px oklch(0.53 0.088 202 / 18%), 0 0 24px -10px oklch(0.53 0.088 202 / 40%);
 }
