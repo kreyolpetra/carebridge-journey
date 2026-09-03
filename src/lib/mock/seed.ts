@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 7;
+export const SEED_VERSION = 8;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -39,6 +39,7 @@ export const DEMO_USER_IDS = {
 const nowMs = () => Date.now();
 const daysAgo = (d: number) => new Date(nowMs() - d * 86400000).toISOString();
 const daysAhead = (d: number) => new Date(nowMs() + d * 86400000).toISOString();
+const minutesAgo = (m: number) => new Date(nowMs() - m * 60000).toISOString();
 const dateDaysAgo = (d: number) => new Date(nowMs() - d * 86400000).toISOString().slice(0, 10);
 const dateDaysAhead = (d: number) => new Date(nowMs() + d * 86400000).toISOString().slice(0, 10);
 
@@ -1166,13 +1167,25 @@ export function buildSeed(): Tables {
     if (island?.connectivity === "poor") needScore += 6;
     needScore = Math.max(0, Math.min(100, needScore));
 
+    // A dataset of nothing but finished referrals has no queue to monitor, and
+    // module 06 of the brief asks for exactly that. So a slice of the recent
+    // ones are still in flight: routed and waiting for a slot, or scheduled
+    // and not yet held. High need is routed faster, which is the promise the
+    // engine makes — the queue view exists to show when it is not kept.
+    const lifecycle: "routed" | "scheduled" | "completed" =
+      daysAgoCreated <= 24 && chance(rng, needScore >= 40 ? 0.42 : 0.6)
+        ? chance(rng, 0.5)
+          ? "routed"
+          : "scheduled"
+        : "completed";
+
     const referral: Row = {
       id: uuid(rng),
       patient_id: patient.id,
       triage_event_id: null,
       to_provider_id: provider.id,
       specialty,
-      status: "completed",
+      status: lifecycle,
       cross_island: true,
       reason: hasLocal
         ? `Capacity-aware routing: no local ${specialty} slot within the clinical window`
@@ -1189,17 +1202,28 @@ export function buildSeed(): Tables {
       created_at: daysAgo(daysAgoCreated),
     };
     t.referrals.push(referral);
+    // A routed referral has no appointment yet — that is what makes it a queue.
+    if (lifecycle === "routed") continue;
     t.consultations.push({
       id: uuid(rng),
       referral_id: referral.id,
       patient_id: patient.id,
       provider_id: provider.id,
       facility_id: provider.facility_id,
-      scheduled_at: daysAgo(daysAgoCreated - 3 < 0 ? 0 : daysAgoCreated - 3),
+      scheduled_at:
+        lifecycle === "scheduled"
+          ? daysAhead(int(rng, 1, 16) * 0.6)
+          : daysAgo(daysAgoCreated - 3 < 0 ? 0 : daysAgoCreated - 3),
       kind: "teleconsult",
-      status: "completed",
-      notes: "Teleconsult completed via CariCare Grid.",
-      plan: "Continue titration, remote monitoring cadence increased to daily.",
+      status: lifecycle === "scheduled" ? "scheduled" : "completed",
+      notes:
+        lifecycle === "scheduled"
+          ? "Cross-island teleconsult booked, awaiting the appointment."
+          : "Teleconsult completed via CariCare Grid.",
+      plan:
+        lifecycle === "scheduled"
+          ? ""
+          : "Continue titration, remote monitoring cadence increased to daily.",
       sensitivity: "standard",
       created_at: daysAgo(daysAgoCreated),
     });
@@ -1974,6 +1998,29 @@ export function buildSeed(): Tables {
     daysAhead(1),
     "Cross-island cardiology teleconsult — hypertensive crisis pattern",
   );
+
+  // Consults happening right now. Without these the queue monitor's "in progress"
+  // column is permanently zero, which reads as a broken panel rather than a quiet
+  // afternoon — and a regional view whose whole point is live load should show
+  // load. Started within the hour, so they are genuinely in session.
+  const liveNowProviders = (t["providers"] ?? [])
+    .filter((pr) => pr["specialty"] === "Cardiology" || pr["specialty"] === "Endocrinology")
+    .slice(0, 6);
+  for (const pr of liveNowProviders) {
+    if (!chance(rng, 0.55)) continue;
+    const candidate = (t["patients"] ?? []).find(
+      (p) => p["island_code"] !== pr["island_code"] && p["id"] !== HERO_PATIENT_ID,
+    );
+    if (!candidate) continue;
+    bookFor(
+      candidate,
+      pr,
+      "teleconsult",
+      "in_progress",
+      minutesAgo(int(rng, 4, 38)),
+      `${String(pr["specialty"])} teleconsult in session`,
+    );
+  }
 
   // ---- care-line conversations ----
   // The care line is the product's front door, and exactly one patient had ever

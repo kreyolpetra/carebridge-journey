@@ -4,8 +4,23 @@
     {
       "name": "caricare-grid",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 8080
+    },
+    {
+      "name": "caricare-spa",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "-y",
+        "serve",
+        "dist-spa",
+        "-l",
+        "8090"
+      ],
+      "port": 8090
     }
   ]
 }

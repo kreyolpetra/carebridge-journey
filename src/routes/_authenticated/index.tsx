@@ -453,7 +453,11 @@ function MinistryHome() {
     (r) => r.band === "critical" || r.band === "high",
   ).length;
   const stockouts = (stock.data ?? []).filter((s) => s.status !== "ok").length;
-  const retained = (referrals.data ?? []).reduce((s, r) => s + r.retained_value_usd, 0);
+  // Only care that actually happened. Counting a referral still sitting in the
+  // queue would bill the region for savings it has not made yet.
+  const retained = (referrals.data ?? [])
+    .filter((r) => r.status === "completed")
+    .reduce((s, r) => s + r.retained_value_usd, 0);
   const criticalAlerts = (alerts.data ?? []).filter(
     (a) => a.severity === "critical" || a.severity === "high",
   );
@@ -582,7 +586,11 @@ function InsurerHome() {
   const enrolled = (grants.data ?? []).filter(
     (g) => g.scope.includes("vitals") && g.status === "active",
   ).length;
-  const retained = (referrals.data ?? []).reduce((s, r) => s + r.retained_value_usd, 0);
+  // Only care that actually happened. Counting a referral still sitting in the
+  // queue would bill the region for savings it has not made yet.
+  const retained = (referrals.data ?? [])
+    .filter((r) => r.status === "completed")
+    .reduce((s, r) => s + r.retained_value_usd, 0);
   const highRisk = (risks.data ?? []).filter(
     (r) => r.band === "critical" || r.band === "high",
   ).length;

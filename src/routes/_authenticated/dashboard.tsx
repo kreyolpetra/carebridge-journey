@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   alertsQuery,
+  consultationsQuery,
   facilitiesQuery,
   islandsQuery,
   patientsQuery,
@@ -53,6 +54,7 @@ function Dashboard() {
   const referrals = useQuery(referralsQuery);
   const alerts = useQuery(alertsQuery);
   const stock = useQuery(stockQuery);
+  const consultations = useQuery(consultationsQuery);
 
   const latestRisk = useMemo(() => {
     const m = new Map<string, { score: number; band: string; at: string }>();
@@ -100,7 +102,11 @@ function Dashboard() {
   }, [islands.data, patients.data, facilities.data, providers.data, latestRisk]);
 
   const refs = referrals.data ?? [];
-  const retained = refs.reduce((a, r) => a + r.retained_value_usd, 0);
+  // Completed only: value is realised when the consult is held, not when it
+  // is routed.
+  const retained = refs
+    .filter((r) => r.status === "completed")
+    .reduce((a, r) => a + r.retained_value_usd, 0);
   const crossIsland = refs.filter((r) => r.cross_island);
   // Averaged only over referrals that had a real local alternative. Cases with
   // no local clinician at all would otherwise dominate this figure and make
@@ -145,6 +151,67 @@ function Dashboard() {
       })
       .filter((row) => row.islands.length > 0);
   }, [islands.data, patients.data, refs]);
+
+  /**
+   * The live teleconsult queue.
+   *
+   * A referral that has been routed but has no appointment yet is a person
+   * waiting, and until now nothing counted them — the dataset was all history,
+   * so the region looked permanently caught up. Module 06 asks for queue
+   * monitoring, and the number worth monitoring is not the total: it is how
+   * long the oldest person has been waiting, and whether the people the router
+   * promised to prioritise are actually moving faster than the rest.
+   */
+  const TARGET_DAYS = 7;
+  const queue = useMemo(() => {
+    const cons = consultations.data ?? [];
+    const now = Date.now();
+    const ageDays = (iso: string) => (now - new Date(iso).getTime()) / 86400000;
+    const median = (xs: number[]) =>
+      xs.length ? xs.slice().sort((a, b) => a - b)[Math.floor(xs.length / 2)]! : null;
+
+    const waiting = refs
+      .filter((r) => r.status === "routed")
+      .map((r) => ({ ...r, waited: ageDays(r.created_at) }))
+      .sort((a, b) => b.waited - a.waited);
+
+    const tele = cons.filter((c) => c.kind === "teleconsult");
+    const booked = tele.filter(
+      (c) => c.status === "scheduled" && new Date(c.scheduled_at).getTime() > now,
+    );
+    const live = tele.filter((c) => c.status === "in_progress");
+
+    const bySpecialty = SPECIALTIES.map((sp) => {
+      const w = waiting.filter((r) => r.specialty === sp);
+      return {
+        specialty: sp,
+        waiting: w.length,
+        longest: w.length ? w[0]!.waited : null,
+        breaching: w.filter((r) => r.waited > TARGET_DAYS).length,
+        booked: booked.filter((c) => {
+          const ref = refs.find((r) => r.id === c.referral_id);
+          return ref?.specialty === sp;
+        }).length,
+      };
+    })
+      .filter((row) => row.waiting || row.booked)
+      .sort((a, b) => (b.longest ?? 0) - (a.longest ?? 0));
+
+    // The promise the routing engine makes, checked against itself.
+    const onNeedWait = median(waiting.filter((r) => r.prioritised_on_need).map((r) => r.waited));
+    const routineWait = median(waiting.filter((r) => !r.prioritised_on_need).map((r) => r.waited));
+
+    return {
+      waiting,
+      booked: booked.length,
+      live: live.length,
+      breaching: waiting.filter((r) => r.waited > TARGET_DAYS).length,
+      longest: waiting.length ? waiting[0]!.waited : null,
+      bySpecialty,
+      onNeedWait,
+      routineWait,
+    };
+  }, [refs, consultations.data]);
 
   const accessGap = useMemo(() => {
     const under = equityByTier.find((r) => r.tier === "under_resourced");
@@ -278,6 +345,126 @@ function Dashboard() {
             up because the patient's country has no clinician in that specialty at all. Those are
             the cases a pure soonest-slot algorithm would have placed last.
           </p>
+        </div>
+      </Panel>
+
+      <Panel className="mb-4">
+        <PanelHeader
+          title="Teleconsult queue"
+          subtitle={`Patients routed to a specialist and still waiting for an appointment — target ${TARGET_DAYS} days`}
+        />
+        <div className="p-5">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat
+              label="Waiting for a slot"
+              value={String(queue.waiting.length)}
+              hint="Routed, not yet booked"
+              tone={queue.breaching ? "critical" : "default"}
+            />
+            <Stat
+              label="Booked, not yet held"
+              value={String(queue.booked)}
+              hint="Appointment in the diary"
+            />
+            <Stat label="In session now" value={String(queue.live)} hint="Live teleconsults" />
+            <Stat
+              label="Longest wait"
+              value={queue.longest === null ? "—" : `${Math.floor(queue.longest)}d`}
+              hint={`${queue.breaching} past the ${TARGET_DAYS}-day target`}
+              tone={queue.longest !== null && queue.longest > TARGET_DAYS ? "critical" : "low"}
+            />
+          </div>
+
+          {/* The engine's own promise, audited. Routing "on need" is the claim
+              this product makes; a queue view that could not contradict it
+              would not be monitoring anything. */}
+          {queue.onNeedWait !== null && queue.routineWait !== null ? (
+            <p className="mb-4 text-[13.5px] leading-relaxed text-muted-foreground">
+              Patients the router prioritised on need are waiting a median of{" "}
+              <strong
+                className={
+                  queue.onNeedWait > queue.routineWait ? "text-critical" : "text-foreground"
+                }
+              >
+                {queue.onNeedWait.toFixed(1)} days
+              </strong>
+              , against <strong className="text-foreground">{queue.routineWait.toFixed(1)}</strong>{" "}
+              for routine referrals.{" "}
+              {queue.onNeedWait > queue.routineWait
+                ? "The prioritised cases are moving slower than routine ones — the routing order is not holding."
+                : "Prioritisation is holding."}
+            </p>
+          ) : null}
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-[13px]">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="pb-2 pr-3 font-medium">Specialty</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Waiting</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Longest</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Over target</th>
+                  <th className="pb-2 text-right font-medium">Booked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {queue.bySpecialty.map((row) => (
+                  <tr key={row.specialty} className="border-b border-border/60 last:border-0">
+                    <td className="py-2.5 pr-3 font-medium text-foreground">{row.specialty}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{row.waiting}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      {row.longest === null ? "—" : `${Math.floor(row.longest)}d`}
+                    </td>
+                    <td
+                      className={
+                        "py-2.5 pr-3 text-right tabular-nums " +
+                        (row.breaching ? "font-semibold text-critical" : "text-muted-foreground")
+                      }
+                    >
+                      {row.breaching || "—"}
+                    </td>
+                    <td className="py-2.5 text-right tabular-nums">{row.booked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {queue.waiting.length ? (
+            <>
+              <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Longest waiting
+              </p>
+              <div className="mt-2 divide-y divide-border rounded-lg border border-border">
+                {queue.waiting.slice(0, 6).map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-medium">
+                        {r.specialty} · {r.patient_island}
+                      </div>
+                      <div className="truncate text-[11.5px] text-muted-foreground">
+                        {r.prioritised_on_need ? "Prioritised on need" : "Routine"} · routed{" "}
+                        {timeAgo(r.created_at)}
+                      </div>
+                    </div>
+                    <Pill
+                      className={
+                        r.waited > TARGET_DAYS
+                          ? "border-critical/40 bg-critical/10 text-critical"
+                          : "border-border bg-surface text-muted-foreground"
+                      }
+                    >
+                      {Math.floor(r.waited)}d
+                    </Pill>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">
+              Nobody is waiting for a specialist slot. Every routed referral has an appointment.
+            </p>
+          )}
         </div>
       </Panel>
 

@@ -94,7 +94,10 @@ function Insurer() {
     }));
   }, [patients.data, risks.data]);
 
-  const retained = (referrals.data ?? []).reduce((a, r) => a + r.retained_value_usd, 0);
+  // Completed only — an unheld appointment has avoided no overseas spend.
+  const retained = (referrals.data ?? [])
+    .filter((r) => r.status === "completed")
+    .reduce((a, r) => a + r.retained_value_usd, 0);
   const avoidedAdmissions = Math.round((referrals.data ?? []).filter((r) => r.status !== "pending").length * 0.34);
   const creditsIssued = rows.reduce((a, r) => a + (r.basePremium - r.premium), 0);
 
