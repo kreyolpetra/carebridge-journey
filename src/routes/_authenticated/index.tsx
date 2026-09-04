@@ -23,6 +23,7 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
+import { useWorklist, splitHorizon } from "@/hooks/useWorklist";
 import { HealthTrends } from "@/components/patient/HealthTrends";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { ActivityFeed } from "@/components/app/ActivityFeed";
@@ -323,7 +324,8 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
   const mySlots = (slots.data ?? []).filter(
     (s) => provider && s.provider_id === provider.id && s.status === "open",
   );
-  const topQueue = queue.slice(0, 5);
+  const { items: work } = useWorklist();
+  const horizon = splitHorizon(work);
 
   return (
     <>
@@ -370,55 +372,62 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Stethoscope className="h-4 w-4 text-primary" />
-              <h3 className="font-display text-[15px] font-semibold">
-                Highest-risk patients right now
-              </h3>
+              <h3 className="font-display text-[15px] font-semibold">What needs you today</h3>
             </div>
             <Link
-              to="/clinician"
+              to="/patients"
               className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary"
             >
-              Open console <ArrowRight className="h-3.5 w-3.5" />
+              Open worklist <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <ul className="mt-4 divide-y divide-border">
-            {topQueue.map((r) => {
-              const p = patientById.get(r.patient_id);
-              return (
-                <li key={r.id}>
-                  <Link
-                    to="/clinician"
-                    search={{ patient: r.patient_id }}
-                    className="flex items-center gap-3 py-2.5 transition-colors hover:text-primary"
+          {/* The top of the same worklist the Patients screen shows, from the
+              same hook — a home screen that ranked patients differently from
+              the list you act on would send you to the wrong person first. */}
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            {work.length
+              ? `${horizon.today.length} to action today · ${horizon.thisWeek.length} this week`
+              : "Nothing outstanding."}
+          </p>
+          <ul className="mt-3 divide-y divide-border">
+            {(horizon.today.length ? horizon.today : work).slice(0, 5).map((item) => (
+              <li key={item.patient.id}>
+                <Link
+                  to="/patients"
+                  search={{ patient: item.patient.id }}
+                  className="flex items-start gap-3 py-2.5 transition-colors hover:text-primary"
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[12.5px] font-bold",
+                      item.rank === 0
+                        ? "bg-primary/12 text-primary"
+                        : item.rank === 1
+                          ? "bg-signal/12 text-signal"
+                          : item.rank === 2
+                            ? "bg-critical/12 text-critical"
+                            : "bg-high/12 text-high",
+                    )}
                   >
-                    <span
-                      className={cn(
-                        "rounded-md px-2 py-0.5 font-mono text-[11px] font-bold",
-                        r.band === "critical"
-                          ? "bg-critical/10 text-critical"
-                          : "bg-[#b45309]/10 text-[#b45309]",
-                      )}
-                    >
-                      {Math.round(r.score)}
+                    {item.risk ? Math.round(item.risk.score) : "—"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] font-medium">
+                      {item.patient.full_name}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13.5px] font-medium">
-                        {p?.full_name ?? "Patient"}
-                      </span>
-                      <span className="block truncate text-[12px] text-muted-foreground">
-                        {p ? `${p.island_code} · ${p.parish}` : ""} ·{" "}
-                        {r.drivers[0]?.label ?? "Multiple drivers"}
-                      </span>
+                    <span className="block truncate text-[12px] text-muted-foreground">
+                      <strong className="font-semibold text-foreground/75">{item.reason}</strong> ·{" "}
+                      {item.detail}
                     </span>
-                    <span className="text-[11.5px] uppercase tracking-wide text-muted-foreground">
-                      {r.band}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-            {topQueue.length === 0 && (
-              <li className="py-3 text-[13px] text-muted-foreground">Queue is clear.</li>
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {work.length === 0 && (
+              <li className="py-3 text-[13px] leading-relaxed text-muted-foreground">
+                Nothing needs action right now — no referrals waiting on you, no appointments today,
+                and every critical and high-risk patient has been contacted.
+              </li>
             )}
           </ul>
         </Panel>

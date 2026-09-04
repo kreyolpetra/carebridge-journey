@@ -22,6 +22,8 @@ import {
   workflowEventsQuery,
   type Patient,
   type RiskScore,
+  referralsQuery,
+  consultationsQuery,
 } from "@/lib/api";
 import { runClinicianBrief } from "@/lib/agents/clinician";
 import { AgentBrief } from "@/components/app/AgentBrief";
@@ -29,11 +31,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
+import { useWorklist, splitHorizon } from "@/hooks/useWorklist";
 import { BASIS_LABEL, BASIS_TONE } from "@/lib/access";
 import { PatientChart } from "@/components/patient/PatientChart";
 import { NoBasisPanel } from "@/components/patient/NoBasisPanel";
 import { Panel, PanelHeader, Pill, Loading, Stat } from "@/components/grid";
-import { bandClasses } from "@/lib/format";
+import { bandClasses, clockTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/patients")({
   head: () => ({
@@ -74,12 +77,14 @@ function Patients() {
   const [bandFilter, setBandFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [tab, setTab] = useState<"mine" | "find">("mine");
+  const [tab, setTab] = useState<"work" | "mine" | "find">("work");
   const [wide, setWide] = useState(false);
   const patients = useQuery(patientsQuery);
   const risks = useQuery(riskScoresQuery);
   const providers = useQuery(providersQuery);
   const workflow = useQuery(workflowEventsQuery);
+  const referrals = useQuery(referralsQuery);
+  const consultations = useQuery(consultationsQuery);
   const qc = useQueryClient();
   const { index: access, ready: accessReady } = useAccessIndex();
   const { isAggregateOnly } = useScope();
@@ -196,6 +201,25 @@ function Patients() {
   }, [risks.data, patients.data, bandFilter, access, accessReady, query, contacted]);
 
   /**
+   * The worklist comes from the shared hook so the home screen and this screen
+   * cannot disagree about what needs doing. Search and the band tiles are
+   * applied here, because they are this screen's controls.
+   */
+  const { items: worklistAll } = useWorklist();
+  const horizon = splitHorizon(worklistAll);
+  const worklist = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return worklistAll
+      .filter((i) => bandFilter === "all" || i.risk?.band === bandFilter)
+      .filter(
+        (i) =>
+          !needle ||
+          i.patient.full_name.toLowerCase().includes(needle) ||
+          i.patient.parish.toLowerCase().includes(needle),
+      );
+  }, [worklistAll, query, bandFilter]);
+
+  /**
    * Every patient on the Grid, browsable by name — the directory.
    *
    * Identity only: name, age, sex, parish, country, language. Whether a row is
@@ -240,9 +264,10 @@ function Patients() {
   const pageSafe = Math.min(page, pageCount);
   const size = wide ? WIDE_PAGE_SIZE : PAGE_SIZE;
   const pageRows = queue.slice((pageSafe - 1) * size, pageSafe * size);
-  const activeTotal = tab === "mine" ? queue.length : indexMatches.length;
-  const activePageCount = tab === "mine" ? pageCount : indexPageCount;
-  const activePage = tab === "mine" ? pageSafe : indexPageSafe;
+  const activeTotal =
+    tab === "work" ? worklist.length : tab === "mine" ? queue.length : indexMatches.length;
+  const activePageCount = tab === "work" ? 1 : tab === "mine" ? pageCount : indexPageCount;
+  const activePage = tab === "work" ? 1 : tab === "mine" ? pageSafe : indexPageSafe;
 
   // Open on the top of this clinician's own list rather than a fixed patient —
   // the hardcoded default landed most users straight on a refusal panel.
@@ -324,8 +349,8 @@ function Patients() {
       <div className="mb-5">
         <h1 className="font-display text-2xl font-bold tracking-tight">Patients</h1>
         <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
-          Your list is everyone you hold a lawful basis for, ordered by deterioration risk rather
-          than arrival time.{" "}
+          The worklist is what needs doing today, each row saying why it is there. My patients is
+          everyone you hold a lawful basis for — a caseload, not a to-do list.{" "}
           {outstanding
             ? `${outstanding} still to contact.`
             : queue.length
@@ -392,11 +417,27 @@ function Patients() {
               placeholder="Search by name or parish…"
               className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-[12.5px] outline-none focus:border-primary"
             />
-            {/* One list, two scopes. "My list" is the working set — everyone a
-                lawful basis reaches, risk-ranked. "Find a patient" is the rest
-                of the region, identity only. They used to be two screens
-                rendering the same query in the same order. */}
-            <div className="mt-2.5 flex items-center gap-1">
+            {/* Three scopes, narrowest first. The worklist is what to do today;
+                My patients is the caseload a lawful basis reaches; All patients
+                is the region. "My list" used to mean the middle one while
+                reading like the first, which is a bad thing for a screen a
+                clinician opens to find out what needs doing. */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("work");
+                  setPage(1);
+                }}
+                className={
+                  "rounded-lg px-2.5 py-1 text-[12.5px] font-semibold transition-colors " +
+                  (tab === "work"
+                    ? "bg-primary/12 text-primary"
+                    : "text-muted-foreground hover:text-foreground")
+                }
+              >
+                Worklist ({horizon.today.length})
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -410,7 +451,7 @@ function Patients() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                My list ({queue.length})
+                My patients ({queue.length})
               </button>
               <button
                 type="button"
@@ -452,6 +493,90 @@ function Patients() {
           </div>
           <div className="max-h-[620px] overflow-y-auto p-2">
             {risks.isLoading ? <Loading label="Scoring the panel…" /> : null}
+            {tab === "work" &&
+              worklist.map((row) => {
+                const done = contacted.has(row.patient.id);
+                return (
+                  <div
+                    key={row.patient.id}
+                    className={
+                      "mb-1 rounded-lg border-l-[3px] transition-colors " +
+                      (row.patient.id === selected
+                        ? "border-primary bg-primary/12 ring-1 ring-inset ring-primary/25"
+                        : "border-transparent hover:bg-surface")
+                    }
+                  >
+                    <button
+                      onClick={() => setSelected(row.patient.id)}
+                      className={"w-full px-3 pt-2.5 text-left " + (done ? "opacity-55" : "")}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[13.5px] font-semibold">
+                          {row.patient.full_name}
+                        </span>
+                        {row.risk ? (
+                          <span className="mono-num shrink-0 text-[13px] font-semibold">
+                            Risk {row.risk.score}
+                            <span className="text-[11px] font-normal text-muted-foreground">
+                              /100
+                            </span>
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+                        <span className="font-medium text-foreground/70">{row.patient.mrn}</span> ·{" "}
+                        {row.patient.age}
+                        {row.patient.sex} · {row.patient.parish}, {row.patient.island_code}
+                      </p>
+                      {/* The reason is the point of this list. */}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        <Pill
+                          className={
+                            row.rank === 0
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : row.rank === 1
+                                ? "border-signal/40 bg-signal/10 text-signal"
+                                : row.rank === 2
+                                  ? "border-critical/40 bg-critical/10 text-critical"
+                                  : "border-high/40 bg-high/10 text-high"
+                          }
+                        >
+                          {row.reason}
+                        </Pill>
+                        <span className="truncate text-[11.5px] text-muted-foreground">
+                          {row.detail}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="px-3 pb-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setContacted.mutate({ patientId: row.patient.id, done: !done })
+                        }
+                        disabled={setContacted.isPending}
+                        className={
+                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-medium transition-colors disabled:opacity-60 " +
+                          (done
+                            ? "border-low/40 bg-low/10 text-low"
+                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary")
+                        }
+                      >
+                        <Check className="h-3 w-3" />
+                        {done ? "Contacted today" : "Mark contacted"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+            {tab === "work" && accessReady && !worklist.length ? (
+              <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
+                Nothing needs action right now. No referrals waiting on you, no appointments today,
+                and every critical and high-risk patient on your list has been contacted.
+              </p>
+            ) : null}
+
             {tab === "mine" &&
               pageRows.map((row) => {
                 const { risk, patient } = row;
