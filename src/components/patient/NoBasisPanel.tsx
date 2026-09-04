@@ -16,7 +16,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { referralsQuery } from "@/lib/api";
+import { patientsQuery, referralsQuery } from "@/lib/api";
+import { acceptReferral as acceptReferralOnGrid } from "@/lib/referrals";
 import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
 import type { AccessDecision } from "@/lib/access-basis";
@@ -39,6 +40,7 @@ export function NoBasisPanel({
   const { isAggregateOnly } = useScope();
   const qc = useQueryClient();
   const referrals = useQuery(referralsQuery);
+  const patients = useQuery(patientsQuery);
 
   const pendingReferral =
     (referrals.data ?? []).find(
@@ -49,19 +51,13 @@ export function NoBasisPanel({
     ) ?? null;
 
   const acceptReferral = useMutation({
-    mutationFn: async (referralId: string) => {
-      const { error } = await supabase
-        .from("referrals")
-        .update({ status: "accepted" })
-        .eq("id", referralId);
-      if (error) throw new Error(error.message);
-      await supabase.from("consultations").insert({
-        referral_id: referralId,
-        patient_id: patientId,
-        status: "in_progress",
-        notes: "Teleconsult opened from the clinician console.",
-      });
-    },
+    mutationFn: (referralId: string) =>
+      acceptReferralOnGrid({
+        referralId,
+        patientId,
+        patient: (patients.data ?? []).find((p) => p.id === patientId),
+        providerId: profile?.provider_id ?? null,
+      }),
     onSuccess: () => {
       toast.success("Teleconsult opened — patient notified on WhatsApp");
       void qc.invalidateQueries();

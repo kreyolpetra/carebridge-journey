@@ -1365,6 +1365,10 @@ export type Database = {
         Row: {
           created_at: string
           cross_island: boolean
+          accepted_at: string | null
+          accepted_by_provider_id: string | null
+          from_facility_id: string | null
+          from_provider_id: string | null
           id: string
           patient_id: string
           reason: string
@@ -1379,6 +1383,10 @@ export type Database = {
         Insert: {
           created_at?: string
           cross_island?: boolean
+          accepted_at?: string | null
+          accepted_by_provider_id?: string | null
+          from_facility_id?: string | null
+          from_provider_id?: string | null
           id?: string
           patient_id: string
           reason?: string
@@ -1393,6 +1401,10 @@ export type Database = {
         Update: {
           created_at?: string
           cross_island?: boolean
+          accepted_at?: string | null
+          accepted_by_provider_id?: string | null
+          from_facility_id?: string | null
+          from_provider_id?: string | null
           id?: string
           patient_id?: string
           reason?: string

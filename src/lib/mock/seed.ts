@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 17;
+export const SEED_VERSION = 20;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -26,6 +26,8 @@ export const TT_HOSPITAL_ID = "2c65425d-ad09-4e50-a019-f8afa29a14b4";
 export const JM_HOSPITAL_ID = "5e722b4d-9d67-4664-a8ad-59e47896c391";
 export const AG_CLINIC_ID = "cbbbc668-51f2-4f5d-a67e-57076dbbebd4";
 export const ATTENDING_PROVIDER_ID = "74796b4d-c546-4ee6-bfa1-4212bc07cac1";
+/** The clinic nurse persona. She refers patients onward, so she needs a provider row. */
+export const NURSE_PROVIDER_ID = "9b2f1c74-6d3e-4a51-9f28-1c7a55e0b3d4";
 
 // Fixed auth-user / profile ids for the five demo personas in demo-accounts.ts.
 export const DEMO_USER_IDS = {
@@ -872,6 +874,24 @@ export function buildSeed(): Tables {
   attending.full_name = "Dr. Marcia Fenwick";
   attending.facility_id = JM_CLINIC_ID;
 
+  /**
+   * The clinic nurse is a clinician who refers patients onward, but she had no
+   * row in the provider directory — so nothing she sent could be attributed to
+   * her, and the referrals she raised were invisible to her the moment they
+   * left. A nurse practitioner at a community clinic is exactly who raises a
+   * cross-island referral in this system.
+   */
+  t["providers"]!.push({
+    id: NURSE_PROVIDER_ID,
+    full_name: "Sister Yvette Marshall",
+    specialty: "General Practice",
+    island_code: "JM",
+    facility_id: JM_CLINIC_ID,
+    languages: ["en", "jam"],
+    accepts_teleconsult: true,
+    created_at: daysAgo(400),
+  });
+
   // ---- availability slots ----
   for (const p of t.providers) {
     for (let d = 1; d <= 6; d++) {
@@ -1274,11 +1294,26 @@ export function buildSeed(): Tables {
           : "scheduled"
         : "completed";
 
+    const localSender =
+      (t["providers"] ?? []).find(
+        (pr) => pr["island_code"] === patient["island_code"] && pr["id"] !== provider["id"],
+      ) ?? null;
+
     const referral: Row = {
       id: uuid(rng),
       patient_id: patient.id,
       triage_event_id: null,
       to_provider_id: provider.id,
+      /**
+       * Referrals come from somewhere. Seeding only the destination made every
+       * referral an orphan the moment it was sent, which is exactly the failure
+       * the sender view exists to fix — so the sender is a clinician on the
+       * patient's own island.
+       */
+      from_provider_id: localSender ? localSender["id"] : null,
+      from_facility_id: localSender ? localSender["facility_id"] : null,
+      accepted_at: lifecycle === "routed" ? null : daysAgo(Math.max(0, daysAgoCreated - 2)),
+      accepted_by_provider_id: lifecycle === "routed" ? null : provider.id,
       specialty,
       status: lifecycle,
       cross_island: true,
@@ -2023,6 +2058,20 @@ export function buildSeed(): Tables {
     patient_id: patient.id,
     triage_event_id: opts.triageId ?? null,
     to_provider_id: cardiologyTT.id,
+    // Raised by the nurse at the Jamaican clinic, which is what makes it
+    // visible to her afterwards as something she is still waiting on.
+    // A Jamaican clinic nurse refers Jamaican patients. Attributing a Haitian
+    // patient's referral to her made her worklist claim she was chasing
+    // hand-offs for people she had never met.
+    from_provider_id:
+      patient["island_code"] === "JM"
+        ? NURSE_PROVIDER_ID
+        : (((t["providers"] ?? []).find((pr) => pr["island_code"] === patient["island_code"])?.[
+            "id"
+          ] as string | undefined) ?? null),
+    from_facility_id: patient["island_code"] === "JM" ? JM_CLINIC_ID : null,
+    accepted_at: null,
+    accepted_by_provider_id: null,
     specialty: "Cardiology",
     status: "routed",
     cross_island: patient.island_code !== "TT",
@@ -2076,7 +2125,7 @@ export function buildSeed(): Tables {
         waitRouted: 2 + i,
         need: scarce ? 71 : 46,
         retained: 3200 + i * 1900,
-        ageDays: 0.5 + i,
+        ageDays: 4.5 + i,
       }),
     );
   }
@@ -2673,7 +2722,7 @@ export function buildSeed(): Tables {
       primary_role: "clinician",
       island_code: "JM",
       patient_id: null,
-      provider_id: null,
+      provider_id: NURSE_PROVIDER_ID,
       organisation: "Jamaica Community Clinic",
       facility_id: JM_CLINIC_ID,
       staff_role: "nurse",

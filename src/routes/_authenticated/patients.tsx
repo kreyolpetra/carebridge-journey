@@ -32,6 +32,7 @@ import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
+import { acceptReferral as acceptReferralOnGrid } from "@/lib/referrals";
 import { InSessionNow } from "@/components/patient/InSessionNow";
 import { BASIS_LABEL, BASIS_TONE } from "@/lib/access";
 import { PatientChart } from "@/components/patient/PatientChart";
@@ -301,19 +302,13 @@ function Patients() {
   }, [risks.data, access, accessReady]);
 
   const acceptConsult = useMutation({
-    mutationFn: async (referralId: string) => {
-      const { error } = await supabase
-        .from("referrals")
-        .update({ status: "accepted" })
-        .eq("id", referralId);
-      if (error) throw new Error(error.message);
-      await supabase.from("consultations").insert({
-        referral_id: referralId,
-        patient_id: selected!,
-        status: "in_progress",
-        notes: "Teleconsult opened from the clinician console.",
-      });
-    },
+    mutationFn: (referralId: string) =>
+      acceptReferralOnGrid({
+        referralId,
+        patientId: selected!,
+        patient: (patients.data ?? []).find((p) => p.id === selected),
+        providerId: profile?.provider_id ?? null,
+      }),
     onSuccess: () => {
       toast.success("Teleconsult opened — patient notified on WhatsApp");
       qc.invalidateQueries();

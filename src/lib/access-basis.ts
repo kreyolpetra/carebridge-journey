@@ -160,6 +160,13 @@ export function buildAccessIndex(ctx: AccessContext) {
 
   // --- accepted referrals routed to this clinician ---------------------
   const acceptedReferralByPatient = new Map<string, Referral>();
+  /** Referrals this reader raised, which keep them connected to the patient. */
+  const raisedReferralByPatient = new Map<string, Referral>();
+  for (const r of ctx.referrals) {
+    if (!actor.providerId || r.from_provider_id !== actor.providerId) continue;
+    raisedReferralByPatient.set(r.patient_id, r);
+  }
+
   const pendingReferralByPatient = new Map<string, Referral>();
   for (const r of ctx.referrals) {
     if (!actor.providerId || r.to_provider_id !== actor.providerId) continue;
@@ -274,13 +281,24 @@ export function buildAccessIndex(ctx: AccessContext) {
     const member = careTeamByPatient.get(patientId);
     const accepted = acceptedReferralByPatient.get(patientId);
     const here = lastEncounterAtMyFacility.get(patientId);
-    if (member || accepted || here) {
+    /**
+     * You referred them, so you are still their clinician.
+     *
+     * Access was being lost at the moment of referral: the clinician who
+     * raised it had no basis to open the record afterwards, so the person
+     * responsible for chasing an unanswered hand-off could not see the patient
+     * it was about. Nobody refers a patient and stops being their nurse.
+     */
+    const raised = raisedReferralByPatient.get(patientId);
+    if (member || accepted || here || raised) {
       const encounter = here;
       const anchor = encounter
         ? new Date(encounter.ended_at ?? encounter.started_at).getTime()
         : accepted
           ? new Date(accepted.created_at).getTime()
-          : new Date(member!.active_from).getTime();
+          : member
+            ? new Date(member.active_from).getTime()
+            : new Date(raised!.created_at).getTime();
       const days = windowDaysFor(actor.facilityId);
       const closesAt = anchor + days * 86_400_000;
       // An open episode (a booked teleconsult that has not happened yet) keeps
@@ -299,7 +317,9 @@ export function buildAccessIndex(ctx: AccessContext) {
             ? `You accepted the ${accepted.specialty.toLowerCase()} referral raised ${dayjsish(accepted.created_at)}.`
             : member
               ? `You are on the care team at ${facilityById.get(actor.facilityId ?? "")?.name ?? "your facility"} for an episode opened ${dayjsish(member.active_from)}.`
-              : `This patient is being treated at ${facilityById.get(actor.facilityId ?? "")?.name ?? "your facility"}, where you work. Clinical staff here can read the record while the episode is open; every read is logged and the patient can see it.`,
+              : raised && !here
+                ? `You raised the ${raised.specialty.toLowerCase()} referral for this patient ${dayjsish(raised.created_at)}. Referring someone does not end your relationship with them — you keep the record while the hand-off is open.`
+                : `This patient is being treated at ${facilityById.get(actor.facilityId ?? "")?.name ?? "your facility"}, where you work. Clinical staff here can read the record while the episode is open; every read is logged and the patient can see it.`,
           expiresAt: new Date(closesAt).toISOString(),
           grantId: null,
           agreementId: null,

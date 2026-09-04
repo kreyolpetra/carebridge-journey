@@ -136,6 +136,16 @@ export type Referral = {
   id: string;
   patient_id: string;
   to_provider_id: string | null;
+  /**
+   * Who raised it. A referral used to record only its destination, so the
+   * clinician who sent one had no way to ask what became of it — the system
+   * did not know it was theirs. That is the whole of "referrals vanish".
+   */
+  from_provider_id: string | null;
+  from_facility_id: string | null;
+  /** When the receiving clinician actually took it on, not when it was sent. */
+  accepted_at: string | null;
+  accepted_by_provider_id: string | null;
   specialty: string;
   status: string;
   cross_island: boolean;
@@ -557,7 +567,7 @@ export function patientBundleQuery(patientId: string) {
         messages: (messages.data ?? []) as Message[],
         risk: ((risk.data ?? [])[0] ?? null) as unknown as RiskScore | null,
         triage: (triage.data ?? []) as TriageEvent[],
-        referrals: (referrals.data ?? []) as Referral[],
+        referrals: (referrals.data ?? []) as unknown as Referral[],
         grants: (grants.data ?? []) as ConsentGrant[],
         consultations: (consultations.data ?? []) as Consultation[],
       };

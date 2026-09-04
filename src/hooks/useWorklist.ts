@@ -143,6 +143,29 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
       );
     }
 
+    /**
+     * 1b. A referral you raised that nobody has answered.
+     *
+     * The counterpart to the one above, and the half that was missing: a
+     * clinician could see referrals sent *to* them and had no way to learn
+     * what became of the ones they sent. So a referral that landed nowhere
+     * simply went quiet, and the patient waited on a hand-off that was never
+     * picked up. Chasing it is the sender's job, so it belongs on their list.
+     */
+    const UNANSWERED_DAYS = 3;
+    for (const r of referrals.data ?? []) {
+      if (r.from_provider_id !== profile?.provider_id) continue;
+      if (r.status !== "routed" || r.accepted_at) continue;
+      const days = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
+      if (days < UNANSWERED_DAYS) continue;
+      add(
+        r.patient_id,
+        "Referral you raised is unanswered",
+        `${r.specialty}${r.cross_island ? ", cross-island" : ""} · sent ${days}d ago, nobody has accepted it`,
+        0,
+      );
+    }
+
     // 2. A reading drifted. This is the one with a clock on it: the numbers
     //    moved this morning, whereas a risk score has been high for a month.
     //    Each signal already carries the action, so it is used verbatim rather
