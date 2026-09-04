@@ -43,6 +43,7 @@ import { useNetworkOnline } from "@/lib/offline";
 import { useScope } from "@/hooks/useScope";
 import { CallOverlay, formatCallTime, type CallMode } from "@/components/patient/CallOverlay";
 import { useAccessIndex } from "@/lib/access-basis";
+import { NewMessage } from "@/components/patient/NewMessage";
 import type { TriageResult } from "@/lib/triage.server";
 
 function PatientLineRoute() {
@@ -415,6 +416,10 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
                 ? `${awaiting} waiting on a reply · ${threads.length} conversations`
                 : `${threads.length} conversations · all answered`
             }
+            /* Threads only exist where a patient wrote first, so without this
+               the care line could only ever reply. Outbound is most of what a
+               chronic-disease service actually sends. */
+            right={<NewMessage onSent={(id) => setSelectedId(id)} />}
           />
           <div className="border-b border-border px-3 py-2.5">
             <input
