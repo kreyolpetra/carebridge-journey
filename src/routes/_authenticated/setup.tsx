@@ -29,12 +29,25 @@ import {
   BedDouble,
   Users,
   UserPlus,
+  ListChecks,
+  Mail,
+  MessageCircle,
+  AlertCircle,
   Trash2,
   ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { islandsQuery, facilitiesQuery, patientsQuery } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  parseStaffList,
+  channelFor,
+  countChannels,
+  ROLE_LABEL,
+  ROLE_BLURB,
+  type InviteRow,
+  type StaffRole,
+} from "@/lib/staff-invite";
 import {
   KIND_PRESET,
   KIND_LABEL,
@@ -50,16 +63,6 @@ export const Route = createFileRoute("/_authenticated/setup")({ component: Setup
 
 const STEPS = ["The place", "What it has", "Your people", "Your patients"] as const;
 
-type Invite = { name: string; role: StaffRole };
-type StaffRole = "doctor" | "nurse" | "front_desk" | "org_admin";
-
-const STAFF_ROLES = [
-  { value: "doctor", label: "Doctor" },
-  { value: "nurse", label: "Nurse" },
-  { value: "front_desk", label: "Front desk" },
-  { value: "org_admin", label: "Administrator" },
-];
-
 function Setup() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -73,9 +76,8 @@ function Setup() {
   const [islandCode, setIslandCode] = useState("JM");
   const [kind, setKind] = useState<FacilityKind>("clinic");
   const [caps, setCaps] = useState<FacilityCapabilities>(KIND_PRESET.clinic);
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [inviteName, setInviteName] = useState("");
-  const [inviteRole, setInviteRole] = useState<StaffRole>("nurse");
+  const [paste, setPaste] = useState("");
+  const [invites, setInvites] = useState<InviteRow[]>([]);
   /**
    * Where finishing takes you, and the only honest answer to "bring your
    * patients in".
@@ -88,6 +90,11 @@ function Setup() {
    * plainly that the first worklist is short.
    */
   const [startWith, setStartWith] = useState<"grid" | "import">("grid");
+
+  const editInvite = (n: number, patch: Partial<InviteRow>) =>
+    setInvites((v) => v.map((row, i) => (i === n ? { ...row, ...patch } : row)));
+
+  const channels = countChannels(invites);
 
   /** Choosing a type re-fills the boxes; the next step lets them be corrected. */
   const chooseKind = (k: FacilityKind) => {
@@ -165,6 +172,9 @@ function Setup() {
           user_id: null,
           full_name: inv.name,
           staff_role: inv.role,
+          contact: inv.contact,
+          // Pending until they accept: a staff row with nobody behind it yet.
+          invited_at: inv.contact ? new Date().toISOString() : null,
         });
       }
       return facilityId;
@@ -405,83 +415,200 @@ function Setup() {
           <>
             <PanelHeader
               title="Who else works here?"
-              subtitle="They get an invitation. You can do this later — nothing depends on it."
+              subtitle="Paste the list you already have — a roster, a WhatsApp message, a column from a spreadsheet"
             />
             <div className="space-y-4 px-5 py-5">
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="min-w-[180px] flex-1 space-y-1.5">
-                  <Label htmlFor="i-name">Name</Label>
-                  <Input
-                    id="i-name"
-                    value={inviteName}
-                    onChange={(e) => setInviteName(e.target.value)}
-                    placeholder="e.g. Sister Yvette Marshall"
+              {!invites.length ? (
+                <>
+                  <textarea
+                    value={paste}
+                    onChange={(e) => setPaste(e.target.value)}
+                    rows={6}
+                    spellCheck={false}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-[12.5px] leading-relaxed outline-none focus:border-primary"
+                    placeholder={
+                      "Sister Yvette Marshall 876-555-0142\n" +
+                      "Dr. Anand Rampersad, anand@ttgh.tt\n" +
+                      "Paulette Grant 876 555 0198 front desk\n" +
+                      "Delroy Byfield — administrator — delroy@brc.jm"
+                    }
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="i-role">Their job</Label>
-                  <select
-                    id="i-role"
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as StaffRole)}
-                    className="rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-primary"
-                  >
-                    {STAFF_ROLES.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!inviteName.trim()) return;
-                    setInvites((v) => [...v, { name: inviteName.trim(), role: inviteRole }]);
-                    setInviteName("");
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold transition-colors hover:border-primary/40 hover:text-primary"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Add
-                </button>
-              </div>
-
-              {invites.length ? (
-                <ul className="divide-y divide-border rounded-lg border border-border">
-                  {invites.map((inv, n) => (
-                    <li
-                      key={`${inv.name}-${n}`}
-                      className="flex items-center justify-between gap-3 px-3 py-2"
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInvites(parseStaffList(paste))}
+                      disabled={!paste.trim()}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-primary-foreground disabled:opacity-50"
                     >
-                      <span className="text-[13px]">
-                        {inv.name}
-                        <Pill className="ml-2 border-border bg-surface text-muted-foreground">
-                          {STAFF_ROLES.find((r) => r.value === inv.role)?.label ?? inv.role}
-                        </Pill>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setInvites((v) => v.filter((_, x) => x !== n))}
-                        className="text-muted-foreground transition-colors hover:text-critical"
-                        aria-label={`Remove ${inv.name}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                      <ListChecks className="h-3.5 w-3.5" />
+                      Read the list
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInvites([{ name: "", contact: "", role: "nurse" }])}
+                      className="text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      Or add people one at a time
+                    </button>
+                  </div>
+                  {/* Said before they paste, since it decides what they paste. */}
+                  <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                    One person per line, in any order. A phone number is enough — most staff here
+                    have WhatsApp and no work email, which is the same reason the patient care line
+                    runs on it. Names, numbers and jobs are picked out for you, and you can correct
+                    anything that comes out wrong.
+                  </p>
+                </>
               ) : (
-                <p className="text-[12.5px] text-muted-foreground">
-                  Nobody added yet. You are the administrator either way.
-                </p>
-              )}
+                <>
+                  <div className="overflow-x-auto rounded-lg border border-border">
+                    <table className="w-full min-w-[560px] border-collapse text-[13px]">
+                      <thead>
+                        <tr className="border-b border-border bg-surface text-left">
+                          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                            Name
+                          </th>
+                          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                            Phone or email
+                          </th>
+                          <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                            Job
+                          </th>
+                          <th className="w-9" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invites.map((inv, n) => {
+                          const ch = channelFor(inv.contact);
+                          return (
+                            <tr key={n} className="border-b border-border last:border-0">
+                              <td className="px-2 py-1.5">
+                                <input
+                                  value={inv.name}
+                                  onChange={(e) => editInvite(n, { name: e.target.value })}
+                                  placeholder="Name"
+                                  className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 text-[13px] outline-none hover:border-border focus:border-primary"
+                                />
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <span className="flex items-center gap-1.5">
+                                  <input
+                                    value={inv.contact}
+                                    onChange={(e) => editInvite(n, { contact: e.target.value })}
+                                    placeholder="876-555-0100 or name@clinic.jm"
+                                    className="w-full rounded-md border border-transparent bg-transparent px-2 py-1 font-mono text-[12.5px] outline-none hover:border-border focus:border-primary"
+                                  />
+                                  {ch === "whatsapp" ? (
+                                    <MessageCircle
+                                      className="h-3.5 w-3.5 shrink-0 text-low"
+                                      aria-label="by WhatsApp"
+                                    />
+                                  ) : ch === "email" ? (
+                                    <Mail
+                                      className="h-3.5 w-3.5 shrink-0 text-primary"
+                                      aria-label="by email"
+                                    />
+                                  ) : (
+                                    <AlertCircle
+                                      className="h-3.5 w-3.5 shrink-0 text-high"
+                                      aria-label="no way to reach them"
+                                    />
+                                  )}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <select
+                                  value={inv.role}
+                                  onChange={(e) =>
+                                    editInvite(n, { role: e.target.value as StaffRole })
+                                  }
+                                  className="rounded-md border border-border bg-background px-2 py-1 text-[12.5px] outline-none focus:border-primary"
+                                >
+                                  {(Object.keys(ROLE_LABEL) as StaffRole[]).map((r) => (
+                                    <option key={r} value={r}>
+                                      {ROLE_LABEL[r]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setInvites((v) => v.filter((_, x) => x !== n))}
+                                  className="text-muted-foreground transition-colors hover:text-critical"
+                                  aria-label={`Remove ${inv.name || "row"}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
 
-              <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                What each person can see follows from their job, not from a list of switches. A
-                nurse sees a nursing sidebar; front desk can look someone up to register them and
-                cannot open the chart.
-              </p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted-foreground">
+                    <span className="font-semibold text-foreground">
+                      {invites.length} {invites.length === 1 ? "person" : "people"}
+                    </span>
+                    {channels.whatsapp ? (
+                      <span className="flex items-center gap-1.5">
+                        <MessageCircle className="h-3.5 w-3.5 text-low" />
+                        {channels.whatsapp} by WhatsApp
+                      </span>
+                    ) : null}
+                    {channels.email ? (
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-primary" />
+                        {channels.email} by email
+                      </span>
+                    ) : null}
+                    {channels.none ? (
+                      <span className="flex items-center gap-1.5 text-high">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        {channels.none} with no way to reach them — they will be on the roster, but
+                        not invited
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setInvites((v) => [...v, { name: "", contact: "", role: "nurse" }])
+                      }
+                      className="ml-auto inline-flex items-center gap-1.5 font-medium transition-colors hover:text-primary"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                      Add another
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInvites([]);
+                        setPaste("");
+                      }}
+                      className="font-medium transition-colors hover:text-primary"
+                    >
+                      Start over
+                    </button>
+                  </div>
+
+                  {/* What a job actually means, next to where the job is chosen. */}
+                  <div className="grid gap-1.5 rounded-lg border border-border bg-surface px-3 py-2.5 sm:grid-cols-2">
+                    {(Object.keys(ROLE_LABEL) as StaffRole[]).map((r) => (
+                      <p key={r} className="text-[12px] leading-relaxed text-muted-foreground">
+                        <span className="font-semibold text-foreground">{ROLE_LABEL[r]}</span> —{" "}
+                        {ROLE_BLURB[r]}
+                      </p>
+                    ))}
+                  </div>
+
+                  <p className="rounded-lg border border-accent/40 bg-accent/8 px-3 py-2.5 text-[12.5px] leading-relaxed">
+                    In this prototype the invitations are prepared, not sent. Everyone here is added
+                    to the roster as pending, and nothing leaves the building.
+                  </p>
+                </>
+              )}
             </div>
           </>
         ) : null}

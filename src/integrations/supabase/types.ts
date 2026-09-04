@@ -1041,6 +1041,8 @@ export type Database = {
       }
       facility_staff: {
         Row: {
+          contact: string
+          invited_at: string | null
           created_at: string
           facility_id: string
           full_name: string | null
@@ -1050,6 +1052,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          contact?: string
+          invited_at?: string | null
           created_at?: string
           facility_id: string
           full_name: string | null
@@ -1059,6 +1063,8 @@ export type Database = {
           user_id: string | null
         }
         Update: {
+          contact?: string
+          invited_at?: string | null
           created_at?: string
           facility_id?: string
           full_name?: string | null
