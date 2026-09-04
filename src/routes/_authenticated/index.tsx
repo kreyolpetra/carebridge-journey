@@ -24,7 +24,8 @@ import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
 import { useWorklist, useContactedToday, rankTone } from "@/hooks/useWorklist";
-import { allocateAttention } from "@/lib/attention";
+import { useMyFacility } from "@/hooks/useMyFacility";
+import { allocateAttention, capacityForFacility } from "@/lib/attention";
 import { InSessionNow } from "@/components/patient/InSessionNow";
 import { HealthTrends } from "@/components/patient/HealthTrends";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
@@ -326,6 +327,7 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
   const mySlots = (slots.data ?? []).filter(
     (s) => provider && s.provider_id === provider.id && s.status === "open",
   );
+  const myFacility = useMyFacility();
   const { items: work } = useWorklist();
   const contactedToday = useContactedToday();
   /**
@@ -333,7 +335,10 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
    * uses. A home screen that drew the line in a different place from the list
    * you act on would be telling you two different days.
    */
-  const allocation = allocateAttention(work, { spent: contactedToday.size });
+  const allocation = allocateAttention(work, {
+    spent: contactedToday.size,
+    capacity: capacityForFacility(myFacility),
+  });
 
   return (
     <>

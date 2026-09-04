@@ -19,6 +19,9 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * found and the seed is rebuilt.
  */
 import { escortRuleFor } from "@/lib/escort";
+import { KIND_PRESET, type FacilityKind } from "@/lib/facility-capability";
+
+const kindPreset = (kind: string) => KIND_PRESET[kind as FacilityKind] ?? KIND_PRESET.clinic;
 
 export const SEED_VERSION = 29;
 
@@ -814,6 +817,13 @@ export function buildSeed(): Tables {
         kind: f.kind,
         beds_total: f.beds,
         beds_occupied: Math.max(0, Math.round(f.beds * occRatio)),
+        // Capabilities pre-filled from the type, exactly as the setup wizard
+        // does it — but the seeded bed count wins, since these buildings
+        // already have one and the preset is only ever an opening guess.
+        has_lab: kindPreset(f.kind).has_lab,
+        has_imaging: kindPreset(f.kind).has_imaging,
+        has_pharmacy: kindPreset(f.kind).has_pharmacy,
+        session_capacity: kindPreset(f.kind).session_capacity,
         continuity_status: "operational",
         continuity_note: "",
         continuity_since: null,

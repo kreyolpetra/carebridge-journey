@@ -40,6 +40,24 @@ export type Facility = {
   continuity_status: string;
   continuity_note: string;
   continuity_since: string | null;
+  /**
+   * What the building actually has in it.
+   *
+   * Deliberately capabilities rather than a category. "Hospital" and "clinic"
+   * are a useful opening question and a poor switch: there are clinics here
+   * with a working laboratory and hospitals whose one has been down for a
+   * year. Features are gated on these, and the type merely pre-fills them.
+   */
+  has_lab: boolean;
+  has_imaging: boolean;
+  has_pharmacy: boolean;
+  /**
+   * Contacts a clinician here can realistically make in one session. Feeds the
+   * worklist's cut line, which used to be a constant of 12 in the code — an
+   * assumption about somebody else's day, held somewhere they could not change
+   * it. A solo rural nurse's day is not a hospital consultant's.
+   */
+  session_capacity: number;
 };
 export type Provider = {
   id: string;

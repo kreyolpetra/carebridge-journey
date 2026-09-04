@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { islandsQuery } from "@/lib/api";
 import { resetDb } from "@/lib/mock/db";
+import { Building2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -90,6 +91,31 @@ function SettingsPage() {
       </p>
 
       <div className="mt-6 grid gap-4">
+        {/* The workspace, as opposed to the person. Settings only ever held
+            personal preferences, so there was nowhere to stand a facility up
+            from — or to correct what setup guessed about it. */}
+        {role !== "patient" ? (
+          <Panel>
+            <PanelHeader
+              title="Your workspace"
+              subtitle="The facility you work in, and what it has in it"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                Adding a new clinic or hospital to the Grid takes four steps, and every one of them
+                can be skipped.
+              </p>
+              <Link
+                to="/setup"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-primary-foreground"
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                Set up a facility
+              </Link>
+            </div>
+          </Panel>
+        ) : null}
+
         <Panel>
           <PanelHeader
             title="Your profile"

@@ -32,8 +32,10 @@ import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useWorklist, rankTone, type WorklistItem } from "@/hooks/useWorklist";
+import { useMyFacility } from "@/hooks/useMyFacility";
 import {
   allocateAttention,
+  capacityForFacility,
   countByDisposition,
   DEFAULT_SESSION_CAPACITY,
   DISPOSITION_LABEL,
@@ -216,6 +218,7 @@ function Patients() {
    * cannot disagree about what needs doing. Search and the band tiles are
    * applied here, because they are this screen's controls.
    */
+  const myFacility = useMyFacility();
   const { items: worklistAll } = useWorklist();
   const worklist = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -242,8 +245,12 @@ function Patients() {
    */
   const [showBelow, setShowBelow] = useState(false);
   const allocation = useMemo(
-    () => allocateAttention(worklist, { spent: contacted.size }),
-    [worklist, contacted],
+    () =>
+      allocateAttention(worklist, {
+        spent: contacted.size,
+        capacity: capacityForFacility(myFacility),
+      }),
+    [worklist, contacted, myFacility],
   );
   const handedOff = countByDisposition(allocation.below);
 

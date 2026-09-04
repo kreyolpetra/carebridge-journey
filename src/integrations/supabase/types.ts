@@ -982,6 +982,10 @@ export type Database = {
       }
       facilities: {
         Row: {
+          has_imaging: boolean
+          has_lab: boolean
+          has_pharmacy: boolean
+          session_capacity: number
           beds_occupied: number
           beds_total: number
           created_at: string
@@ -994,6 +998,10 @@ export type Database = {
           name: string
         }
         Insert: {
+          has_imaging?: boolean
+          has_lab?: boolean
+          has_pharmacy?: boolean
+          session_capacity?: number
           beds_occupied?: number
           beds_total?: number
           created_at?: string
@@ -1006,6 +1014,10 @@ export type Database = {
           name: string
         }
         Update: {
+          has_imaging?: boolean
+          has_lab?: boolean
+          has_pharmacy?: boolean
+          session_capacity?: number
           beds_occupied?: number
           beds_total?: number
           created_at?: string

@@ -30,6 +30,19 @@ import type { WorklistItem } from "@/hooks/useWorklist";
  */
 export const DEFAULT_SESSION_CAPACITY = 12;
 
+/**
+ * Where the number actually comes from now.
+ *
+ * It began life as the constant above — an assumption about somebody else's
+ * day, held in a file they could never reach. A facility states its own during
+ * setup, so a solo rural health centre's line is drawn at six and a hospital
+ * consultant's at twelve. The constant survives only as the fallback for rows
+ * that predate the question being asked.
+ */
+export function capacityForFacility(f: { session_capacity?: number } | null | undefined) {
+  return f?.session_capacity || DEFAULT_SESSION_CAPACITY;
+}
+
 /** Who picks this person up, if it is not the clinician looking at the list. */
 export type Disposition = "you" | "nurse" | "message";
 
