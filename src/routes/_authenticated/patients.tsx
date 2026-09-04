@@ -32,6 +32,7 @@ import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
+import { InSessionNow } from "@/components/patient/InSessionNow";
 import { BASIS_LABEL, BASIS_TONE } from "@/lib/access";
 import { PatientChart } from "@/components/patient/PatientChart";
 import { NoBasisPanel } from "@/components/patient/NoBasisPanel";
@@ -365,6 +366,10 @@ function Patients() {
           All patients is the whole Grid directory — identity only.
         </p>
       </div>
+
+      {/* Who is being seen right now, above the list of who still needs
+          seeing. Two different states, so two different places. */}
+      <InSessionNow />
 
       {/* The band tiles are the filter. They used to look like one and do
           nothing, while the real control was a small select in the panel

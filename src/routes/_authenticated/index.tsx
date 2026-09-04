@@ -24,6 +24,7 @@ import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
 import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
+import { InSessionNow } from "@/components/patient/InSessionNow";
 import { HealthTrends } from "@/components/patient/HealthTrends";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { ActivityFeed } from "@/components/app/ActivityFeed";
@@ -366,6 +367,9 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
           hint="Saved per routed patient"
         />
       </section>
+
+      {/* Being seen right now, above who still needs seeing. */}
+      <InSessionNow />
 
       <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">

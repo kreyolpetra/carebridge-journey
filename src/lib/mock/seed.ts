@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 16;
+export const SEED_VERSION = 17;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -1803,7 +1803,10 @@ export function buildSeed(): Tables {
   // window produced one or two patients, which is not what a hospital looks
   // like at eleven in the morning.
   for (const patient of clinicCohort.slice(0, 22)) {
-    const startedHoursAgo = int(rng, 0, 5);
+    // Minutes, not whole hours. Offsetting by 0-5 hours put every arrival on
+    // the same minute past the hour, so a clinic list read "07:55, 07:55,
+    // 07:55" — which looks generated rather than busy.
+    const startedMinsAgo = int(rng, 5, 320);
     t.encounters.push({
       id: uuid(rng),
       patient_id: patient.id,
@@ -1819,9 +1822,9 @@ export function buildSeed(): Tables {
       ]),
       summary: "",
       status: "open",
-      started_at: new Date(nowMs() - startedHoursAgo * 3600000).toISOString(),
+      started_at: new Date(nowMs() - startedMinsAgo * 60000).toISOString(),
       ended_at: null,
-      created_at: new Date(nowMs() - startedHoursAgo * 3600000).toISOString(),
+      created_at: new Date(nowMs() - startedMinsAgo * 60000).toISOString(),
       sensitivity: "standard",
     });
   }
