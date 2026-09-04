@@ -136,19 +136,12 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: "/consent",
-    label: "Consent ledger",
+    label: "Consent & access",
     icon: ShieldCheck,
     roles: ALL,
     group: "Work",
-    keywords: "privacy audit sharing records",
-  },
-  {
-    to: "/access-log",
-    label: "Access log",
-    icon: Eye,
-    roles: ALL,
-    group: "Work",
-    keywords: "who viewed my record transparency audit access log break glass",
+    keywords:
+      "consent grant revoke sharing permissions ledger access log who viewed my record transparency audit break glass privacy",
   },
   {
     to: "/cooperative",
@@ -190,8 +183,7 @@ const PATIENT_LABELS: Record<string, string> = {
   "/appointments": "My appointments",
   "/record": "My record",
   "/reports": "My health summary",
-  "/consent": "Sharing & permissions",
-  "/access-log": "Who has looked at my record",
+  "/consent": "My privacy",
 };
 
 export function navFor(role: string, staffRole?: string | null): NavItem[] {
