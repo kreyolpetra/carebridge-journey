@@ -30,6 +30,7 @@ import { BookAppointment } from "@/components/patient/BookAppointment";
 import { AddPaperRecord } from "@/components/patient/AddPaperRecord";
 import { SafetyPanel } from "@/components/patient/SafetyPanel";
 import { PatientContinuityNote } from "@/components/ContinuityBanner";
+import { DischargeHandoff } from "@/components/patient/DischargeHandoff";
 import { ResultsOnTheGrid } from "@/components/patient/ResultsOnTheGrid";
 import { PatientLine as CareLine } from "@/components/patient/CareLineView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -158,6 +159,7 @@ export function PatientChart({
       </div>
 
       {/* Why this patient is here, before what is wrong with them. */}
+      <DischargeHandoff patientId={b.patient.id} />
       <PatientContinuityNote patientId={b.patient.id} />
 
       {/* Above the clinical detail on purpose. A safety stop that sits below

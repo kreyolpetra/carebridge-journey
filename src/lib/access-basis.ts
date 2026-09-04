@@ -34,6 +34,7 @@ import {
   type Facility,
   type Referral,
 } from "@/lib/api";
+import { dischargesQuery, type Discharge } from "@/lib/discharge";
 import { encountersQuery, type Encounter } from "@/lib/org";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -76,6 +77,7 @@ export type AccessContext = {
   agreements: DataSharingAgreement[];
   grants: ConsentGrant[];
   referrals: Referral[];
+  discharges: Discharge[];
   breakGlass: BreakGlassEvent[];
 };
 
@@ -165,6 +167,20 @@ export function buildAccessIndex(ctx: AccessContext) {
   for (const r of ctx.referrals) {
     if (!actor.providerId || r.from_provider_id !== actor.providerId) continue;
     raisedReferralByPatient.set(r.patient_id, r);
+  }
+
+  /**
+   * Patients a hospital has handed to this reader's facility.
+   *
+   * Same principle as the referral above, pointed the other way: somebody
+   * discharged a patient into your clinic's care and put it on your worklist.
+   * Being unable to open the record you have just been made responsible for is
+   * the exact gap this feature exists to close.
+   */
+  const handedToMyFacility = new Map<string, Discharge>();
+  for (const d of ctx.discharges) {
+    if (!actor.facilityId || d.to_facility_id !== actor.facilityId) continue;
+    handedToMyFacility.set(d.patient_id, d);
   }
 
   const pendingReferralByPatient = new Map<string, Referral>();
@@ -290,7 +306,8 @@ export function buildAccessIndex(ctx: AccessContext) {
      * it was about. Nobody refers a patient and stops being their nurse.
      */
     const raised = raisedReferralByPatient.get(patientId);
-    if (member || accepted || here || raised) {
+    const handed = handedToMyFacility.get(patientId);
+    if (member || accepted || here || raised || handed) {
       const encounter = here;
       const anchor = encounter
         ? new Date(encounter.ended_at ?? encounter.started_at).getTime()
@@ -298,7 +315,9 @@ export function buildAccessIndex(ctx: AccessContext) {
           ? new Date(accepted.created_at).getTime()
           : member
             ? new Date(member.active_from).getTime()
-            : new Date(raised!.created_at).getTime();
+            : raised
+              ? new Date(raised.created_at).getTime()
+              : new Date(handed!.discharged_at).getTime();
       const days = windowDaysFor(actor.facilityId);
       const closesAt = anchor + days * 86_400_000;
       // An open episode (a booked teleconsult that has not happened yet) keeps
@@ -396,6 +415,7 @@ export function useAccessIndex(): { index: AccessIndex; ready: boolean; actor: A
   const agreements = useQuery(agreementsQuery);
   const grants = useQuery(consentGrantsQuery);
   const referrals = useQuery(referralsQuery);
+  const discharges = useQuery(dischargesQuery);
   const breakGlass = useQuery(breakGlassQuery(null));
 
   const actor = useMemo<AccessActor>(
@@ -418,6 +438,7 @@ export function useAccessIndex(): { index: AccessIndex; ready: boolean; actor: A
     !agreements.isLoading &&
     !grants.isLoading &&
     !referrals.isLoading &&
+    !discharges.isLoading &&
     !breakGlass.isLoading;
 
   const index = useMemo(
@@ -431,6 +452,7 @@ export function useAccessIndex(): { index: AccessIndex; ready: boolean; actor: A
         agreements: agreements.data ?? [],
         grants: grants.data ?? [],
         referrals: referrals.data ?? [],
+        discharges: discharges.data ?? [],
         breakGlass: breakGlass.data ?? [],
       }),
     [
@@ -442,6 +464,7 @@ export function useAccessIndex(): { index: AccessIndex; ready: boolean; actor: A
       agreements.data,
       grants.data,
       referrals.data,
+      discharges.data,
       breakGlass.data,
     ],
   );

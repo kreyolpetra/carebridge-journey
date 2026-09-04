@@ -20,7 +20,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  */
 import { escortRuleFor } from "@/lib/escort";
 
-export const SEED_VERSION = 27;
+export const SEED_VERSION = 29;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -753,6 +753,7 @@ export function buildSeed(): Tables {
     alerts: [],
     stock_items: [],
     lab_results: [],
+    discharges: [],
     profiles: [],
     user_roles: [],
     facility_staff: [],
@@ -2012,10 +2013,11 @@ export function buildSeed(): Tables {
 
   // Discharged, but inside the 30-day hospital window, so the record is still
   // lawfully open to the team that treated them.
-  for (const patient of dischargedCohort) {
+  for (const [i, patient] of dischargedCohort.entries()) {
     const endedDaysAgo = int(rng, 1, 26);
+    const encounterId = uuid(rng);
     t.encounters.push({
-      id: uuid(rng),
+      id: encounterId,
       patient_id: patient.id,
       facility_id: TT_HOSPITAL_ID,
       provider_id: pick(rng, ttProviders).id,
@@ -2028,6 +2030,105 @@ export function buildSeed(): Tables {
       ended_at: daysAgo(endedDaysAgo),
       created_at: daysAgo(endedDaysAgo + 8),
       sensitivity: "standard",
+    });
+
+    /**
+     * The hand-off back to whoever looks after them the rest of the year.
+     *
+     * Roughly two in five are still sitting unacknowledged, which is not
+     * pessimism for its own sake — an unacknowledged discharge is exactly the
+     * patient this product exists to find, and a demo where every one had been
+     * tidily picked up would be showing a solved problem.
+     */
+    const home = (facilitiesByIsland[String(patient["island_code"])] ?? []).find(
+      (f) => f["id"] !== TT_HOSPITAL_ID,
+    );
+    const followUp = pick(rng, [3, 5, 7, 7, 14]);
+    const acknowledged = i % 5 >= 2;
+    t["discharges"]!.push({
+      id: uuid(rng),
+      encounter_id: encounterId,
+      patient_id: patient["id"],
+      from_facility_id: TT_HOSPITAL_ID,
+      to_facility_id: home ? home["id"] : null,
+      discharged_by_provider_id: pick(rng, ttProviders)["id"],
+      summary: pick(rng, [
+        "Admitted with hypertensive urgency. Settled on adjusted regimen, no end-organ damage on this admission.",
+        "Admitted with decompensated heart failure. Diuresed, dry weight established, fluid advice given.",
+        "Admitted with hyperglycaemia and dehydration. Insulin regimen restarted with education.",
+        "Admitted with chest pain. Ischaemia excluded, discharged on secondary prevention.",
+      ]),
+      medication_changes: pick(rng, [
+        "Amlodipine increased 5mg to 10mg. Losartan started 50mg daily.",
+        "Furosemide 40mg daily added. Stop ibuprofen — renal function.",
+        "Metformin increased to 1g twice daily. Gliclazide stopped.",
+        "Aspirin 75mg and atorvastatin 40mg started at discharge.",
+      ]),
+      follow_up_days: followUp,
+      discharged_at: daysAgo(endedDaysAgo),
+      acknowledged_at: acknowledged ? daysAgo(Math.max(0, endedDaysAgo - 1)) : null,
+      acknowledged_by_provider_id: acknowledged ? pick(rng, ttProviders)["id"] : null,
+      created_at: daysAgo(endedDaysAgo),
+    });
+  }
+
+  /**
+   * Jamaican hand-offs, so the receiving end of a discharge has somebody in it.
+   *
+   * Every discharge above goes back to a Trinidadian clinic, which makes the
+   * hospital half of the feature demonstrable and the clinic half invisible —
+   * and the clinic half is the one that matters. These run the other way: the
+   * island's hospital discharges into the community clinic the nurse actually
+   * works in, including one nobody has picked up past the window.
+   */
+  // Resolved here rather than reusing the outer `heroPatient`, which is not
+  // declared until further down the file.
+  const heroForHandoff = t["patients"]!.find((pt) => pt["id"] === HERO_PATIENT_ID)!;
+  const jmHandoffs = [
+    heroForHandoff,
+    ...jmClinicRoster.filter((pt) => pt["id"] !== HERO_PATIENT_ID).slice(0, 5),
+  ];
+  for (const [i, patient] of jmHandoffs.entries()) {
+    const endedDaysAgo = i === 0 ? 4 : int(rng, 1, 16);
+    const encounterId = uuid(rng);
+    t["encounters"]!.push({
+      id: encounterId,
+      patient_id: patient["id"],
+      facility_id: jmHospital["id"],
+      provider_id: null,
+      consultation_id: null,
+      kind: "admission",
+      reason: "Inpatient episode — hypertensive urgency",
+      summary: "Discharged on adjusted regimen with community follow-up.",
+      status: "closed",
+      started_at: daysAgo(endedDaysAgo + int(rng, 2, 6)),
+      ended_at: daysAgo(endedDaysAgo),
+      created_at: daysAgo(endedDaysAgo + 6),
+      sensitivity: "standard",
+    });
+    // The first two are open, and the first is past its window — those are the
+    // ones the nurse should be looking at this morning.
+    const acknowledged = i >= 2;
+    t["discharges"]!.push({
+      id: uuid(rng),
+      encounter_id: encounterId,
+      patient_id: patient["id"],
+      from_facility_id: jmHospital["id"],
+      to_facility_id: jmClinic["id"],
+      discharged_by_provider_id: null,
+      summary:
+        i === 0
+          ? "Admitted for four days with systolic above 200 and headache. No end-organ damage found. Settled on an adjusted regimen."
+          : "Admitted with hypertensive urgency, settled on adjusted regimen.",
+      medication_changes:
+        i === 0
+          ? "Amlodipine increased 5mg to 10mg. Losartan 50mg started. Stop the old amlodipine box — same drug, new dose."
+          : "Amlodipine increased 5mg to 10mg.",
+      follow_up_days: i === 0 ? 3 : pick(rng, [5, 7, 14]),
+      discharged_at: daysAgo(endedDaysAgo),
+      acknowledged_at: acknowledged ? daysAgo(Math.max(0, endedDaysAgo - 1)) : null,
+      acknowledged_by_provider_id: acknowledged ? NURSE_PROVIDER_ID : null,
+      created_at: daysAgo(endedDaysAgo),
     });
   }
 

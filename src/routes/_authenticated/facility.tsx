@@ -16,6 +16,7 @@ import {
   STAFF_ROLE_LABEL,
 } from "@/lib/org";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InpatientsPanel } from "@/components/facility/InpatientsPanel";
 import { useScope } from "@/hooks/useScope";
 import { RegistryPage } from "@/components/facility/Registry";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
@@ -154,6 +155,9 @@ function FacilityConsole() {
         </TabsList>
 
         <TabsContent value="console" className="mt-4 space-y-4">
+          {/* Only appears where there are beds — the first surface in the
+              product that exists for one kind of facility and not another. */}
+          <InpatientsPanel facility={facility} />
           <Panel>
             <PanelHeader
               title={

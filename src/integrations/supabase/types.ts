@@ -1692,6 +1692,54 @@ export type Database = {
         }
         Relationships: []
       }
+      discharges: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by_provider_id: string | null
+          created_at: string
+          discharged_at: string
+          discharged_by_provider_id: string | null
+          encounter_id: string | null
+          follow_up_days: number
+          from_facility_id: string
+          id: string
+          medication_changes: string
+          patient_id: string
+          summary: string
+          to_facility_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_provider_id?: string | null
+          created_at?: string
+          discharged_at?: string
+          discharged_by_provider_id?: string | null
+          encounter_id?: string | null
+          follow_up_days?: number
+          from_facility_id?: string
+          id?: string
+          medication_changes?: string
+          patient_id?: string
+          summary?: string
+          to_facility_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_provider_id?: string | null
+          created_at?: string
+          discharged_at?: string
+          discharged_by_provider_id?: string | null
+          encounter_id?: string | null
+          follow_up_days?: number
+          from_facility_id?: string
+          id?: string
+          medication_changes?: string
+          patient_id?: string
+          summary?: string
+          to_facility_id?: string | null
+        }
+        Relationships: []
+      }
       lab_results: {
         Row: {
           collected_at: string

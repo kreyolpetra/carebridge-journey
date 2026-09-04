@@ -31,6 +31,7 @@ import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useAuth } from "@/hooks/useAuth";
 import { clockTime } from "@/lib/format";
 import { escortNeed } from "@/lib/escort";
+import { dischargesQuery, daysSince, isOverdue } from "@/lib/discharge";
 
 export type WorklistItem = {
   patient: Patient;
@@ -88,6 +89,7 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
   const referrals = useQuery(referralsQuery);
   const consultations = useQuery(consultationsQuery);
   const signals = useQuery(detectionSignalsQuery);
+  const discharges = useQuery(dischargesQuery);
   const { index: access, ready: accessReady } = useAccessIndex();
   const contacted = useContactedToday();
 
@@ -133,6 +135,27 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
         r.patient_id,
         "Referral awaiting you",
         `${r.specialty}${r.cross_island ? ", cross-island" : ""} · routed ${days === 0 ? "today" : `${days}d ago`}`,
+        0,
+      );
+    }
+
+    /**
+     * 1a. A patient a hospital has handed back to your facility.
+     *
+     * Ranked with the referrals rather than the risk scores, because it is the
+     * same kind of thing: another clinician has finished with this patient and
+     * handed them to you, and until somebody here says yes, nobody has agreed
+     * to follow them up. Unaccepted past the window the hospital asked for, it
+     * is not a task any more — it is a patient lost between two services.
+     */
+    for (const d of discharges.data ?? []) {
+      if (d.acknowledged_at) continue;
+      if (!profile?.facility_id || d.to_facility_id !== profile.facility_id) continue;
+      const days = daysSince(d.discharged_at);
+      add(
+        d.patient_id,
+        isOverdue(d) ? "Discharge follow-up overdue" : "Discharged — needs follow-up",
+        `Home ${days === 0 ? "today" : `${days}d ago`} · seen again within ${d.follow_up_days || 7} days · ${d.medication_changes || d.summary}`,
         0,
       );
     }
@@ -231,6 +254,7 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
     referrals.data,
     consultations.data,
     signals.data,
+    discharges.data,
     profile,
     contacted,
   ]);
