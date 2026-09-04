@@ -207,9 +207,15 @@ function Patients() {
    */
   const { items: worklistAll } = useWorklist();
   const horizon = splitHorizon(worklistAll);
+  /**
+   * Today by default. The tab counts today, so rendering the week underneath
+   * it made the count disagree with the list — the same small lie the home
+   * screen was telling when it said 17 and showed five.
+   */
+  const [includeWeek, setIncludeWeek] = useState(false);
   const worklist = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return worklistAll
+    return (includeWeek ? worklistAll : horizon.today)
       .filter((i) => bandFilter === "all" || i.risk?.band === bandFilter)
       .filter(
         (i) =>
@@ -217,7 +223,7 @@ function Patients() {
           i.patient.full_name.toLowerCase().includes(needle) ||
           i.patient.parish.toLowerCase().includes(needle),
       );
-  }, [worklistAll, query, bandFilter]);
+  }, [worklistAll, horizon.today, includeWeek, query, bandFilter]);
 
   /**
    * Every patient on the Grid, browsable by name — the directory.
@@ -557,6 +563,18 @@ function Patients() {
                   </div>
                 );
               })}
+
+            {tab === "work" && horizon.thisWeek.length ? (
+              <button
+                type="button"
+                onClick={() => setIncludeWeek((v) => !v)}
+                className="mt-1 w-full rounded-lg border border-dashed border-border px-3 py-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              >
+                {includeWeek
+                  ? `Hide the ${horizon.thisWeek.length} due later this week`
+                  : `Show ${horizon.thisWeek.length} more due this week`}
+              </button>
+            ) : null}
 
             {tab === "work" && accessReady && !worklist.length ? (
               <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
