@@ -10,7 +10,8 @@
     "build:spa": "vite build --config vite.spa.config.ts && node scripts/inline-spa.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "eval:agents": "npx --yes tsx src/lib/agents/intake.eval.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

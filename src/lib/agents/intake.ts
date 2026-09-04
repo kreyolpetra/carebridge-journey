@@ -19,7 +19,7 @@ import type { AgentRun, Finding, ToolCall } from "./core";
 import { AGENT_DISCLAIMER, denyTool, runTool, sortFindings } from "./core";
 import { ruleBasedTriage, type PatientContext, type TriageResult } from "../triage.server";
 import type { Condition, Medication, Patient, Vital } from "../api";
-import { isSensitive, SENSITIVE_LABEL } from "../access";
+import { isSensitive, SENSITIVE_LABEL } from "../sensitivity";
 
 export type IntakeInput = {
   patient: Patient;
@@ -174,7 +174,12 @@ export function runIntakeAgent(input: IntakeInput): { run: AgentRun; triage: Tri
   // 5. Confidence is about how much record it had, never about being right.
   const completeness =
     (recent.length ? 0.4 : 0) + (meds.length ? 0.3 : 0) + (openConditions.length ? 0.3 : 0);
-  const confidence = Math.max(0.25, Math.min(0.95, completeness - withheld.length * 0.05));
+  // Clamp to the ceiling *first*, then take the penalty off. Doing it the other
+  // way round hid the penalty entirely whenever the record was complete: a full
+  // record scores 1.0, one refusal takes it to 0.95, and the ceiling was also
+  // 0.95 — so a withheld category and no withheld category reported identical
+  // confidence. The evaluation suite caught this on its first run.
+  const confidence = Math.max(0.25, Math.min(0.95, completeness) - withheld.length * 0.05);
 
   const run: AgentRun = {
     agent: "Intake agent",

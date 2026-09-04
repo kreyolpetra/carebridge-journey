@@ -13,7 +13,8 @@ import type { Facility } from "@/lib/api";
  * entitled to see (spec §7: "every branch writes an access-log row"), so it needs
  * a value it can be stored and rendered under.
  */
-export type AccessBasis = "treating" | "institutional" | "consent" | "break_glass" | "self" | "none";
+export type AccessBasis =
+  "treating" | "institutional" | "consent" | "break_glass" | "self" | "none";
 
 export const BASIS_LABEL: Record<AccessBasis, string> = {
   treating: "Treating facility",
@@ -33,8 +34,7 @@ export const BASIS_BLURB: Record<AccessBasis, string> = {
   break_glass:
     "An emergency override taken without your approval to protect life. You are notified within the hour and a governance panel must review it.",
   self: "You opened your own record.",
-  none:
-    "Someone tried to open your record without a lawful basis. Nothing clinical was shown to them, and the attempt was recorded here.",
+  none: "Someone tried to open your record without a lawful basis. Nothing clinical was shown to them, and the attempt was recorded here.",
 };
 
 export const BASIS_TONE: Record<AccessBasis, string> = {
@@ -50,7 +50,8 @@ export const BASIS_TONE: Record<AccessBasis, string> = {
 /* Role tiers                                                          */
 /* ------------------------------------------------------------------ */
 
-export type CareTier = "attending" | "consulting" | "nursing" | "allied" | "front_desk" | "org_admin";
+export type CareTier =
+  "attending" | "consulting" | "nursing" | "allied" | "front_desk" | "org_admin";
 
 export const TIER_LABEL: Record<CareTier, string> = {
   attending: "Attending clinician",
@@ -86,36 +87,12 @@ export function tierCanSeeClinical(tier: CareTier) {
 /* Sensitive categories                                                */
 /* ------------------------------------------------------------------ */
 
-export type SensitiveCategory =
-  | "mental_health"
-  | "hiv"
-  | "srh"
-  | "substance_use"
-  | "gbv"
-  | "genetic"
-  | "adolescent";
-
-export const SENSITIVE_CATEGORIES: {
-  code: SensitiveCategory;
-  label: string;
-  gate: string;
-}[] = [
-  { code: "mental_health", label: "Mental health & psychiatric notes", gate: "Explicit consent, or the treating psychiatrist" },
-  { code: "hiv", label: "HIV status, testing and ART", gate: "Explicit consent; emergency override allowed with mandatory review" },
-  { code: "srh", label: "Sexual & reproductive health", gate: "Explicit consent" },
-  { code: "substance_use", label: "Substance use & addiction treatment", gate: "Explicit consent, or attending clinician only" },
-  { code: "gbv", label: "Sexual assault / intimate-partner violence notes", gate: "Explicit consent; never visible to admin tiers" },
-  { code: "genetic", label: "Genetic and familial risk data", gate: "Explicit consent" },
-  { code: "adolescent", label: "Adolescent confidential services (12–17)", gate: "The young person's own consent" },
-];
-
-export const SENSITIVE_LABEL: Record<string, string> = Object.fromEntries(
-  SENSITIVE_CATEGORIES.map((c) => [c.code, c.label]),
-);
-
-export function isSensitive(sensitivity?: string | null) {
-  return !!sensitivity && sensitivity !== "standard";
-}
+export {
+  SENSITIVE_CATEGORIES,
+  SENSITIVE_LABEL,
+  isSensitive,
+  type SensitiveCategory,
+} from "./sensitivity";
 
 /**
  * A consent grant the patient has said yes to.
@@ -215,7 +192,10 @@ export const agreementsQuery = queryOptions({
   staleTime: 60_000,
   queryFn: async () =>
     unwrap<DataSharingAgreement[]>(
-      await supabase.from("data_sharing_agreements").select("*").order("executed_on", { ascending: false }),
+      await supabase
+        .from("data_sharing_agreements")
+        .select("*")
+        .order("executed_on", { ascending: false }),
     ),
 });
 
@@ -224,7 +204,10 @@ export const sensitiveGrantsQuery = (patientId?: string | null) =>
     queryKey: ["sensitive_grants", patientId ?? "all"],
     staleTime: 10_000,
     queryFn: async () => {
-      let q = supabase.from("sensitive_grants").select("*").order("created_at", { ascending: false });
+      let q = supabase
+        .from("sensitive_grants")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (patientId) q = q.eq("patient_id", patientId);
       return unwrap<SensitiveGrant[]>(await q);
     },
@@ -246,7 +229,11 @@ export const breakGlassQuery = (patientId?: string | null) =>
     queryKey: ["break_glass_events", patientId ?? "all"],
     staleTime: 10_000,
     queryFn: async () => {
-      let q = supabase.from("break_glass_events").select("*").order("started_at", { ascending: false }).limit(200);
+      let q = supabase
+        .from("break_glass_events")
+        .select("*")
+        .order("started_at", { ascending: false })
+        .limit(200);
       if (patientId) q = q.eq("patient_id", patientId);
       return unwrap<BreakGlassEvent[]>(await q);
     },
