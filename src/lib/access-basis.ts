@@ -252,12 +252,30 @@ export function buildAccessIndex(ctx: AccessContext) {
       };
     }
 
-    // 4. open treating window at the reader's facility, and only for someone
-    //    actually on the care team for it
+    /**
+     * 4. A treating relationship at the reader's own facility.
+     *
+     * Three ways to have one, and the third is the one that makes this usable
+     * in a real hospital: being on the care team, having accepted the referral,
+     * or simply working where the patient is currently being treated.
+     *
+     * That third case used to be excluded, which was stricter than any hospital
+     * actually runs. A consultant covering a colleague's ward at two in the
+     * morning opens the chart and the audit log is the check — that is the norm
+     * everywhere, and blocking it would not have made anyone safer. It would
+     * have taught the night staff to break glass for routine work, and an
+     * emergency override used routinely stops being an emergency override.
+     *
+     * So the strictness moves to where it earns its keep: crossing a facility
+     * or a border still needs an agreement, a referral or the patient's
+     * consent. Inside one building, the people treating you can read your
+     * record, and every read is still written down.
+     */
     const member = careTeamByPatient.get(patientId);
     const accepted = acceptedReferralByPatient.get(patientId);
-    if (member || accepted) {
-      const encounter = lastEncounterAtMyFacility.get(patientId);
+    const here = lastEncounterAtMyFacility.get(patientId);
+    if (member || accepted || here) {
+      const encounter = here;
       const anchor = encounter
         ? new Date(encounter.ended_at ?? encounter.started_at).getTime()
         : accepted
@@ -279,7 +297,9 @@ export function buildAccessIndex(ctx: AccessContext) {
           tier: memberTier ?? tier,
           detail: accepted
             ? `You accepted the ${accepted.specialty.toLowerCase()} referral raised ${dayjsish(accepted.created_at)}.`
-            : `You are on the care team at ${facilityById.get(actor.facilityId ?? "")?.name ?? "your facility"} for an episode opened ${dayjsish(member!.active_from)}.`,
+            : member
+              ? `You are on the care team at ${facilityById.get(actor.facilityId ?? "")?.name ?? "your facility"} for an episode opened ${dayjsish(member.active_from)}.`
+              : `This patient is being treated at ${facilityById.get(actor.facilityId ?? "")?.name ?? "your facility"}, where you work. Clinical staff here can read the record while the episode is open; every read is logged and the patient can see it.`,
           expiresAt: new Date(closesAt).toISOString(),
           grantId: null,
           agreementId: null,
