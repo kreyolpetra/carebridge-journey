@@ -41,8 +41,12 @@ import { Panel, PanelHeader, Pill, Loading } from "@/components/grid";
 import { severityClasses, clockTime, LANGUAGE_LABEL } from "@/lib/format";
 import { useNetworkOnline } from "@/lib/offline";
 import { useScope } from "@/hooks/useScope";
+import { useAuth } from "@/hooks/useAuth";
 import { CallOverlay, formatCallTime, type CallMode } from "@/components/patient/CallOverlay";
 import { useAccessIndex } from "@/lib/access-basis";
+import { runIntakeAgent } from "@/lib/agents/intake";
+import { AgentBrief } from "@/components/app/AgentBrief";
+import type { AgentRun } from "@/lib/agents/core";
 import { NewMessage } from "@/components/patient/NewMessage";
 import type { TriageResult } from "@/lib/triage.server";
 
@@ -87,6 +91,7 @@ type Thread = { patient: Patient; last: Message; awaitingReply: boolean; count: 
  */
 export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = {}) {
   const { isPatient, patientId: ownPatientId } = useScope();
+  const { profile } = useAuth();
   const [selectedId, setSelectedId] = useState(HERO_PATIENT_ID);
   const embedded = Boolean(pinnedPatientId);
   const patientId = pinnedPatientId ?? (isPatient ? (ownPatientId ?? HERO_PATIENT_ID) : selectedId);
@@ -98,6 +103,11 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
   const [call, setCall] = useState<CallMode | null>(null);
   const [queue, setQueue] = useState<PendingMessage[]>([]);
   const [triage, setTriage] = useState<TriageResult | null>(null);
+  // The intake agent's run for the last message: what it called, what consent
+  // refused it, and what it proposes. Held next to the triage result because
+  // they come from the same send.
+  const [intakeRun, setIntakeRun] = useState<AgentRun | null>(null);
+  const [intakeDecision, setIntakeDecision] = useState<"accepted" | "dismissed" | null>(null);
   const [routingNote, setRoutingNote] = useState<string[] | null>(null);
   const [degraded, setDegraded] = useState<string | null>(null);
   const online = useNetworkOnline();
@@ -352,10 +362,26 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
         }
       }
 
-      return { result, reasons, fellBack, note };
+      // The same send, recorded as an observable agent run: which tools it
+      // called, which reads consent refused, and a recommendation a clinician
+      // has to accept before anything happens.
+      const { run } = runIntakeAgent({
+        patient: b.patient,
+        message: body,
+        vitals: b.vitals,
+        medications: b.medications,
+        conditions: b.conditions,
+        // Nothing sensitive is handed to the agent by default, so a restricted
+        // entry appears in the trace as a refusal rather than silently missing.
+        grantedCategories: new Set<string>(),
+      });
+
+      return { result, reasons, fellBack, note, run };
     },
-    onSuccess: ({ result, reasons, fellBack, note }) => {
+    onSuccess: ({ result, reasons, fellBack, note, run }) => {
       setTriage(result);
+      setIntakeRun(run);
+      setIntakeDecision(null);
       setRoutingNote(reasons);
       setDegraded(fellBack ? (note ?? "Degraded mode") : null);
       qc.invalidateQueries();
@@ -724,6 +750,41 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
             )}
           </div>
         </Panel>
+
+        {/* The agent run behind that read: every tool it called, every read
+            consent refused, and a clinician's decision before anything is
+            acted on. Clinicians only — a patient does not need to audit the
+            pipeline that read their own message. */}
+        {!isPatient && intakeRun ? (
+          <AgentBrief
+            run={intakeRun}
+            decision={intakeDecision}
+            onAccept={() => {
+              setIntakeDecision("accepted");
+              void supabase.from("workflow_events").insert({
+                patient_id: patientId,
+                actor_id: profile?.provider_id ?? profile?.id ?? null,
+                actor_name: profile?.full_name ?? "Clinician",
+                action: "intake_agent_accepted",
+                label: `Intake agent accepted — ${intakeRun.findings[0]?.title ?? "no findings"}`,
+                detail: intakeRun.agenda.join(" · "),
+              });
+              toast.success("Recommendation accepted and recorded");
+            }}
+            onDismiss={() => {
+              setIntakeDecision("dismissed");
+              void supabase.from("workflow_events").insert({
+                patient_id: patientId,
+                actor_id: profile?.provider_id ?? profile?.id ?? null,
+                actor_name: profile?.full_name ?? "Clinician",
+                action: "intake_agent_dismissed",
+                label: "Intake agent recommendation dismissed",
+                detail: intakeRun.findings[0]?.title ?? "",
+              });
+              toast.message("Dismissed — the clinician's decision stands");
+            }}
+          />
+        ) : null}
 
         <Panel>
           <PanelHeader
