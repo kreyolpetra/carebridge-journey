@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 22;
+export const SEED_VERSION = 25;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -811,6 +811,9 @@ export function buildSeed(): Tables {
         kind: f.kind,
         beds_total: f.beds,
         beds_occupied: Math.max(0, Math.round(f.beds * occRatio)),
+        continuity_status: "operational",
+        continuity_note: "",
+        continuity_since: null,
         created_at: daysAgo(400),
       };
       t.facilities.push(row);
@@ -2419,6 +2422,47 @@ export function buildSeed(): Tables {
       minutesAgo(int(rng, 4, 38)),
       `${String(pr["specialty"])} teleconsult in session`,
     );
+  }
+
+  /**
+   * A storm, and what survives it.
+   *
+   * This is the scenario the regional record answers and nothing in the product
+   * ever said out loud: when a building goes down, the people it was treating
+   * do not stop existing. Their record is not in that building — it is on the
+   * Grid — so the clinic on the next island can open it the same afternoon.
+   *
+   * Marked here rather than at facility creation because it has to fall on
+   * buildings that actually have patients in them. Run earlier it picked two
+   * empty clinics, and the panel truthfully reported that nobody was affected,
+   * which is a worse demonstration than none.
+   */
+  const patientsPerFacility = new Map<string, Set<string>>();
+  for (const e of t["encounters"] ?? []) {
+    const id = String(e["facility_id"]);
+    if (!patientsPerFacility.has(id)) patientsPerFacility.set(id, new Set());
+    patientsPerFacility.get(id)!.add(String(e["patient_id"]));
+  }
+  const size = (f: Row) => patientsPerFacility.get(String(f["id"]))?.size ?? 0;
+
+  // The small rural site goes down completely and the larger clinic stays open
+  // on a generator without a laboratory. That is the ordinary shape of a storm:
+  // the building with the least behind it is the one that loses its roof.
+  const stormClinics = (facilitiesByIsland["JM"] ?? [])
+    .filter((f) => f["kind"] === "clinic" && size(f) > 0)
+    .sort((a, b) => size(a) - size(b));
+  const [destroyed, degraded] = stormClinics;
+  if (destroyed) {
+    destroyed["continuity_status"] = "offline";
+    destroyed["continuity_since"] = daysAgo(2);
+    destroyed["continuity_note"] =
+      "Closed since Hurricane Ilsa — roof and power lost. Patients redirected to Jamaica General Hospital and the community clinic.";
+  }
+  if (degraded) {
+    degraded["continuity_status"] = "degraded";
+    degraded["continuity_since"] = daysAgo(2);
+    degraded["continuity_note"] =
+      "Open on generator power. No laboratory or imaging — bloods are being sent to Jamaica General Hospital.";
   }
 
   // ---- care-line conversations ----

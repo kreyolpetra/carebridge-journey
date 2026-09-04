@@ -29,6 +29,17 @@ export type Facility = {
   kind: string;
   beds_total: number;
   beds_occupied: number;
+  /**
+   * Whether the building is currently able to work.
+   *
+   * "operational", "degraded" or "offline". A hurricane does not take the
+   * region's record with it — it takes one facility's ability to open it — and
+   * a system that cannot express the difference cannot tell a clinician why a
+   * patient has arrived somewhere unfamiliar.
+   */
+  continuity_status: string;
+  continuity_note: string;
+  continuity_since: string | null;
 };
 export type Provider = {
   id: string;

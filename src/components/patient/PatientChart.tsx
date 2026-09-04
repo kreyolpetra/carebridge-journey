@@ -29,6 +29,7 @@ import { CareTimeline } from "@/components/patient/CareTimeline";
 import { BookAppointment } from "@/components/patient/BookAppointment";
 import { AddPaperRecord } from "@/components/patient/AddPaperRecord";
 import { SafetyPanel } from "@/components/patient/SafetyPanel";
+import { PatientContinuityNote } from "@/components/ContinuityBanner";
 import { ResultsOnTheGrid } from "@/components/patient/ResultsOnTheGrid";
 import { PatientLine as CareLine } from "@/components/patient/CareLineView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -155,6 +156,9 @@ export function PatientChart({
           </div>
         </Panel>
       </div>
+
+      {/* Why this patient is here, before what is wrong with them. */}
+      <PatientContinuityNote patientId={b.patient.id} />
 
       {/* Above the clinical detail on purpose. A safety stop that sits below
           the fold is a warning nobody read. */}

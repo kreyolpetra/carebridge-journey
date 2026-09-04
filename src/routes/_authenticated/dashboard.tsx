@@ -14,6 +14,7 @@ import {
   stockQuery,
 } from "@/lib/api";
 import { Panel, PanelHeader, Pill, Stat, SectionTitle } from "@/components/grid";
+import { ContinuityPanel } from "@/components/ContinuityBanner";
 import { severityClasses, timeAgo, usd, TIER_LABEL } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -347,6 +348,9 @@ function Dashboard() {
           </p>
         </div>
       </Panel>
+
+      {/* A storm closes a building, not a record. */}
+      <ContinuityPanel />
 
       <Panel className="mb-4">
         <PanelHeader

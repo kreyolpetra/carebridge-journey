@@ -967,6 +967,9 @@ export type Database = {
           beds_occupied: number
           beds_total: number
           created_at: string
+          continuity_note: string
+          continuity_since: string | null
+          continuity_status: string
           id: string
           island_code: string
           kind: string
@@ -976,6 +979,9 @@ export type Database = {
           beds_occupied?: number
           beds_total?: number
           created_at?: string
+          continuity_note?: string
+          continuity_since?: string | null
+          continuity_status?: string
           id?: string
           island_code: string
           kind?: string
@@ -985,6 +991,9 @@ export type Database = {
           beds_occupied?: number
           beds_total?: number
           created_at?: string
+          continuity_note?: string
+          continuity_since?: string | null
+          continuity_status?: string
           id?: string
           island_code?: string
           kind?: string
