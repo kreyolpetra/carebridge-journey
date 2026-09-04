@@ -29,6 +29,7 @@ import { CareTimeline } from "@/components/patient/CareTimeline";
 import { BookAppointment } from "@/components/patient/BookAppointment";
 import { AddPaperRecord } from "@/components/patient/AddPaperRecord";
 import { SafetyPanel } from "@/components/patient/SafetyPanel";
+import { ResultsOnTheGrid } from "@/components/patient/ResultsOnTheGrid";
 import { PatientLine as CareLine } from "@/components/patient/CareLineView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
@@ -336,6 +337,10 @@ export function PatientChart({
         </TabsContent>
 
         <TabsContent value="history" className="mt-4 space-y-4">
+          {/* Before the timeline: the commonest waste on a small island is
+              re-ordering a test whose result already sits at another facility. */}
+          <ResultsOnTheGrid patientId={b.patient.id} />
+
           <CareTimeline
             patientId={b.patient.id}
             decision={decision}

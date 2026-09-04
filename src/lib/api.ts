@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 
-function unwrap<T>(res: { data: unknown; error: { message: string } | null }): T {
+export function unwrap<T>(res: { data: unknown; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return (res.data ?? []) as T;
 }

@@ -18,7 +18,7 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 20;
+export const SEED_VERSION = 22;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -750,6 +750,7 @@ export function buildSeed(): Tables {
     risk_scores: [],
     alerts: [],
     stock_items: [],
+    lab_results: [],
     profiles: [],
     user_roles: [],
     facility_staff: [],
@@ -1358,6 +1359,146 @@ export function buildSeed(): Tables {
       created_at: daysAgo(daysAgoCreated),
     });
   }
+
+  /**
+   * Laboratory results, deliberately spread across facilities.
+   *
+   * The point of seeding these is the duplication they prevent: a patient's
+   * HbA1c sits at the hospital that took it, and the clinic that sees them next
+   * has historically had no way to know it exists — so it gets taken again. The
+   * dates are staggered so some are inside their repeat window and some are
+   * not, because a panel that always says "recently done" teaches people to
+   * ignore it.
+   */
+  const LAB_PANEL: {
+    code: string;
+    name: string;
+    unit: string;
+    low: number;
+    high: number;
+    abnormalAbove: number;
+  }[] = [
+    { code: "hba1c", name: "HbA1c", unit: "%", low: 52, high: 105, abnormalAbove: 70 },
+    {
+      code: "creatinine",
+      name: "Creatinine",
+      unit: "µmol/L",
+      low: 60,
+      high: 165,
+      abnormalAbove: 110,
+    },
+    { code: "egfr", name: "eGFR", unit: "mL/min/1.73m²", low: 38, high: 99, abnormalAbove: 200 },
+    {
+      code: "lipids",
+      name: "Total cholesterol",
+      unit: "mmol/L",
+      low: 38,
+      high: 78,
+      abnormalAbove: 55,
+    },
+    {
+      code: "acr",
+      name: "Urine albumin:creatinine",
+      unit: "mg/mmol",
+      low: 4,
+      high: 88,
+      abnormalAbove: 30,
+    },
+  ];
+  for (const p of t["patients"] ?? []) {
+    // Only patients with something to monitor get a panel.
+    if (!chance(rng, 0.62)) continue;
+    const home = (facilitiesByIsland[p["island_code"] as string] ?? [])[0];
+    const hospital = (facilitiesByIsland[p["island_code"] as string] ?? []).find(
+      (f) => f["kind"] === "hospital",
+    );
+    for (const test of LAB_PANEL) {
+      if (!chance(rng, 0.55)) continue;
+      const raw = int(rng, test.low, test.high);
+      const scale = test.code === "hba1c" || test.code === "lipids" ? 10 : 1;
+      // Results are taken wherever the patient happened to be — which is the
+      // whole reason they end up scattered.
+      const at = chance(rng, 0.5) ? hospital : home;
+      t["lab_results"]!.push({
+        id: uuid(rng),
+        patient_id: p["id"],
+        facility_id: at ? at["id"] : null,
+        ordered_by_provider_id: null,
+        test_code: test.code,
+        test_name: test.name,
+        value: String(scale === 10 ? (raw / 10).toFixed(1) : raw),
+        unit: test.unit,
+        abnormal: raw > test.abnormalAbove,
+        collected_at: daysAgo(int(rng, 3, 400)),
+        created_at: daysAgo(int(rng, 3, 400)),
+      });
+    }
+  }
+
+  /**
+   * The demo patient's results, set explicitly rather than left to chance.
+   *
+   * Two of them are the point of the panel: an HbA1c taken at the Jamaican
+   * hospital six weeks ago is still current, so a Trinidad clinician ordering
+   * one would be repeating a test the Grid already holds — and the value
+   * matches the faxed lab report in her paper records, because the same result
+   * arriving twice by two routes should not disagree with itself.
+   */
+  t["lab_results"]!.push(
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: JM_HOSPITAL_ID,
+      ordered_by_provider_id: null,
+      test_code: "hba1c",
+      test_name: "HbA1c",
+      value: "8.9",
+      unit: "%",
+      abnormal: true,
+      collected_at: daysAgo(33),
+      created_at: daysAgo(33),
+    },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: JM_HOSPITAL_ID,
+      ordered_by_provider_id: null,
+      test_code: "lipids",
+      test_name: "Total cholesterol",
+      value: "6.2",
+      unit: "mmol/L",
+      abnormal: true,
+      collected_at: daysAgo(33),
+      created_at: daysAgo(33),
+    },
+    {
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: JM_CLINIC_ID,
+      ordered_by_provider_id: ATTENDING_PROVIDER_ID,
+      test_code: "creatinine",
+      test_name: "Creatinine",
+      value: "104",
+      unit: "µmol/L",
+      abnormal: false,
+      collected_at: daysAgo(58),
+      created_at: daysAgo(58),
+    },
+    {
+      // Overdue on purpose, so the panel is not a wall of green.
+      id: uuid(rng),
+      patient_id: HERO_PATIENT_ID,
+      facility_id: JM_CLINIC_ID,
+      ordered_by_provider_id: ATTENDING_PROVIDER_ID,
+      test_code: "acr",
+      test_name: "Urine albumin:creatinine",
+      value: "42",
+      unit: "mg/mmol",
+      abnormal: true,
+      collected_at: daysAgo(410),
+      created_at: daysAgo(410),
+    },
+  );
 
   // ---- stock + alerts ----
   for (const f of t.facilities) {

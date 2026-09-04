@@ -1665,6 +1665,48 @@ export type Database = {
         }
         Relationships: []
       }
+      lab_results: {
+        Row: {
+          collected_at: string
+          created_at: string
+          facility_id: string | null
+          id: string
+          abnormal: boolean
+          ordered_by_provider_id: string | null
+          patient_id: string
+          test_code: string
+          test_name: string
+          unit: string
+          value: string
+        }
+        Insert: {
+          collected_at?: string
+          created_at?: string
+          facility_id?: string | null
+          id?: string
+          abnormal?: boolean
+          ordered_by_provider_id?: string | null
+          patient_id: string
+          test_code: string
+          test_name?: string
+          unit?: string
+          value?: string
+        }
+        Update: {
+          collected_at?: string
+          created_at?: string
+          facility_id?: string | null
+          id?: string
+          abnormal?: boolean
+          ordered_by_provider_id?: string | null
+          patient_id?: string
+          test_code?: string
+          test_name?: string
+          unit?: string
+          value?: string
+        }
+        Relationships: []
+      }
       stock_items: {
         Row: {
           days_cover: number
