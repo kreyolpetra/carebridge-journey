@@ -80,6 +80,21 @@ export function CommandPalette({
       .slice(0, 6);
   }, [patients.data, query, isPatient, isAggregateOnly, access, accessReady]);
 
+  /**
+   * Navigation targets matching what has been typed. Every word has to appear
+   * somewhere in the label or its keywords, so "consent log" finds the privacy
+   * screen and a whole typed question finds nothing rather than everything.
+   */
+  const surfaces = useMemo(() => {
+    const items = navFor(role, staffRole);
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return items;
+    return items.filter((item) => {
+      const hay = `${item.label} ${item.keywords}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    });
+  }, [role, staffRole, query]);
+
   // Answers questions over live data instead of only filtering a list. Runs on
   // deterministic intent matching, not a language model — the footer says so.
   const ask = useMemo(() => {
@@ -118,14 +133,27 @@ export function CommandPalette({
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    /**
+     * cmdk's own filter is off.
+     *
+     * It scores every item against the raw text and hides the ones that do not
+     * match, which is right for a list you are searching and exactly wrong for
+     * a question you are asking: "where is there no cardiology" matched none of
+     * the answer rows, so the whole Ask group was filtered away and the palette
+     * said "Nothing matched that search" over a perfectly good answer. Patients
+     * were already filtered in `matches`, so the only group that depended on
+     * cmdk was "Go to", which is filtered just below.
+     */
+    <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
       <CommandInput
         placeholder={isPatient ? "Search…" : "Ask a question, or search patients and surfaces…"}
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
-        <CommandEmpty>Nothing matched that search.</CommandEmpty>
+        {query.trim() && !ask && !surfaces.length && !matches.length ? (
+          <CommandEmpty>Nothing matched that search.</CommandEmpty>
+        ) : null}
 
         {ask && (
           <>
@@ -176,18 +204,20 @@ export function CommandPalette({
           </>
         )}
 
-        <CommandGroup heading="Go to">
-          {navFor(role, staffRole).map((item) => (
-            <CommandItem
-              key={item.to}
-              value={`${item.label} ${item.keywords}`}
-              onSelect={() => go(item.to)}
-            >
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.label}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {surfaces.length ? (
+          <CommandGroup heading="Go to">
+            {surfaces.map((item) => (
+              <CommandItem
+                key={item.to}
+                value={`${item.label} ${item.keywords}`}
+                onSelect={() => go(item.to)}
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.label}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ) : null}
 
         {matches.length ? (
           <>
