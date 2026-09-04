@@ -31,7 +31,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
-import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
+import { useWorklist, rankTone, type WorklistItem } from "@/hooks/useWorklist";
+import {
+  allocateAttention,
+  countByDisposition,
+  DEFAULT_SESSION_CAPACITY,
+  DISPOSITION_LABEL,
+} from "@/lib/attention";
 import { acceptReferral as acceptReferralOnGrid } from "@/lib/referrals";
 import { InSessionNow } from "@/components/patient/InSessionNow";
 import { BASIS_LABEL, BASIS_TONE } from "@/lib/access";
@@ -39,6 +45,9 @@ import { PatientChart } from "@/components/patient/PatientChart";
 import { NoBasisPanel } from "@/components/patient/NoBasisPanel";
 import { Panel, PanelHeader, Pill, Loading, Stat } from "@/components/grid";
 import { bandClasses, clockTime } from "@/lib/format";
+
+/** How many below-the-line rows to draw when the section is opened. */
+const BELOW_PREVIEW = 25;
 
 export const Route = createFileRoute("/_authenticated/patients")({
   head: () => ({
@@ -208,16 +217,9 @@ function Patients() {
    * applied here, because they are this screen's controls.
    */
   const { items: worklistAll } = useWorklist();
-  const horizon = splitHorizon(worklistAll);
-  /**
-   * Today by default. The tab counts today, so rendering the week underneath
-   * it made the count disagree with the list — the same small lie the home
-   * screen was telling when it said 17 and showed five.
-   */
-  const [includeWeek, setIncludeWeek] = useState(false);
   const worklist = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return (includeWeek ? worklistAll : horizon.today)
+    return worklistAll
       .filter((i) => bandFilter === "all" || i.risk?.band === bandFilter)
       .filter(
         (i) =>
@@ -225,7 +227,25 @@ function Patients() {
           i.patient.full_name.toLowerCase().includes(needle) ||
           i.patient.parish.toLowerCase().includes(needle),
       );
-  }, [worklistAll, horizon.today, includeWeek, query, bandFilter]);
+  }, [worklistAll, query, bandFilter]);
+
+  /**
+   * The list is cut at the size of the session rather than at a clinical
+   * horizon.
+   *
+   * It used to split today from this week, which sounds like planning and is
+   * not: both halves were open-ended, so the clinician still had to decide in
+   * their head where the day actually stopped, and whoever fell below that
+   * private line fell off the record entirely. Cutting at capacity makes the
+   * line visible and, more to the point, makes it answerable — every name
+   * under it is handed to someone, and the summary says to whom.
+   */
+  const [showBelow, setShowBelow] = useState(false);
+  const allocation = useMemo(
+    () => allocateAttention(worklist, { spent: contacted.size }),
+    [worklist, contacted],
+  );
+  const handedOff = countByDisposition(allocation.below);
 
   /**
    * Every patient on the Grid, browsable by name — the directory.
@@ -271,8 +291,13 @@ function Patients() {
   const pageSafe = Math.min(page, pageCount);
   const size = wide ? WIDE_PAGE_SIZE : PAGE_SIZE;
   const pageRows = queue.slice((pageSafe - 1) * size, pageSafe * size);
-  const activeTotal =
-    tab === "work" ? worklist.length : tab === "mine" ? queue.length : indexMatches.length;
+  /**
+   * The worklist is not paged — it is cut at the size of a session, and the
+   * block below the line accounts for the rest. Leaving the pager on it made
+   * the footer read "showing 1-20 of 203" under a list of twelve, which is the
+   * same count-disagrees-with-the-list problem this screen has had twice.
+   */
+  const activeTotal = tab === "work" ? 0 : tab === "mine" ? queue.length : indexMatches.length;
   const activePageCount = tab === "work" ? 1 : tab === "mine" ? pageCount : indexPageCount;
   const activePage = tab === "work" ? 1 : tab === "mine" ? pageSafe : indexPageSafe;
 
@@ -344,6 +369,66 @@ function Patients() {
       islandTier: island?.tier,
     });
   }, [b, briefFor, selected, islands.data, providers.data, profile]);
+
+  /**
+   * One worklist row. Extracted because it is now rendered on both sides of
+   * the capacity line, and two copies of a row would drift.
+   */
+  const worklistRow = (row: WorklistItem) => {
+    const done = contacted.has(row.patient.id);
+    return (
+      <div
+        key={row.patient.id}
+        className={
+          "mb-1 rounded-lg border-l-[3px] transition-colors " +
+          (row.patient.id === selected
+            ? "border-primary bg-primary/12 ring-1 ring-inset ring-primary/25"
+            : "border-transparent hover:bg-surface")
+        }
+      >
+        <button
+          onClick={() => setSelected(row.patient.id)}
+          className={"w-full px-3 pt-2.5 text-left " + (done ? "opacity-55" : "")}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-[13.5px] font-semibold">{row.patient.full_name}</span>
+            {row.risk ? (
+              <span className="mono-num shrink-0 text-[13px] font-semibold">
+                Risk {row.risk.score}
+                <span className="text-[11px] font-normal text-muted-foreground">/100</span>
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+            <span className="font-medium text-foreground/70">{row.patient.mrn}</span> ·{" "}
+            {row.patient.age}
+            {row.patient.sex} · {row.patient.parish}, {row.patient.island_code}
+          </p>
+          {/* The reason is the point of this list. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <Pill className={rankTone(row.rank)}>{row.reason}</Pill>
+            <span className="truncate text-[11.5px] text-muted-foreground">{row.detail}</span>
+          </div>
+        </button>
+        <div className="px-3 pb-2 pt-1.5">
+          <button
+            type="button"
+            onClick={() => setContacted.mutate({ patientId: row.patient.id, done: !done })}
+            disabled={setContacted.isPending}
+            className={
+              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-medium transition-colors disabled:opacity-60 " +
+              (done
+                ? "border-low/40 bg-low/10 text-low"
+                : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary")
+            }
+          >
+            <Check className="h-3 w-3" />
+            {done ? "Contacted today" : "Mark contacted"}
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
@@ -437,7 +522,7 @@ function Patients() {
                     : "text-muted-foreground hover:text-foreground")
                 }
               >
-                Worklist ({horizon.today.length})
+                Worklist ({allocation.above.length})
               </button>
               <button
                 type="button"
@@ -494,81 +579,66 @@ function Patients() {
           </div>
           <div className="max-h-[620px] overflow-y-auto p-2">
             {risks.isLoading ? <Loading label="Scoring the panel…" /> : null}
-            {tab === "work" &&
-              worklist.map((row) => {
-                const done = contacted.has(row.patient.id);
-                return (
-                  <div
-                    key={row.patient.id}
-                    className={
-                      "mb-1 rounded-lg border-l-[3px] transition-colors " +
-                      (row.patient.id === selected
-                        ? "border-primary bg-primary/12 ring-1 ring-inset ring-primary/25"
-                        : "border-transparent hover:bg-surface")
-                    }
-                  >
-                    <button
-                      onClick={() => setSelected(row.patient.id)}
-                      className={"w-full px-3 pt-2.5 text-left " + (done ? "opacity-55" : "")}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[13.5px] font-semibold">
-                          {row.patient.full_name}
-                        </span>
-                        {row.risk ? (
-                          <span className="mono-num shrink-0 text-[13px] font-semibold">
-                            Risk {row.risk.score}
-                            <span className="text-[11px] font-normal text-muted-foreground">
-                              /100
-                            </span>
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-                        <span className="font-medium text-foreground/70">{row.patient.mrn}</span> ·{" "}
-                        {row.patient.age}
-                        {row.patient.sex} · {row.patient.parish}, {row.patient.island_code}
-                      </p>
-                      {/* The reason is the point of this list. */}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Pill className={rankTone(row.rank)}>{row.reason}</Pill>
-                        <span className="truncate text-[11.5px] text-muted-foreground">
-                          {row.detail}
-                        </span>
-                      </div>
-                    </button>
-                    <div className="px-3 pb-2 pt-1.5">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setContacted.mutate({ patientId: row.patient.id, done: !done })
-                        }
-                        disabled={setContacted.isPending}
-                        className={
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-medium transition-colors disabled:opacity-60 " +
-                          (done
-                            ? "border-low/40 bg-low/10 text-low"
-                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary")
-                        }
-                      >
-                        <Check className="h-3 w-3" />
-                        {done ? "Contacted today" : "Mark contacted"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            {tab === "work" && allocation.above.map((row) => worklistRow(row))}
 
-            {tab === "work" && horizon.thisWeek.length ? (
-              <button
-                type="button"
-                onClick={() => setIncludeWeek((v) => !v)}
-                className="mt-1 w-full rounded-lg border border-dashed border-border px-3 py-2.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-              >
-                {includeWeek
-                  ? `Hide the ${horizon.thisWeek.length} due later this week`
-                  : `Show ${horizon.thisWeek.length} more due this week`}
-              </button>
+            {/* The line, and what happens on the other side of it. */}
+            {tab === "work" && allocation.below.length ? (
+              <div className="mt-1 rounded-lg border border-dashed border-border">
+                <div className="px-3 py-2.5">
+                  <p className="text-[12.5px] font-semibold">
+                    Below the line for today — {allocation.below.length} people
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                    A session holds about {allocation.capacity} contacts and{" "}
+                    {allocation.spent === 0
+                      ? "none are spent yet"
+                      : `${allocation.spent} ${allocation.spent === 1 ? "is" : "are"} already spent`}
+                    . These are not dropped — they go to another pair of hands:{" "}
+                    {handedOff.nurse ? `${handedOff.nurse} to the nurse callback list` : null}
+                    {handedOff.nurse && handedOff.message ? ", " : null}
+                    {handedOff.message ? `${handedOff.message} to an automatic check-in` : null}.
+                    Proposed, not sent.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowBelow((v) => !v)}
+                  className="w-full border-t border-border px-3 py-2 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-primary"
+                >
+                  {showBelow ? "Hide them" : `Show the ${allocation.below.length}`}
+                </button>
+                {showBelow ? (
+                  <div className="border-t border-border p-2">
+                    {/* Capped. Nobody reads the 191st row, and rendering them
+                        all is a stall on the machines this runs on. */}
+                    {allocation.below.slice(0, BELOW_PREVIEW).map(({ item, disposition }) => (
+                      <div key={item.patient.id} className="opacity-70">
+                        <p className="px-3 pt-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                          → {DISPOSITION_LABEL[disposition]}
+                        </p>
+                        {worklistRow(item)}
+                      </div>
+                    ))}
+                    {allocation.below.length > BELOW_PREVIEW ? (
+                      <p className="px-3 py-2 text-[11.5px] text-muted-foreground">
+                        …and {allocation.below.length - BELOW_PREVIEW} more, all queued the same
+                        way.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* More people are personally blocked on this clinician than the
+                day can hold. Absorbing that silently is how a service finds
+                out about it a month late. */}
+            {tab === "work" && allocation.overCommitted ? (
+              <p className="mt-1 rounded-lg border border-critical/40 bg-critical/10 px-3 py-2.5 text-[12px] leading-relaxed text-critical">
+                More people are waiting on you personally than one session holds. None of these can
+                be handed to a nurse — they are waiting on your decision. This is the number to
+                raise with your service lead.
+              </p>
             ) : null}
 
             {tab === "work" && accessReady && !worklist.length ? (

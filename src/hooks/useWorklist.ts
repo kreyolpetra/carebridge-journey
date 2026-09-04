@@ -63,10 +63,10 @@ export function useContactedToday(): Set<string> {
 }
 
 /**
- * Ranks 0-3 are today: someone is blocked, a reading just drifted, you are
- * seeing them, or they are critical. Ranks 4-5 are this week. Collapsing the
- * two into one number produced a worklist headline of 153, which is a caseload
- * wearing a worklist's clothes.
+ * Ranks 0-3 are urgent: someone is blocked, a reading just drifted, you are
+ * seeing them, or they are critical. Ranks 4-5 can wait a few days. Where the
+ * day actually stops is not decided here — see lib/attention.ts, which cuts
+ * the list at the size of a session rather than at a clinical horizon.
  */
 /**
  * Colour by urgency, defined once because two screens render these rows.
@@ -78,13 +78,6 @@ export function rankTone(rank: number): string {
   if (rank === 2) return "border-signal/40 bg-signal/10 text-signal";
   if (rank === 3) return "border-critical/40 bg-critical/10 text-critical";
   return "border-high/40 bg-high/10 text-high";
-}
-
-export function splitHorizon(items: WorklistItem[]) {
-  return {
-    today: items.filter((i) => i.rank <= 3),
-    thisWeek: items.filter((i) => i.rank >= 4),
-  };
 }
 
 export function useWorklist(): { items: WorklistItem[]; ready: boolean } {

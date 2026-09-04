@@ -23,7 +23,8 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
-import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
+import { useWorklist, useContactedToday, rankTone } from "@/hooks/useWorklist";
+import { allocateAttention } from "@/lib/attention";
 import { InSessionNow } from "@/components/patient/InSessionNow";
 import { HealthTrends } from "@/components/patient/HealthTrends";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
@@ -326,7 +327,13 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
     (s) => provider && s.provider_id === provider.id && s.status === "open",
   );
   const { items: work } = useWorklist();
-  const horizon = splitHorizon(work);
+  const contactedToday = useContactedToday();
+  /**
+   * Cut to the size of a session, from the same function the Patients screen
+   * uses. A home screen that drew the line in a different place from the list
+   * you act on would be telling you two different days.
+   */
+  const allocation = allocateAttention(work, { spent: contactedToday.size });
 
   return (
     <>
@@ -390,7 +397,7 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
               the list you act on would send you to the wrong person first. */}
           <p className="mt-1 text-[12.5px] text-muted-foreground">
             {work.length
-              ? `${horizon.today.length} to action today · ${horizon.thisWeek.length} this week`
+              ? `${allocation.above.length} for this session · ${allocation.below.length} handed to the nurse list or an automatic check-in`
               : "Nothing outstanding."}
           </p>
           {/* The whole day, not a sample of it. A panel that says "17 to action
@@ -399,7 +406,7 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
               not what anyone opens this page to find out. It scrolls rather
               than swamping the page, and the week stays a number below. */}
           <ul className="mt-3 max-h-[420px] divide-y divide-border overflow-y-auto">
-            {(horizon.today.length ? horizon.today : work.slice(0, 5)).map((item) => (
+            {allocation.above.map((item) => (
               <li key={item.patient.id}>
                 <Link
                   to="/patients"
