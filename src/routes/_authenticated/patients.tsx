@@ -266,7 +266,6 @@ function Patients() {
     indexPageSafe * (wide ? WIDE_PAGE_SIZE : PAGE_SIZE),
   );
 
-  const outstanding = queue.filter((row) => !contacted.has(row.patient.id)).length;
   const pageCount = Math.max(1, Math.ceil(queue.length / (wide ? WIDE_PAGE_SIZE : PAGE_SIZE)));
   const pageSafe = Math.min(page, pageCount);
   const size = wide ? WIDE_PAGE_SIZE : PAGE_SIZE;
@@ -355,15 +354,8 @@ function Patients() {
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
       <div className="mb-5">
         <h1 className="font-display text-2xl font-bold tracking-tight">Patients</h1>
-        <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
-          The worklist is what needs doing today, each row saying why it is there. My patients is
-          everyone you hold a lawful basis for — a caseload, not a to-do list.{" "}
-          {outstanding
-            ? `${outstanding} still to contact.`
-            : queue.length
-              ? "Everyone on your list has been contacted today."
-              : ""}{" "}
-          All patients is the whole Grid directory — identity only.
+        <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+          What needs doing today, your caseload, and the whole directory.
         </p>
       </div>
 
@@ -371,10 +363,17 @@ function Patients() {
           seeing. Two different states, so two different places. */}
       <InSessionNow />
 
-      {/* The band tiles are the filter. They used to look like one and do
-          nothing, while the real control was a small select in the panel
-          header — two controls for one job, and the obvious one was dead. */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+      {/* These were four large tiles carrying population counts — "HIGH 137"
+          is a ministry statistic, not a nurse's next action, and it occupied
+          the best row on the page. The filter is genuinely useful, so it stays
+          as a filter and stops pretending to be a headline. */}
+      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Filter by risk
+          <span className="ml-1 font-normal normal-case tracking-normal opacity-70">
+            (across your {Object.values(counts).reduce((a, n) => a + n, 0)} patients)
+          </span>
+        </span>
         {BANDS.map((band) => {
           const active = bandFilter === band.key;
           return (
@@ -387,33 +386,29 @@ function Patients() {
                 setPage(1);
               }}
               className={
-                "rounded-xl border p-4 text-left transition-colors " +
+                "rounded-lg border px-2.5 py-1 text-[12.5px] font-medium transition-colors " +
                 (active
-                  ? "border-primary/50 bg-primary/5"
-                  : "border-border bg-card hover:border-primary/30")
+                  ? "border-primary/50 bg-primary/8 text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground")
               }
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {band.label}
-              </p>
-              <p
-                className={
-                  "mt-1 font-display text-[26px] font-bold " +
-                  (band.tone === "critical"
-                    ? "text-critical"
-                    : band.tone === "low"
-                      ? "text-low"
-                      : "text-foreground")
-                }
-              >
-                {counts[band.key] ?? 0}
-              </p>
-              <p className="mt-0.5 text-[12px] text-muted-foreground">
-                {active ? "Filtering — tap to clear" : band.hint}
-              </p>
+              {band.label}
+              <span className="ml-1.5 tabular-nums opacity-70">{counts[band.key] ?? 0}</span>
             </button>
           );
         })}
+        {bandFilter !== "all" ? (
+          <button
+            type="button"
+            onClick={() => {
+              setBandFilter("all");
+              setPage(1);
+            }}
+            className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </button>
+        ) : null}
       </div>
 
       <div className={"grid gap-4 " + (wide ? "" : "lg:grid-cols-[430px_minmax(0,1fr)]")}>

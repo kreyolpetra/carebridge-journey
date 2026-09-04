@@ -10,10 +10,10 @@
  * together would make the to-do count include people you are already treating,
  * and a count that includes work in progress stops being a count of work.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Radio, Video, Hospital } from "lucide-react";
+import { Radio, Video, Hospital, ChevronDown } from "lucide-react";
 import { consultationsQuery, patientsQuery, facilitiesQuery } from "@/lib/api";
 import { encountersQuery } from "@/lib/org";
 import { useAccessIndex } from "@/lib/access-basis";
@@ -46,6 +46,7 @@ export function InSessionNow() {
   const patients = useQuery(patientsQuery);
   const facilities = useQuery(facilitiesQuery);
   const { index: access, ready } = useAccessIndex();
+  const [open, setOpen] = useState(false);
 
   const live = useMemo<Live[]>(() => {
     if (!ready) return [];
@@ -113,19 +114,44 @@ export function InSessionNow() {
 
   if (!live.length) return null;
 
+  const longest = live[0];
+  const waited = longest ? Math.round((Date.now() - longest.since) / 60000) : 0;
+  const waitedLabel =
+    waited >= 60 ? `${Math.floor(waited / 60)}h ${waited % 60}m` : `${waited} min`;
+
   return (
     <Panel className="mb-4 border-signal/35">
-      <div className="flex items-center gap-2 border-b border-border px-5 py-2.5">
-        <Radio className="h-3.5 w-3.5 text-signal" />
+      {/* Collapsed by default. These people are already being dealt with; the
+          list below them is the one with people who are not. Sixteen expanded
+          rows pushed the actual work off the screen, which is the opposite of
+          what a census is for — it is a reassurance, not a workspace. */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-5 py-2.5 text-left"
+      >
+        <Radio className="h-3.5 w-3.5 shrink-0 text-signal" />
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-signal">
           In clinic now
         </h2>
         <Pill className="border-signal/40 bg-signal/10 text-signal">{live.length}</Pill>
-        <span className="ml-auto text-[11.5px] text-muted-foreground">
-          Here today — not part of the worklist below
+        <span className="truncate text-[12px] text-muted-foreground">
+          longest waiting {waitedLabel} · {longest?.name}
         </span>
-      </div>
-      <div className="divide-y divide-border">
+        <ChevronDown
+          className={
+            "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform " +
+            (open ? "rotate-180" : "")
+          }
+        />
+      </button>
+      <div
+        className={
+          open
+            ? "max-h-[300px] divide-y divide-border overflow-y-auto border-t border-border"
+            : "hidden"
+        }
+      >
         {live.map((l) => (
           <Link
             key={l.patientId}
