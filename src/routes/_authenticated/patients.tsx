@@ -31,7 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
 import { useLogRecordAccess } from "@/lib/audit";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
-import { useWorklist, splitHorizon } from "@/hooks/useWorklist";
+import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
 import { BASIS_LABEL, BASIS_TONE } from "@/lib/access";
 import { PatientChart } from "@/components/patient/PatientChart";
 import { NoBasisPanel } from "@/components/patient/NoBasisPanel";
@@ -530,19 +530,7 @@ function Patients() {
                       </p>
                       {/* The reason is the point of this list. */}
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Pill
-                          className={
-                            row.rank === 0
-                              ? "border-primary/40 bg-primary/10 text-primary"
-                              : row.rank === 1
-                                ? "border-signal/40 bg-signal/10 text-signal"
-                                : row.rank === 2
-                                  ? "border-critical/40 bg-critical/10 text-critical"
-                                  : "border-high/40 bg-high/10 text-high"
-                          }
-                        >
-                          {row.reason}
-                        </Pill>
+                        <Pill className={rankTone(row.rank)}>{row.reason}</Pill>
                         <span className="truncate text-[11.5px] text-muted-foreground">
                           {row.detail}
                         </span>

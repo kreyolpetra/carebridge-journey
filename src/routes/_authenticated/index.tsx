@@ -23,7 +23,7 @@ import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
 import { useAccessIndex } from "@/lib/access-basis";
-import { useWorklist, splitHorizon } from "@/hooks/useWorklist";
+import { useWorklist, splitHorizon, rankTone } from "@/hooks/useWorklist";
 import { HealthTrends } from "@/components/patient/HealthTrends";
 import { HomeReadingCard } from "@/components/HomeReadingCard";
 import { ActivityFeed } from "@/components/app/ActivityFeed";
@@ -389,8 +389,13 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
               ? `${horizon.today.length} to action today · ${horizon.thisWeek.length} this week`
               : "Nothing outstanding."}
           </p>
-          <ul className="mt-3 divide-y divide-border">
-            {(horizon.today.length ? horizon.today : work).slice(0, 5).map((item) => (
+          {/* The whole day, not a sample of it. A panel that says "17 to action
+              today" above a list of five invites the obvious question, and a
+              truncated list answers "here is some of your morning" — which is
+              not what anyone opens this page to find out. It scrolls rather
+              than swamping the page, and the week stays a number below. */}
+          <ul className="mt-3 max-h-[420px] divide-y divide-border overflow-y-auto">
+            {(horizon.today.length ? horizon.today : work.slice(0, 5)).map((item) => (
               <li key={item.patient.id}>
                 <Link
                   to="/patients"
@@ -399,14 +404,8 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
                 >
                   <span
                     className={cn(
-                      "mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[12.5px] font-bold",
-                      item.rank === 0
-                        ? "bg-primary/12 text-primary"
-                        : item.rank === 1
-                          ? "bg-signal/12 text-signal"
-                          : item.rank === 2
-                            ? "bg-critical/12 text-critical"
-                            : "bg-high/12 text-high",
+                      "mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-[12.5px] font-bold",
+                      rankTone(item.rank),
                     )}
                   >
                     {item.risk ? Math.round(item.risk.score) : "—"}

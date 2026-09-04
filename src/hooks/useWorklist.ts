@@ -26,6 +26,7 @@ import {
   type Patient,
   type RiskScore,
 } from "@/lib/api";
+import { detectionSignalsQuery } from "@/lib/prevention";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useAuth } from "@/hooks/useAuth";
 import { clockTime } from "@/lib/format";
@@ -36,7 +37,7 @@ export type WorklistItem = {
   decision: AccessDecision;
   reason: string;
   detail: string;
-  /** 0 blocks someone else, 3 is routine. Also drives the pill colour. */
+  /** 0 blocks someone else, 5 is routine. Also drives the pill colour. */
   rank: number;
 };
 
@@ -62,14 +63,27 @@ export function useContactedToday(): Set<string> {
 }
 
 /**
- * Ranks 0-2 are today: someone is blocked, you are seeing them, or they are
- * critical. Rank 3 is "this week". Collapsing the two into one number produced
- * a worklist headline of 153, which is a caseload wearing a worklist's clothes.
+ * Ranks 0-3 are today: someone is blocked, a reading just drifted, you are
+ * seeing them, or they are critical. Ranks 4-5 are this week. Collapsing the
+ * two into one number produced a worklist headline of 153, which is a caseload
+ * wearing a worklist's clothes.
  */
+/**
+ * Colour by urgency, defined once because two screens render these rows.
+ * Semantic, not decorative: red is act-now, amber is this-week.
+ */
+export function rankTone(rank: number): string {
+  if (rank === 0) return "border-primary/40 bg-primary/10 text-primary";
+  if (rank === 1) return "border-critical/40 bg-critical/10 text-critical";
+  if (rank === 2) return "border-signal/40 bg-signal/10 text-signal";
+  if (rank === 3) return "border-critical/40 bg-critical/10 text-critical";
+  return "border-high/40 bg-high/10 text-high";
+}
+
 export function splitHorizon(items: WorklistItem[]) {
   return {
-    today: items.filter((i) => i.rank <= 2),
-    thisWeek: items.filter((i) => i.rank === 3),
+    today: items.filter((i) => i.rank <= 3),
+    thisWeek: items.filter((i) => i.rank >= 4),
   };
 }
 
@@ -79,6 +93,7 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
   const risks = useQuery(riskScoresQuery);
   const referrals = useQuery(referralsQuery);
   const consultations = useQuery(consultationsQuery);
+  const signals = useQuery(detectionSignalsQuery);
   const { index: access, ready: accessReady } = useAccessIndex();
   const contacted = useContactedToday();
 
@@ -128,7 +143,22 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
       );
     }
 
-    // 2. You are seeing them today.
+    // 2. A reading drifted. This is the one with a clock on it: the numbers
+    //    moved this morning, whereas a risk score has been high for a month.
+    //    Each signal already carries the action, so it is used verbatim rather
+    //    than re-summarised.
+    for (const sig of signals.data ?? []) {
+      if (sig.status !== "open") continue;
+      if (sig.severity !== "urgent" && sig.severity !== "elevated") continue;
+      add(
+        sig.patient_id,
+        sig.severity === "urgent" ? "Reading drifted — act today" : "Reading drifted — this week",
+        `${sig.narrative} → ${sig.recommended_action}`,
+        sig.severity === "urgent" ? 1 : 4,
+      );
+    }
+
+    // 3. You are seeing them today.
     for (const c of consultations.data ?? []) {
       if (c.provider_id !== profile?.provider_id) continue;
       if (c.status !== "scheduled") continue;
@@ -138,17 +168,17 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
         c.patient_id,
         "Appointment today",
         `${c.kind === "teleconsult" ? "Teleconsult" : "Clinic"} at ${clockTime(c.scheduled_at)}`,
-        1,
+        2,
       );
     }
 
-    // 3 and 4. Deterioration risk that has not been actioned yet.
+    // 4 and 5. Deterioration risk that has not been actioned yet.
     for (const [patientId, r] of latestRisk) {
       if (contacted.has(patientId)) continue;
       if (r.band === "critical")
-        add(patientId, "Critical — contact today", `Risk ${r.score}, ${r.trend}`, 2);
+        add(patientId, "Critical — contact today", `Risk ${r.score}, ${r.trend}`, 3);
       else if (r.band === "high")
-        add(patientId, "High — contact this week", `Risk ${r.score}, ${r.trend}`, 3);
+        add(patientId, "High — contact this week", `Risk ${r.score}, ${r.trend}`, 5);
     }
 
     return [...out.values()].sort(
@@ -161,6 +191,7 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
     risks.data,
     referrals.data,
     consultations.data,
+    signals.data,
     profile,
     contacted,
   ]);
