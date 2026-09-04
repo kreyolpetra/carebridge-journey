@@ -30,6 +30,7 @@ import { useAccessIndex } from "@/lib/access-basis";
 import { CallOverlay, formatCallTime, type CallMode } from "@/components/patient/CallOverlay";
 import { BookAppointment } from "@/components/patient/BookAppointment";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
+import { EscortPill, EscortActions, EscortNoteForPatient } from "@/components/EscortState";
 import { shortDate, clockTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/appointments")({
@@ -277,6 +278,7 @@ function Appointments() {
                         {c.notes || (tele ? "Teleconsult" : "Clinic appointment")}
                         {facility ? ` · ${facility.name}` : ""}
                       </span>
+                      {isPatient ? <EscortNoteForPatient consultation={c} /> : null}
                     </span>
                     <Pill
                       className={
@@ -291,6 +293,12 @@ function Appointments() {
                     <Pill className="border-border bg-background text-muted-foreground">
                       {c.status}
                     </Pill>
+                    {/* Whether anybody is bringing them home. Nothing renders
+                        at all for the appointments that do not need one. */}
+                    <EscortPill consultation={c} />
+                    {!isPatient && tab === "upcoming" ? (
+                      <EscortActions consultation={c} patient={patient} />
+                    ) : null}
                     {/* Only the clinician running it can start the call, and only
                         for a teleconsult that has not already happened. */}
                     {!isPatient && tele && tab === "upcoming" ? (

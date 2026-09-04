@@ -18,7 +18,9 @@ import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
  * the mismatch. The key now carries this version, so an old copy is simply not
  * found and the seed is rebuilt.
  */
-export const SEED_VERSION = 25;
+import { escortRuleFor } from "@/lib/escort";
+
+export const SEED_VERSION = 27;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -2328,8 +2330,8 @@ export function buildSeed(): Tables {
     status: string,
     startsAt: string,
     reason: string,
-  ) => {
-    t.consultations.push({
+  ): Row => {
+    const row: Row = {
       id: uuid(rng),
       referral_id: null,
       patient_id: patient.id,
@@ -2341,9 +2343,44 @@ export function buildSeed(): Tables {
       notes: reason,
       plan: "",
       sensitivity: "standard",
+      // Derived from the reason rather than set by hand, so the rule that
+      // decides an escort is needed is the same one the console reads back.
+      escort_required: Boolean(escortRuleFor(reason)),
+      escort_reason: escortRuleFor(reason)?.reason ?? "",
+      escort_name: "",
+      escort_relationship: "",
+      escort_confirmed_at: null,
+      escort_asked_at: null,
       created_at: daysAgo(int(rng, 1, 20)),
-    });
+    };
+    t.consultations.push(row);
+    return row;
   };
+
+  /**
+   * Procedures on the consultant's list, so the escort rule has something to
+   * bite on. Two are unarranged and inside the 48-hour window — which is the
+   * whole point: a theatre slot about to be wasted for want of a phone call.
+   */
+  const procedureList: [string, number][] = [
+    ["Cardiac catheterisation — sedation", 1.2],
+    ["Day surgery — hernia repair", 1.8],
+    ["Retinal screening — pupils dilated", 2.6],
+    ["Iron infusion", 5.1],
+  ];
+  for (const [i, [reason, inDays]] of procedureList.entries()) {
+    const patient = ttGeneralRoster[13 + i];
+    if (!patient) continue;
+    const c = bookFor(patient, cardiologyTT, "in_person", "scheduled", daysAhead(inDays), reason);
+    // The last two have been sorted out already; the first two have not, and
+    // are the ones that should be shouting on somebody's list this morning.
+    if (i >= 2) {
+      c["escort_name"] = i === 2 ? "Denise Alleyne" : "Marcus Sealy";
+      c["escort_relationship"] = i === 2 ? "daughter" : "brother";
+      c["escort_confirmed_at"] = daysAgo(1);
+      c["escort_asked_at"] = daysAgo(2);
+    }
+  }
 
   // The demo consultant's diary: cross-island teleconsults for patients routed
   // to him, plus clinic appointments for his own hospital's cohort.
@@ -2399,6 +2436,23 @@ export function buildSeed(): Tables {
     "scheduled",
     daysAhead(1),
     "Cross-island cardiology teleconsult — hypertensive crisis pattern",
+  );
+
+  /**
+   * And the procedure that follows from it, unarranged.
+   *
+   * On the patient's own screen this is the whole point of the feature: she is
+   * 38 km from the clinic with no car, and nobody has yet asked her who is
+   * driving. Left as it is, the slot is wasted and she is told to come back in
+   * three months.
+   */
+  bookFor(
+    heroPatient,
+    cardiologyTT,
+    "in_person",
+    "scheduled",
+    daysAhead(1.6),
+    "Cardiac catheterisation — sedation",
   );
 
   // Consults happening right now. Without these the queue monitor's "in progress"

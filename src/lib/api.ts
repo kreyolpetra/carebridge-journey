@@ -228,6 +228,18 @@ export type Consultation = {
   status: string;
   notes: string;
   plan: string;
+  /**
+   * Whether somebody has to bring this patient home — see lib/escort.ts. The
+   * escort's name and relationship are the only two things kept about them:
+   * they are not our patient and have consented to nothing.
+   */
+  escort_required?: boolean;
+  escort_reason?: string;
+  escort_name?: string;
+  escort_relationship?: string;
+  escort_confirmed_at?: string | null;
+  /** When the patient was asked on the care line, so we do not ask twice. */
+  escort_asked_at?: string | null;
   created_at: string;
 };
 

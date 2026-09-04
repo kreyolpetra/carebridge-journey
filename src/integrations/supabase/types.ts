@@ -675,6 +675,12 @@ export type Database = {
       consultations: {
         Row: {
           created_at: string
+          escort_asked_at: string | null
+          escort_confirmed_at: string | null
+          escort_name: string
+          escort_reason: string
+          escort_relationship: string
+          escort_required: boolean
           facility_id: string | null
           id: string
           kind: string
@@ -688,6 +694,12 @@ export type Database = {
           status: string
         }
         Insert: {
+          escort_asked_at?: string | null
+          escort_confirmed_at?: string | null
+          escort_name?: string
+          escort_reason?: string
+          escort_relationship?: string
+          escort_required?: boolean
           created_at?: string
           facility_id?: string | null
           id?: string
@@ -702,6 +714,12 @@ export type Database = {
           status?: string
         }
         Update: {
+          escort_asked_at?: string | null
+          escort_confirmed_at?: string | null
+          escort_name?: string
+          escort_reason?: string
+          escort_relationship?: string
+          escort_required?: boolean
           created_at?: string
           facility_id?: string | null
           id?: string

@@ -30,6 +30,7 @@ import { detectionSignalsQuery } from "@/lib/prevention";
 import { useAccessIndex, type AccessDecision } from "@/lib/access-basis";
 import { useAuth } from "@/hooks/useAuth";
 import { clockTime } from "@/lib/format";
+import { escortNeed } from "@/lib/escort";
 
 export type WorklistItem = {
   patient: Patient;
@@ -171,6 +172,28 @@ export function useWorklist(): { items: WorklistItem[]; ready: boolean } {
         sig.severity === "urgent" ? "Reading drifted — act today" : "Reading drifted — this week",
         `${sig.narrative} → ${sig.recommended_action}`,
         sig.severity === "urgent" ? 1 : 4,
+      );
+    }
+
+    /**
+     * 2b. A procedure that will be cancelled because nobody is bringing them.
+     *
+     * Ranked with the urgent clinical signals rather than below them, because
+     * it has the same property: a clock, and a window in which a phone call
+     * still fixes it. Left alone it becomes a wasted theatre slot on a list
+     * that had a three-month wait — which is the same harm as any other
+     * scarce thing burned for no reason.
+     */
+    for (const c of consultations.data ?? []) {
+      if (c.provider_id !== profile?.provider_id) continue;
+      if (c.status !== "scheduled") continue;
+      const need = escortNeed(c);
+      if (!need.atRisk) continue;
+      add(
+        c.patient_id,
+        "No escort arranged",
+        `${c.notes} ${clockTime(c.scheduled_at)} · ${need.reason.toLowerCase()}`,
+        1,
       );
     }
 
