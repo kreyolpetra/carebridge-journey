@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { safetyReviewsQuery, type PatientBundle } from "@/lib/api";
 import { evaluateSafety, TIER_COPY, type SafetyFinding } from "@/lib/safety";
 import { useAuth } from "@/hooks/useAuth";
+import { PillBottle } from "lucide-react";
+import { careRequestsQuery, raiseRequest, type CareRequest } from "@/lib/care-requests";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { timeAgo } from "@/lib/format";
 
@@ -33,6 +35,37 @@ export function SafetyPanel({ bundle: b }: { bundle: PatientBundle }) {
 
   const mine = (reviews.data ?? []).filter((r) => r.patient_id === b.patient.id);
   const reviewFor = (key: string) => mine.find((r) => r.finding_key === key) ?? null;
+
+  /** The drug a supply finding is about, taken from its own evidence line. */
+  const drugOf = (f: SafetyFinding) => (f.evidence[0] ?? f.title).trim();
+
+  const requests = useQuery(careRequestsQuery);
+  const requestedItems = useMemo(
+    () =>
+      new Set(
+        ((requests.data ?? []) as CareRequest[])
+          .filter((r) => r.patient_id === b.patient.id && r.status === "open")
+          .map((r) => r.item),
+      ),
+    [requests.data, b.patient.id],
+  );
+
+  const askRefill = useMutation({
+    mutationFn: async (f: SafetyFinding) =>
+      raiseRequest({
+        patientId: b.patient.id,
+        kind: "refill",
+        item: drugOf(f),
+        reason: f.detail,
+        providerId: profile?.provider_id ?? null,
+        providerName: profile?.full_name ?? "Clinician",
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["care_requests"] });
+      toast.success("Refill requested — it is on the chart until somebody closes it");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const raise = useMutation({
     mutationFn: async (f: SafetyFinding) => {
@@ -169,14 +202,30 @@ export function SafetyPanel({ bundle: b }: { bundle: PatientBundle }) {
 
                   {/* Three states: unraised, awaiting a second pair of eyes, resolved. */}
                   {!r ? (
-                    <button
-                      type="button"
-                      onClick={() => raise.mutate(f)}
-                      disabled={raise.isPending}
-                      className="mt-3 rounded-lg bg-primary px-3 py-2 text-[12.5px] font-semibold text-primary-foreground disabled:opacity-60"
-                    >
-                      {isStop ? "Send for independent review" : "Flag for review"}
-                    </button>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => raise.mutate(f)}
+                        disabled={raise.isPending}
+                        className="rounded-lg bg-primary px-3 py-2 text-[12.5px] font-semibold text-primary-foreground disabled:opacity-60"
+                      >
+                        {isStop ? "Send for independent review" : "Flag for review"}
+                      </button>
+                      {/* A supply gap names a drug and an obvious ask. Flagging
+                          it for review left the patient still without tablets;
+                          this is the thing somebody can act on. */}
+                      {f.kind === "supply_gap" ? (
+                        <button
+                          type="button"
+                          onClick={() => askRefill.mutate(f)}
+                          disabled={askRefill.isPending || requestedItems.has(drugOf(f))}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12.5px] font-semibold transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-60"
+                        >
+                          <PillBottle className="h-3.5 w-3.5" />
+                          {requestedItems.has(drugOf(f)) ? "Refill requested" : "Request refill"}
+                        </button>
+                      ) : null}
+                    </div>
                   ) : r.status === "pending" ? (
                     <div className="mt-3 rounded-lg border border-border bg-surface p-3">
                       <p className="text-[12.5px] text-muted-foreground">

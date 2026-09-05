@@ -13,6 +13,8 @@ export type Encounter = {
   status: string;
   started_at: string;
   ended_at: string | null;
+  /** What happens next, kept apart from what happened. */
+  plan?: string;
 };
 
 export type FacilityStaff = {

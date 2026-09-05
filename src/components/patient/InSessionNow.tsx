@@ -13,9 +13,10 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Radio, Video, Hospital, ChevronDown } from "lucide-react";
+import { Radio, Video, Hospital, ChevronDown, NotebookPen } from "lucide-react";
 import { consultationsQuery, patientsQuery, facilitiesQuery } from "@/lib/api";
-import { encountersQuery } from "@/lib/org";
+import { encountersQuery, type Encounter } from "@/lib/org";
+import { ConsultNote } from "@/components/patient/ConsultNote";
 import { useAccessIndex } from "@/lib/access-basis";
 import { useScope } from "@/hooks/useScope";
 import { Panel, Pill } from "@/components/grid";
@@ -28,6 +29,8 @@ type Live = {
   mrn: string;
   kind: "teleconsult" | "episode";
   detail: string;
+  /** Set on an open episode, so the visit can be closed from this list. */
+  encounter?: Encounter;
 };
 
 /** Minutes since a timestamp, as a phrase rather than a number. */
@@ -40,6 +43,7 @@ function since(iso: string): string {
 }
 
 export function InSessionNow() {
+  const [closing, setClosing] = useState<{ encounter: Encounter; name: string } | null>(null);
   const { facilityId, providerId } = useScope();
   const consultations = useQuery(consultationsQuery);
   const encounters = useQuery(encountersQuery(null));
@@ -93,6 +97,7 @@ export function InSessionNow() {
         name: p.full_name,
         mrn: p.mrn,
         kind: "episode",
+        encounter: e,
         since: new Date(e.started_at).getTime(),
         detail: `${e.reason} · open since ${clockTime(e.started_at)} at ${fmap.get(e.facility_id)?.name ?? "this facility"}`,
       });
@@ -120,61 +125,85 @@ export function InSessionNow() {
     waited >= 60 ? `${Math.floor(waited / 60)}h ${waited % 60}m` : `${waited} min`;
 
   return (
-    <Panel className="mb-4 border-signal/35">
-      {/* Collapsed by default. These people are already being dealt with; the
+    <>
+      <Panel className="mb-4 border-signal/35">
+        {/* Collapsed by default. These people are already being dealt with; the
           list below them is the one with people who are not. Sixteen expanded
           rows pushed the actual work off the screen, which is the opposite of
           what a census is for — it is a reassurance, not a workspace. */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-5 py-2.5 text-left"
-      >
-        <Radio className="h-3.5 w-3.5 shrink-0 text-signal" />
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-signal">
-          In clinic now
-        </h2>
-        <Pill className="border-signal/40 bg-signal/10 text-signal">{live.length}</Pill>
-        <span className="truncate text-[12px] text-muted-foreground">
-          longest waiting {waitedLabel} · {longest?.name}
-        </span>
-        <ChevronDown
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center gap-2 px-5 py-2.5 text-left"
+        >
+          <Radio className="h-3.5 w-3.5 shrink-0 text-signal" />
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-signal">
+            In clinic now
+          </h2>
+          <Pill className="border-signal/40 bg-signal/10 text-signal">{live.length}</Pill>
+          <span className="truncate text-[12px] text-muted-foreground">
+            longest waiting {waitedLabel} · {longest?.name}
+          </span>
+          <ChevronDown
+            className={
+              "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform " +
+              (open ? "rotate-180" : "")
+            }
+          />
+        </button>
+        <div
           className={
-            "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform " +
-            (open ? "rotate-180" : "")
+            open
+              ? "max-h-[300px] divide-y divide-border overflow-y-auto border-t border-border"
+              : "hidden"
           }
-        />
-      </button>
-      <div
-        className={
-          open
-            ? "max-h-[300px] divide-y divide-border overflow-y-auto border-t border-border"
-            : "hidden"
-        }
-      >
-        {live.map((l) => (
-          <Link
-            key={l.patientId}
-            to="/patients"
-            search={{ patient: l.patientId }}
-            className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-surface"
-          >
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-signal/12 text-signal">
-              {l.kind === "teleconsult" ? (
-                <Video className="h-3.5 w-3.5" />
-              ) : (
-                <Hospital className="h-3.5 w-3.5" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13.5px] font-semibold">{l.name}</span>
-              <span className="block truncate text-[11.5px] text-muted-foreground">
-                <span className="font-medium text-foreground/70">{l.mrn}</span> · {l.detail}
-              </span>
-            </span>
-          </Link>
-        ))}
-      </div>
-    </Panel>
+        >
+          {live.map((l) => (
+            <div
+              key={l.patientId}
+              className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-surface"
+            >
+              <Link
+                to="/patients"
+                search={{ patient: l.patientId }}
+                className="flex min-w-0 flex-1 items-center gap-3"
+              >
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-signal/12 text-signal">
+                  {l.kind === "teleconsult" ? (
+                    <Video className="h-3.5 w-3.5" />
+                  ) : (
+                    <Hospital className="h-3.5 w-3.5" />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] font-semibold">{l.name}</span>
+                  <span className="block truncate text-[11.5px] text-muted-foreground">
+                    <span className="font-medium text-foreground/70">{l.mrn}</span> · {l.detail}
+                  </span>
+                </span>
+              </Link>
+              {/* The visit has to be closable from the list it appears on, or an
+                episode nobody closes keeps counting as somebody in the room. */}
+              {l.encounter ? (
+                <button
+                  type="button"
+                  onClick={() => setClosing({ encounter: l.encounter!, name: l.name })}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[12px] font-semibold transition-colors hover:border-primary/40 hover:text-primary"
+                >
+                  <NotebookPen className="h-3.5 w-3.5" />
+                  Close visit
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </Panel>
+      <ConsultNote
+        encounter={closing?.encounter ?? null}
+        patientName={closing?.name ?? ""}
+        open={Boolean(closing)}
+        onOpenChange={(v) => !v && setClosing(null)}
+      />
+    </>
   );
 }

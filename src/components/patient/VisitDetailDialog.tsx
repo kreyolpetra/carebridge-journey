@@ -101,7 +101,10 @@ export function VisitDetailDialog({
       36 * 3600 * 1000,
   );
   const note = encounter.summary || consultation?.notes || "";
-  const plan = consultation?.plan ?? "";
+  // The encounter's own plan wins: a visit closed at the chart writes it
+  // there, and reading only the consultation meant a note recorded on the day
+  // was saved and never shown to the next clinician.
+  const plan = encounter.plan || consultation?.plan || "";
 
   return (
     <Dialog open onOpenChange={onOpenChange}>

@@ -23,7 +23,7 @@ import { KIND_PRESET, type FacilityKind } from "@/lib/facility-capability";
 
 const kindPreset = (kind: string) => KIND_PRESET[kind as FacilityKind] ?? KIND_PRESET.clinic;
 
-export const SEED_VERSION = 31;
+export const SEED_VERSION = 32;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -805,6 +805,7 @@ export function buildSeed(): Tables {
     lab_results: [],
     discharges: [],
     agent_runs: [],
+    care_requests: [],
     profiles: [],
     user_roles: [],
     facility_staff: [],
@@ -2720,6 +2721,52 @@ export function buildSeed(): Tables {
       confidence: Math.round((0.45 + rng() * 0.5 - denied * 0.05) * 100) / 100,
       decision: decided ? (chance(rng, 0.76) ? "accepted" : "dismissed") : null,
       created_at: startedAt,
+    });
+  }
+
+  /**
+   * A few asks already open.
+   *
+   * The panel is about work that outlives the consultation it was raised in,
+   * so it has to arrive with some of that work already ageing — one of them
+   * past the two days a refill should ever sit, because the overdue case is
+   * the one the feature exists for.
+   */
+  const requestPool = jmClinicRoster.slice(0, 5);
+  const CARE_REQUEST_SEED: [string, string, string, number][] = [
+    [
+      "refill",
+      "Amlodipine 10mg",
+      "Ran out four days ago; adherence 48% and 38 km from the nearest pharmacy.",
+      4,
+    ],
+    ["refill", "Metformin 1g", "Two days of supply left at the last count.", 1],
+    [
+      "test",
+      "HbA1c",
+      "Last done 141 days ago at Jamaica General; usually repeated every 3 months.",
+      3,
+    ],
+    ["test", "Creatinine", "Due for repeat before the next dose decision.", 0],
+    ["review", "Blood pressure trend", "Three readings above 180 systolic in ten days.", 1],
+  ];
+  for (const [i, [kind, item, reason, daysOpen]] of CARE_REQUEST_SEED.entries()) {
+    const patient = requestPool[i];
+    if (!patient) continue;
+    t["care_requests"]!.push({
+      id: uuid(rng),
+      patient_id: i === 0 ? HERO_PATIENT_ID : patient["id"],
+      kind,
+      item,
+      reason,
+      requested_by_provider_id: NURSE_PROVIDER_ID,
+      requested_by_name: "Sister Yvette Marshall",
+      requested_at: daysAgo(daysOpen),
+      status: "open",
+      closed_at: null,
+      closed_by_name: "",
+      closed_note: "",
+      created_at: daysAgo(daysOpen),
     });
   }
 

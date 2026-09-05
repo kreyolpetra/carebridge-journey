@@ -18,11 +18,50 @@ import { FlaskConical, Building2, AlertTriangle } from "lucide-react";
 import { facilitiesQuery } from "@/lib/api";
 import { labResultsQuery, latestPerTest } from "@/lib/labs";
 import { useScope } from "@/hooks/useScope";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { careRequestsQuery, raiseRequest, type CareRequest } from "@/lib/care-requests";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { shortDate } from "@/lib/format";
 
 export function ResultsOnTheGrid({ patientId }: { patientId: string }) {
   const { facilityId } = useScope();
+  const { profile } = useAuth();
+  const qc = useQueryClient();
+  const requests = useQuery(careRequestsQuery);
+
+  /**
+   * A test the Grid says is due had no way to be asked for — the panel named
+   * the gap and stopped. Asking is not ordering: it puts the request on the
+   * chart for whoever collects bloods, which is what actually happens here.
+   */
+  const openTests = useMemo(
+    () =>
+      new Set(
+        ((requests.data ?? []) as CareRequest[])
+          .filter((r) => r.patient_id === patientId && r.status === "open" && r.kind === "test")
+          .map((r) => r.item),
+      ),
+    [requests.data, patientId],
+  );
+
+  const askTest = useMutation({
+    mutationFn: async (v: { name: string; reason: string }) =>
+      raiseRequest({
+        patientId,
+        kind: "test",
+        item: v.name,
+        reason: v.reason,
+        providerId: profile?.provider_id ?? null,
+        providerName: profile?.full_name ?? "Clinician",
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["care_requests"] });
+      toast.success("Test requested — on the chart until somebody collects it");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const results = useQuery(labResultsQuery);
   const facilities = useQuery(facilitiesQuery);
 
@@ -101,9 +140,24 @@ export function ResultsOnTheGrid({ patientId }: { patientId: string }) {
                 recent — usually repeated every {Math.round(intervalDays / 30)} months
               </Pill>
             ) : intervalDays ? (
-              <Pill className="shrink-0 border-border bg-surface text-muted-foreground">
-                due for repeat
-              </Pill>
+              <span className="flex shrink-0 items-center gap-2">
+                <Pill className="border-border bg-surface text-muted-foreground">
+                  due for repeat
+                </Pill>
+                <button
+                  type="button"
+                  onClick={() =>
+                    askTest.mutate({
+                      name: result.test_name,
+                      reason: `Last done ${days} days ago at ${facilityName(result.facility_id)}; usually repeated every ${Math.round(intervalDays / 30)} months.`,
+                    })
+                  }
+                  disabled={askTest.isPending || openTests.has(result.test_name)}
+                  className="rounded-lg border border-border px-2.5 py-1 text-[11.5px] font-semibold transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-60"
+                >
+                  {openTests.has(result.test_name) ? "Requested" : "Request"}
+                </button>
+              </span>
             ) : null}
           </div>
         ))}

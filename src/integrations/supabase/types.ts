@@ -411,6 +411,54 @@ export type Database = {
           },
         ];
       };
+      care_requests: {
+        Row: {
+          closed_at: string | null;
+          closed_by_name: string;
+          closed_note: string;
+          created_at: string;
+          id: string;
+          item: string;
+          kind: string;
+          patient_id: string;
+          reason: string;
+          requested_at: string;
+          requested_by_name: string;
+          requested_by_provider_id: string | null;
+          status: string;
+        };
+        Insert: {
+          closed_at?: string | null;
+          closed_by_name?: string;
+          closed_note?: string;
+          created_at?: string;
+          id?: string;
+          item?: string;
+          kind?: string;
+          patient_id?: string;
+          reason?: string;
+          requested_at?: string;
+          requested_by_name?: string;
+          requested_by_provider_id?: string | null;
+          status?: string;
+        };
+        Update: {
+          closed_at?: string | null;
+          closed_by_name?: string;
+          closed_note?: string;
+          created_at?: string;
+          id?: string;
+          item?: string;
+          kind?: string;
+          patient_id?: string;
+          reason?: string;
+          requested_at?: string;
+          requested_by_name?: string;
+          requested_by_provider_id?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
       conditions: {
         Row: {
           diagnosed_on: string | null;
@@ -953,6 +1001,7 @@ export type Database = {
       };
       encounters: {
         Row: {
+          plan: string;
           consultation_id: string | null;
           created_at: string;
           ended_at: string | null;
@@ -968,6 +1017,7 @@ export type Database = {
           summary: string;
         };
         Insert: {
+          plan?: string;
           consultation_id?: string | null;
           created_at?: string;
           ended_at?: string | null;
@@ -983,6 +1033,7 @@ export type Database = {
           summary?: string;
         };
         Update: {
+          plan?: string;
           consultation_id?: string | null;
           created_at?: string;
           ended_at?: string | null;
