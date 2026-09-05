@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dictate } from "@/components/Dictate";
 
 export function ConsultNote({
   encounter,
@@ -140,6 +141,10 @@ export function ConsultNote({
               onChange={(e) => setSummary(e.target.value)}
               placeholder="Reviewed blood pressure — 168/98 on today's reading, symptomatic on standing…"
             />
+            <Dictate
+              onAppend={(said) => setSummary((prev) => (prev ? prev + " " + said : said))}
+              hint="Faster than typing, and it keeps working when the power does not."
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -151,6 +156,7 @@ export function ConsultNote({
               onChange={(e) => setPlan(e.target.value)}
               placeholder="Amlodipine increased to 10mg. Home readings twice daily. Review in 2 weeks."
             />
+            <Dictate onAppend={(said) => setPlan((prev) => (prev ? prev + " " + said : said))} />
             {/* Separate on purpose — this is the half the receiving clinic acts on. */}
             <p className="text-[11.5px] text-muted-foreground">
               Kept apart from the history because this is the part somebody has to do.

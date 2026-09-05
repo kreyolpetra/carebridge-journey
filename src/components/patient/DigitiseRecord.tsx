@@ -25,6 +25,7 @@ import { extractDocument } from "@/lib/documents.functions";
 import type { ExtractedRecord } from "@/lib/prevention";
 import { Pill } from "@/components/grid";
 import { useAuth } from "@/hooks/useAuth";
+import { Dictate } from "@/components/Dictate";
 
 export function ExtractionPreview({ extracted }: { extracted: ExtractedRecord }) {
   const rows: { label: string; values: string[] }[] = [
@@ -337,7 +338,7 @@ export function DigitiseRecord({
       ) : null}
 
       <label className="block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-        Or paste what the card says
+        Or say it, or paste what the card says
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -346,6 +347,16 @@ export function DigitiseRecord({
           className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-[12.5px] font-normal normal-case tracking-normal text-foreground"
         />
       </label>
+
+      {/*
+        Dictated lines land on separate lines on purpose: the reader below takes
+        one medication per line, so speaking three drugs in a row has to arrive
+        as three lines rather than one run-on sentence it would only half parse.
+      */}
+      <Dictate
+        onAppend={(said) => setText((prev) => (prev ? prev + "\n" + said : said))}
+        hint="Speak the card — a pressure, a drug and its dose, a diagnosis and its year."
+      />
 
       <button
         type="button"

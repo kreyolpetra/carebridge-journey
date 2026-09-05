@@ -11,9 +11,11 @@ import { runSuite, report, type SuiteResult } from "./eval-harness";
 import { intakeCases } from "./intake.eval";
 import { clinicianCases } from "./clinician.eval";
 import { askCases } from "./ask.eval";
+import { documentCases } from "./documents.eval";
 
 const results: SuiteResult[] = [];
 results.push(await runSuite("Intake agent", intakeCases));
 results.push(await runSuite("Pre-consult brief agent", clinicianCases));
 results.push(await runSuite("Ask agent", askCases));
+results.push(await runSuite("Paper reader", documentCases));
 report(results);

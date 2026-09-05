@@ -63,14 +63,23 @@ const CONDITIONS: [RegExp, string][] = [
   [/\bhyperlipid|dyslipid|high cholesterol\b/i, "Hyperlipidaemia"],
 ];
 
-/** "od", "bd", "tds", "nocte" — how a dose frequency is actually written down. */
+/**
+ * "od", "bd", "tds", "nocte" — how a dose frequency is actually written down.
+ *
+ * The order is load-bearing and must not be tidied alphabetically. The first
+ * pattern that matches wins, and the generic "daily" sits inside "twice daily"
+ * and "three times daily" — so with the once-daily rule first, a drug given
+ * twice a day was filed as once a day. Halving a metformin dose on the record
+ * is exactly the class of error this file refuses to make, so the specific
+ * frequencies are tested first and the loose one is the fallback.
+ */
 const FREQ: [RegExp, string][] = [
-  [/\b(od|once daily|daily|mane)\b/i, "once daily"],
-  [/\b(bd|bid|twice daily)\b/i, "twice daily"],
-  [/\b(tds|tid|three times)\b/i, "three times daily"],
-  [/\b(qds|qid|four times)\b/i, "four times daily"],
+  [/\b(bd|bid|twice daily|twice a day|two times daily)\b/i, "twice daily"],
+  [/\b(tds|tid|three times daily|three times a day|three times)\b/i, "three times daily"],
+  [/\b(qds|qid|four times daily|four times a day|four times)\b/i, "four times daily"],
   [/\b(nocte|at night|hs)\b/i, "at night"],
-  [/\bprn\b/i, "as needed"],
+  [/\bprn\b|\bas needed\b|\bwhen required\b/i, "as needed"],
+  [/\b(od|once daily|once a day|daily|mane)\b/i, "once daily"],
 ];
 
 const LABS: [RegExp, string, string][] = [

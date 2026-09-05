@@ -55,6 +55,10 @@ const REAL: Row[] = [
     note: "Clinical shorthand is genuinely parsed: a blood pressure, a drug with its dose and frequency, a diagnosis with its year, labs with units, an allergy. Every value is reviewed by a human before it touches the chart, and the record files under the date on the document rather than the date it was typed. A date is never mistaken for a blood pressure, and nothing without a recognised unit is guessed at.",
   },
   {
+    what: "Dictation, on the device only",
+    note: "A clinician can speak a consult note or a clinic card instead of typing it, and spoken shorthand is rewritten into the form the reader expects — \u201c156 over 96\u201d becomes a blood pressure, \u201c10 milligrams once daily\u201d becomes a dose. It runs entirely on the device, which means it also works with the network down. Where a browser only offers cloud recognition the button is not shown at all, because sending a dictated sentence about a named patient to another company\u2019s servers is the thing this product argues against. It needs microphone permission and an on-device voice pack; where either is missing it says so rather than appearing to work.",
+  },
+  {
     what: "Losing the signal, and losing the power",
     note: "A queued write is a description of the write, saved to the device — so it survives a reload, a crash or a power cut, and replays itself when the machine comes back. Half-written consult notes are kept the same way. What was entered on paper while the lights were out goes back in through the paper reader, filed under the date on the document rather than the date it was typed.",
   },
@@ -119,6 +123,10 @@ const MISSING: Row[] = [
   {
     what: "Agreement scope enforcement",
     note: "A data-sharing agreement declares a specialty, resource and tier scope. The resolver honours the agreement but not yet the narrower scope inside it.",
+  },
+  {
+    what: "Dictation in Patois or Kre\u00f2l",
+    note: "On-device recognition is trained on standard English and Spanish. A clinician switching into Patois or Kre\u00f2l mid-sentence \u2014 which is how people here actually speak \u2014 will get poor results, and no amount of pattern matching fixes that. It needs a speech model fine-tuned on Caribbean voices, which is the second workload behind the compute request rather than a footnote to the first.",
   },
   {
     what: "Translated clinical screens",
