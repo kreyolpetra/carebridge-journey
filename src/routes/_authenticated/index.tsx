@@ -103,7 +103,7 @@ function Greeting({ subtitle }: { subtitle: string }) {
           {ROLE_LABEL[role] ?? role}
           {profile?.organisation ? ` · ${profile.organisation}` : ""}
         </p>
-        <h1 className="mt-2 font-display text-[26px] font-bold tracking-tight sm:text-3xl md:text-4xl">
+        <h1 className="mt-2 font-display text-[22px] font-bold tracking-tight sm:text-3xl md:text-4xl">
           {role === "patient"
             ? t("Hello, {name}.", { name: firstName(name) })
             : `Good day, ${firstName(name)}.`}

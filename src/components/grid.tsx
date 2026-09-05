@@ -106,7 +106,7 @@ export function Stat({
            * is still the largest thing in its block; it just stops competing
            * with the task.
            */
-          "display-num mt-2 text-[27px] font-bold leading-[1.04] tracking-[-0.03em] sm:mt-2.5 sm:text-[38px] sm:leading-[1.02] sm:tracking-[-0.032em]",
+          "display-num mt-1.5 text-[22px] font-bold leading-[1.06] tracking-[-0.028em] sm:mt-2.5 sm:text-[38px] sm:leading-[1.02] sm:tracking-[-0.032em]",
           toneClass,
         )}
       >
