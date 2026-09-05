@@ -143,6 +143,29 @@ export function PatientChart({
                 {longDate(b.patient.date_of_birth)}
                 {` · ${b.patient.age}${b.patient.sex}`}
               </p>
+              {/*
+                An allergy list the safety engine checks every new drug against,
+                and which no screen showed. It belongs on the identity line for
+                the same reason it goes on a wristband: it is the fact a
+                clinician must have before they decide anything, not one they
+                should have to go and look for.
+              */}
+              {b.patient.allergies?.length ? (
+                <p className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-critical">
+                    Allergies
+                  </span>
+                  {b.patient.allergies.map((a) => (
+                    <Pill key={a} className="border-critical/40 bg-critical/10 text-critical">
+                      {a}
+                    </Pill>
+                  ))}
+                </p>
+              ) : (
+                <p className="mt-1 text-[11.5px] text-muted-foreground">
+                  No allergies recorded — which is not the same as none.
+                </p>
+              )}
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               {decision ? (

@@ -1,15 +1,23 @@
-// Runs client-side — see the note in triage.functions.ts. Vision extraction needs
-// a gateway key that must stay server-side, so with none configured this always
-// returned the manual-entry path. The document is still stored; a clerk keys the
-// values in, which is the reviewed-before-it-touches-the-chart flow anyway.
+/**
+ * Reading a clinic card, through the same seam as every other judgement.
+ *
+ * This used to return nothing at all — for a photograph and for typed text
+ * alike — and ask a clerk to key every value in. That was described in three
+ * places, including this product's own "what is real" page, as the record
+ * being read, which it was not.
+ *
+ * Typed or pasted text is now genuinely parsed by rules (lib/documents.rules).
+ * A photograph still needs the vision model at the seam, and says so.
+ */
+import { getAdapter } from "./agents/model";
 import type { ExtractionResult } from "./documents.server";
 
-export async function extractDocument(_input: {
+export async function extractDocument(input: {
   data: { text?: string | undefined; imageDataUrl?: string | undefined; title: string };
 }): Promise<ExtractionResult> {
-  return {
-    extracted: {},
-    note: "Stored for review — no AI gateway configured, so key the values in manually.",
-    degraded: true,
-  };
+  const { value, degraded } = await getAdapter().extractDocument({
+    text: input.data.text,
+    imageDataUrl: input.data.imageDataUrl,
+  });
+  return { extracted: value.extracted, note: value.note, degraded };
 }

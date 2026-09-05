@@ -51,8 +51,8 @@ const REAL: Row[] = [
     note: "Three agents run on every use, each producing a tool trace with consent refusals and a confidence figure. 39 evaluation cases run with one command and fail the build.",
   },
   {
-    what: "Paper digitisation",
-    note: "A photographed or pasted record is read, reviewed and committed by a human, filed under the date on the document rather than the date it was scanned.",
+    what: "Paper digitisation — typed or pasted",
+    note: "Clinical shorthand is genuinely parsed: a blood pressure, a drug with its dose and frequency, a diagnosis with its year, labs with units, an allergy. Every value is reviewed by a human before it touches the chart, and the record files under the date on the document rather than the date it was typed. A date is never mistaken for a blood pressure, and nothing without a recognised unit is guessed at.",
   },
   {
     what: "Losing the signal, and losing the power",
@@ -76,6 +76,10 @@ const STAGED: Row[] = [
   {
     what: "The agents' judgement step",
     note: "Deterministic rules, not a language model — stated on every trace and in the palette footer. The seam a model would plug into is real code (lib/agents/model.ts); the model is not there because there is no GPU and no key that could safely ship in a static file.",
+  },
+  {
+    what: "Reading a photograph",
+    note: "A photographed card is stored and attached to the record, and its values are keyed in. Turning pixels into clinical values needs the vision model that sits at the seam — the interface says so at the point of upload rather than leaving it to be discovered. Type or paste what the card says and it is read.",
   },
   {
     what: "Staff invitations",

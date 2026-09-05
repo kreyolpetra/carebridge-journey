@@ -58,6 +58,12 @@ export function ExtractionPreview({ extracted }: { extracted: ExtractedRecord })
         (l) => `${l.name} ${l.value}${l.unit ? ` ${l.unit}` : ""}`,
       ),
     },
+    {
+      // An allergy read off a card and never shown is the worst of the four to
+      // drop: it is the one the safety engine checks every new drug against.
+      label: "Allergies",
+      values: extracted.allergies ? [extracted.allergies] : [],
+    },
   ].filter((r) => r.values.length > 0);
 
   if (rows.length === 0) return null;
@@ -181,6 +187,28 @@ export function DigitiseRecord({
             })),
           ) as unknown as Promise<unknown>,
         );
+      }
+      if (extracted.allergies?.trim()) {
+        // Merged, never replaced: a card naming one allergy is not a statement
+        // that the others have gone away.
+        const { data: current } = await supabase
+          .from("patients")
+          .select("allergies")
+          .eq("id", patientId)
+          .single();
+        const had = ((current as { allergies?: string[] } | null)?.allergies ?? []).map(String);
+        const add = extracted.allergies
+          .split(/[,;]/)
+          .map((a) => a.trim())
+          .filter((a) => a.length > 1 && !had.some((h) => h.toLowerCase() === a.toLowerCase()));
+        if (add.length) {
+          jobs.push(
+            supabase
+              .from("patients")
+              .update({ allergies: [...had, ...add] })
+              .eq("id", patientId) as unknown as Promise<unknown>,
+          );
+        }
       }
       if (extracted.medications?.length) {
         jobs.push(

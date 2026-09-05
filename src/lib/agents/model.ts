@@ -34,6 +34,8 @@
 import { ruleBasedTriage, type PatientContext, type TriageResult } from "@/lib/triage.server";
 import { classifyIntent, type Intent } from "./ask.rules";
 import { buildAgenda, type AgendaSignals } from "./brief.rules";
+import { extractFromText, describe } from "@/lib/documents.rules";
+import type { ExtractedRecord } from "@/lib/prevention";
 import type { Island } from "@/lib/api";
 
 /**
@@ -53,6 +55,8 @@ export type Judgement<T> = {
 export type TriageRequest = { context: PatientContext; message: string };
 export type QuestionRequest = { question: string; islands: Island[] };
 export type AgendaRequest = { signals: AgendaSignals };
+export type ExtractRequest = { text?: string | undefined; imageDataUrl?: string | undefined };
+export type ExtractResponse = { extracted: ExtractedRecord; note: string };
 
 export interface ModelAdapter {
   /** Stable identifier, shown in every agent run so a trace names its author. */
@@ -69,6 +73,8 @@ export interface ModelAdapter {
   classifyQuestion(req: QuestionRequest): Promise<Judgement<Intent | null>>;
   /** Order what a clinician should raise, given findings already computed. */
   narrateAgenda(req: AgendaRequest): Promise<Judgement<string[]>>;
+  /** Read a clinic card into structured values a human then reviews. */
+  extractDocument(req: ExtractRequest): Promise<Judgement<ExtractResponse>>;
 }
 
 /**
@@ -101,6 +107,32 @@ export const rulesAdapter: ModelAdapter = {
     degraded: true,
     note: "Agenda ordered by explicit precedence rules.",
   }),
+
+  /*
+   * Text is parsed here and now. A photograph is not: turning pixels into
+   * clinical values needs a vision model, and saying otherwise would be the
+   * kind of claim this file exists to prevent. The image is stored either way.
+   */
+  extractDocument: async (req) => {
+    if (!req.text?.trim()) {
+      return {
+        value: {
+          extracted: {},
+          note: req.imageDataUrl
+            ? "Photograph stored and attached. Reading an image needs the vision model — key the values in, or type what the card says and it will be read."
+            : "Nothing to read yet.",
+        },
+        degraded: true,
+        note: "No text to parse.",
+      };
+    }
+    const extracted = extractFromText(req.text);
+    return {
+      value: { extracted, note: describe(extracted) },
+      degraded: true,
+      note: "Pattern rules over clinical shorthand.",
+    };
+  },
 };
 
 /**
@@ -162,6 +194,11 @@ export class HostedAdapter implements ModelAdapter {
   }
   narrateAgenda(req: AgendaRequest) {
     return this.call<string[]>("narrate_agenda", req, "AgendaSchema");
+  }
+  extractDocument(req: ExtractRequest) {
+    // The one call that carries an image, and the reason the vision half of
+    // the model matters as much as the text half.
+    return this.call<ExtractResponse>("extract_document", req, "ExtractionSchema");
   }
 }
 
