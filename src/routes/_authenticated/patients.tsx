@@ -469,56 +469,64 @@ function Patients() {
           seeing. Two different states, so two different places. */}
       <InSessionNow />
 
-      {/* These were four large tiles carrying population counts — "HIGH 137"
-          is a ministry statistic, not a nurse's next action, and it occupied
-          the best row on the page. The filter is genuinely useful, so it stays
-          as a filter and stops pretending to be a headline. */}
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Filter by risk
-          <span className="ml-1 font-normal normal-case tracking-normal opacity-70">
-            (across your {Object.values(counts).reduce((a, n) => a + n, 0)} patients)
-          </span>
-        </span>
-        {BANDS.map((band) => {
-          const active = bandFilter === band.key;
-          return (
-            <button
-              key={band.key}
-              type="button"
-              aria-pressed={active}
-              onClick={() => {
-                setBandFilter(active ? "all" : band.key);
-                setPage(1);
-              }}
-              className={
-                "rounded-lg border px-2.5 py-1 text-[12.5px] font-medium transition-colors " +
-                (active
-                  ? "border-primary/50 bg-primary/8 text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground")
-              }
-            >
-              {band.label}
-              <span className="ml-1.5 tabular-nums opacity-70">{counts[band.key] ?? 0}</span>
-            </button>
-          );
-        })}
-        {bandFilter !== "all" ? (
-          <button
-            type="button"
-            onClick={() => {
-              setBandFilter("all");
-              setPage(1);
-            }}
-            className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
-          >
-            Clear
-          </button>
-        ) : null}
-      </div>
-
-      <div className={"grid gap-4 " + (wide ? "" : "lg:grid-cols-[430px_minmax(0,1fr)]")}>
-        <Panel className="h-fit">
+      <div
+        className={"grid items-start gap-4 " + (wide ? "" : "lg:grid-cols-[430px_minmax(0,1fr)]")}
+      >
+        {/* The list stays put while the chart scrolls.
+            It used to stop about halfway down and leave a column of nothing
+            beside a chart that ran on for another thousand pixels — and worse,
+            moving to the next patient meant scrolling back up to find them.
+            Whoever you are reading is now always one click from whoever is
+            next. */}
+        <Panel className="h-fit lg:sticky lg:top-16 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto">
+          {/* A filter belongs with the thing it filters.
+              This was a full-width row above both columns, so on a screen with
+              a chart open it pushed the chart — and the chart's own tabs —
+              down the page to make room for a control that only ever acts on
+              the list beside it. */}
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2.5">
+            <span className="w-full text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Filter by risk
+              <span className="ml-1 font-normal normal-case tracking-normal opacity-70">
+                (across your {Object.values(counts).reduce((a, n) => a + n, 0)} patients)
+              </span>
+            </span>
+            {BANDS.map((band) => {
+              const active = bandFilter === band.key;
+              return (
+                <button
+                  key={band.key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setBandFilter(active ? "all" : band.key);
+                    setPage(1);
+                  }}
+                  className={
+                    "rounded-lg border px-2.5 py-1 text-[12.5px] font-medium transition-colors " +
+                    (active
+                      ? "border-primary/50 bg-primary/8 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground")
+                  }
+                >
+                  {band.label}
+                  <span className="ml-1.5 tabular-nums opacity-70">{counts[band.key] ?? 0}</span>
+                </button>
+              );
+            })}
+            {bandFilter !== "all" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setBandFilter("all");
+                  setPage(1);
+                }}
+                className="text-[12px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
           <div className="border-b border-border px-3 py-2.5">
             <input
               value={query}

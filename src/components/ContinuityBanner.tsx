@@ -61,8 +61,7 @@ export function PatientContinuityNote({ patientId }: { patientId: string }) {
         </p>
         <p className="mt-0.5 text-[12.5px] leading-relaxed">{affected.continuity_note}</p>
         <p className="mt-1 text-[12.5px] leading-relaxed opacity-90">
-          Their record is not held in that building. Everything below is complete and current — it
-          lives on CareBridge, so a closed clinic does not close the record.
+          The record below is complete — it lives on CareBridge, not in that building.
         </p>
       </div>
     </div>

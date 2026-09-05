@@ -182,102 +182,121 @@ export function PatientChart({
         </Panel>
       </div>
 
-      {/* Why this patient is here, before what is wrong with them. */}
-      <CareRequests patientId={b.patient.id} />
-      <DischargeHandoff patientId={b.patient.id} />
       <PatientContinuityNote patientId={b.patient.id} />
 
-      {/* Above the clinical detail on purpose. A safety stop that sits below
-          the fold is a warning nobody read. */}
+      {/* Never behind a tab.
+          Everything else about this patient is now tabbed, and that is right —
+          a chart is a filing cabinet and you open the drawer you need. A safety
+          stop is not filing. It is the one thing that has to be true whichever
+          drawer is open, so it sits above them where it cannot be navigated
+          away from. */}
       <SafetyPanel bundle={b} />
 
-      <Panel>
-        <PanelHeader
-          title="Summary"
-          subtitle={`${b.patient.parish}, ${b.patient.island_code} · ${b.patient.km_to_facility} km from care · ${b.patient.insurer ?? "Uninsured"}`}
-        />
-        {decision ? <BasisStrip decision={decision} /> : null}
-        <div className="grid gap-4 p-5 md:grid-cols-3">
-          <div>
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Conditions
-            </h4>
-            <ul className="mt-2 space-y-1 text-[13px]">
-              {visibleConditions.map((c) => (
-                <li key={c.id}>
-                  {c.name}{" "}
-                  <span className="text-muted-foreground">
-                    {c.diagnosed_on
-                      ? `since ${c.diagnosed_on ? new Date(c.diagnosed_on).getFullYear() : null}`
-                      : "onset not recorded"}
-                  </span>
-                </li>
-              ))}
-              {/* Redaction, not concealment: the clinician is told a restricted
-                  entry exists rather than being shown a chart that silently
-                  looks complete. */}
-              {withheldConditions > 0 ? (
-                <li className="flex items-start gap-1.5 text-high">
-                  <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    {withheldConditions} restricted {withheldConditions === 1 ? "entry" : "entries"}{" "}
-                    withheld — no active grant
-                  </span>
-                </li>
-              ) : null}
-              {!visibleConditions.length && !withheldConditions ? (
-                <li className="text-muted-foreground">None recorded</li>
-              ) : null}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Medications
-            </h4>
-            <ul className="mt-2 space-y-1 text-[13px]">
-              {b.medications.map((m) => (
-                <li key={m.id}>
-                  {m.name} {m.dosage}{" "}
-                  <span
-                    className={m.adherence_pct < 70 ? "text-critical" : "text-muted-foreground"}
-                  >
-                    · {m.adherence_pct}% adherence · {m.days_supply_left}d supply
-                  </span>
-                </li>
-              ))}
-              {!b.medications.length ? (
-                <li className="text-muted-foreground">None recorded</li>
-              ) : null}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Risk drivers
-            </h4>
-            <ul className="mt-2 space-y-1 text-[13px]">
-              {(b.risk?.drivers ?? []).map((d) => (
-                <li key={d.label} className="flex justify-between gap-3">
-                  <span className="text-muted-foreground">{d.label}</span>
-                  <span className="mono-num">+{d.points}</span>
-                </li>
-              ))}
-              {!b.risk ? <li className="text-muted-foreground">Not yet scored</li> : null}
-            </ul>
-          </div>
-        </div>
-      </Panel>
-
-      {/* The chart carries a conversation, two trend series, a cross-border
-          visit history and a referral log. Stacked, that is a long scroll to
-          reach the thing you opened the chart for, so the header stays put and
-          the rest is tabbed. */}
-      <Tabs defaultValue="trends">
+      {/*
+        The tabs are the chart's navigation, so they sit at the top of it.
+        They used to sit at the bottom, under a request panel, a discharge
+        panel, a safety panel and a summary — about two thousand pixels of
+        scroll before a clinician reached the trends, the conversation, the
+        visit history or the referral log. Navigation at the foot of the thing
+        it navigates is not navigation, it is a footnote.
+        Overview holds what that scroll used to be, in two columns: what needs
+        a decision on the left, the clinical picture on the right.
+      */}
+      <Tabs defaultValue="overview">
         <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="careline">Care line</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="referrals">Triage &amp; referrals</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview" className="mt-4">
+          <div className="grid items-start gap-4 xl:grid-cols-[1.12fr_1fr]">
+            <div className="space-y-4">
+              <CareRequests patientId={b.patient.id} />
+              <DischargeHandoff patientId={b.patient.id} />
+            </div>
+            <Panel>
+              <PanelHeader
+                title="Summary"
+                subtitle={`${b.patient.parish}, ${b.patient.island_code} · ${b.patient.km_to_facility} km from care · ${b.patient.insurer ?? "Uninsured"}`}
+              />
+              {decision ? <BasisStrip decision={decision} /> : null}
+              <div className="grid gap-4 p-5 md:grid-cols-3">
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Conditions
+                  </h4>
+                  <ul className="mt-2 space-y-1 text-[13px]">
+                    {visibleConditions.map((c) => (
+                      <li key={c.id}>
+                        {c.name}{" "}
+                        <span className="text-muted-foreground">
+                          {c.diagnosed_on
+                            ? `since ${c.diagnosed_on ? new Date(c.diagnosed_on).getFullYear() : null}`
+                            : "onset not recorded"}
+                        </span>
+                      </li>
+                    ))}
+                    {/* Redaction, not concealment: the clinician is told a restricted
+                    entry exists rather than being shown a chart that silently
+                    looks complete. */}
+                    {withheldConditions > 0 ? (
+                      <li className="flex items-start gap-1.5 text-high">
+                        <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          {withheldConditions} restricted{" "}
+                          {withheldConditions === 1 ? "entry" : "entries"} withheld — no active
+                          grant
+                        </span>
+                      </li>
+                    ) : null}
+                    {!visibleConditions.length && !withheldConditions ? (
+                      <li className="text-muted-foreground">None recorded</li>
+                    ) : null}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Medications
+                  </h4>
+                  <ul className="mt-2 space-y-1 text-[13px]">
+                    {b.medications.map((m) => (
+                      <li key={m.id}>
+                        {m.name} {m.dosage}{" "}
+                        <span
+                          className={
+                            m.adherence_pct < 70 ? "text-critical" : "text-muted-foreground"
+                          }
+                        >
+                          · {m.adherence_pct}% adherence · {m.days_supply_left}d supply
+                        </span>
+                      </li>
+                    ))}
+                    {!b.medications.length ? (
+                      <li className="text-muted-foreground">None recorded</li>
+                    ) : null}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Risk drivers
+                  </h4>
+                  <ul className="mt-2 space-y-1 text-[13px]">
+                    {(b.risk?.drivers ?? []).map((d) => (
+                      <li key={d.label} className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{d.label}</span>
+                        <span className="mono-num">+{d.points}</span>
+                      </li>
+                    ))}
+                    {!b.risk ? <li className="text-muted-foreground">Not yet scored</li> : null}
+                  </ul>
+                </div>
+              </div>
+            </Panel>
+          </div>
+        </TabsContent>
 
         <TabsContent value="trends" className="mt-4">
           <div className="grid gap-4 lg:grid-cols-2">
