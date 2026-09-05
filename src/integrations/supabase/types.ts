@@ -1456,9 +1456,9 @@ export type Database = {
       };
       referrals: {
         Row: {
-          need_score: number
-          patient_island: string
-          prioritised_on_need: boolean
+          need_score: number;
+          patient_island: string;
+          prioritised_on_need: boolean;
           created_at: string;
           cross_island: boolean;
           accepted_at: string | null;
@@ -1477,9 +1477,9 @@ export type Database = {
           wait_days_routed: number;
         };
         Insert: {
-          need_score?: number
-          patient_island?: string
-          prioritised_on_need?: boolean
+          need_score?: number;
+          patient_island?: string;
+          prioritised_on_need?: boolean;
           created_at?: string;
           cross_island?: boolean;
           accepted_at?: string | null;
@@ -1498,9 +1498,9 @@ export type Database = {
           wait_days_routed?: number;
         };
         Update: {
-          need_score?: number
-          patient_island?: string
-          prioritised_on_need?: boolean
+          need_score?: number;
+          patient_island?: string;
+          prioritised_on_need?: boolean;
           created_at?: string;
           cross_island?: boolean;
           accepted_at?: string | null;
