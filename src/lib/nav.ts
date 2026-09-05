@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Landmark,
   FileBarChart,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { STAFF_ROLE_TIER, type CareTier } from "@/lib/access";
@@ -33,6 +34,7 @@ export type NavItem = {
     | "/access-log"
     | "/insurer"
     | "/cooperative"
+    | "/agents"
     | "/reports"
     | "/settings";
   label: string;
@@ -158,6 +160,16 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["insurer", "ministry", "admin"],
     group: "Work",
     keywords: "premium credits adherence pricing",
+  },
+  {
+    to: "/agents",
+    label: "Agent activity",
+    icon: Sparkles,
+    roles: ["clinician", "ministry", "admin"],
+    tiers: ["attending", "consulting", "org_admin"],
+    group: "Work",
+    keywords:
+      "agent ai activity governance runs audit trace model adapter accepted dismissed compute gpu",
   },
   {
     to: "/reports",

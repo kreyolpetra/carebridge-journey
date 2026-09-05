@@ -26,6 +26,7 @@ import {
   consultationsQuery,
 } from "@/lib/api";
 import { runClinicianBrief } from "@/lib/agents/clinician";
+import { recordRun, recordDecision } from "@/lib/agents/activity";
 import { AgentBrief } from "@/components/app/AgentBrief";
 import { useAuth } from "@/hooks/useAuth";
 import { useScope } from "@/hooks/useScope";
@@ -352,6 +353,8 @@ function Patients() {
   const islands = useQuery(islandsQuery);
   const [briefFor, setBriefFor] = useState<string | null>(null);
   const [briefDecision, setBriefDecision] = useState<"accepted" | "dismissed" | null>(null);
+  /** Row id in the agent log, so a decision lands on the run it belongs to. */
+  const [briefRunId, setBriefRunId] = useState<string | null>(null);
 
   /**
    * The brief runs through the model adapter, so it is asynchronous — see
@@ -382,6 +385,12 @@ function Patients() {
           ),
         ],
         islandTier: island?.tier,
+      }).then((run) => {
+        void recordRun(run, {
+          agent: "Pre-consult brief",
+          providerId: profile?.provider_id ?? null,
+        }).then(setBriefRunId);
+        return run;
       });
     },
   });
@@ -879,7 +888,7 @@ function Patients() {
                     run={brief}
                     decision={briefDecision}
                     onAccept={() => {
-                      setBriefDecision("accepted");
+                      (setBriefDecision("accepted"), void recordDecision(briefRunId, "accepted"));
                       void supabase.from("workflow_events").insert({
                         patient_id: b.patient.id,
                         actor_name: profile?.full_name ?? "Clinician",
@@ -894,7 +903,7 @@ function Patients() {
                       toast.success("Brief accepted — recorded against this episode");
                     }}
                     onDismiss={() => {
-                      setBriefDecision("dismissed");
+                      (setBriefDecision("dismissed"), void recordDecision(briefRunId, "dismissed"));
                       void supabase.from("workflow_events").insert({
                         patient_id: b.patient.id,
                         actor_name: profile?.full_name ?? "Clinician",

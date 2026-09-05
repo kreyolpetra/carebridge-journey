@@ -45,6 +45,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { CallOverlay, formatCallTime, type CallMode } from "@/components/patient/CallOverlay";
 import { useAccessIndex } from "@/lib/access-basis";
 import { runIntakeAgent } from "@/lib/agents/intake";
+import { recordRun, recordDecision } from "@/lib/agents/activity";
 import { AgentBrief } from "@/components/app/AgentBrief";
 import type { AgentRun } from "@/lib/agents/core";
 import { NewMessage } from "@/components/patient/NewMessage";
@@ -107,6 +108,8 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
   // refused it, and what it proposes. Held next to the triage result because
   // they come from the same send.
   const [intakeRun, setIntakeRun] = useState<AgentRun | null>(null);
+  /** Row id in the agent log, so accepting or dismissing lands on the right run. */
+  const [intakeRunId, setIntakeRunId] = useState<string | null>(null);
   const [intakeDecision, setIntakeDecision] = useState<"accepted" | "dismissed" | null>(null);
   const [routingNote, setRoutingNote] = useState<string[] | null>(null);
   const [degraded, setDegraded] = useState<string | null>(null);
@@ -382,6 +385,12 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
       setTriage(result);
       setIntakeRun(run);
       setIntakeDecision(null);
+      // Written to the governance log. Fire-and-forget: failing to record that
+      // an agent ran must not break the message that triggered it.
+      void recordRun(run, {
+        agent: "Intake triage",
+        providerId: profile?.provider_id ?? null,
+      }).then(setIntakeRunId);
       setRoutingNote(reasons);
       setDegraded(fellBack ? (note ?? "Degraded mode") : null);
       qc.invalidateQueries();
@@ -761,6 +770,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
             decision={intakeDecision}
             onAccept={() => {
               setIntakeDecision("accepted");
+              void recordDecision(intakeRunId, "accepted");
               void supabase.from("workflow_events").insert({
                 patient_id: patientId,
                 actor_id: profile?.provider_id ?? profile?.id ?? null,
@@ -773,6 +783,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
             }}
             onDismiss={() => {
               setIntakeDecision("dismissed");
+              void recordDecision(intakeRunId, "dismissed");
               void supabase.from("workflow_events").insert({
                 patient_id: patientId,
                 actor_id: profile?.provider_id ?? profile?.id ?? null,

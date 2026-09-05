@@ -672,6 +672,57 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_runs: {
+        Row: {
+          agent: string
+          confidence: number
+          created_at: string
+          decision: string | null
+          denied_calls: number
+          findings: number
+          id: string
+          model_id: string
+          ms: number
+          patient_id: string | null
+          patient_name: string
+          provider_id: string | null
+          started_at: string
+          tool_calls: number
+        }
+        Insert: {
+          agent?: string
+          confidence?: number
+          created_at?: string
+          decision?: string | null
+          denied_calls?: number
+          findings?: number
+          id?: string
+          model_id?: string
+          ms?: number
+          patient_id?: string | null
+          patient_name?: string
+          provider_id?: string | null
+          started_at?: string
+          tool_calls?: number
+        }
+        Update: {
+          agent?: string
+          confidence?: number
+          created_at?: string
+          decision?: string | null
+          denied_calls?: number
+          findings?: number
+          id?: string
+          model_id?: string
+          ms?: number
+          patient_id?: string | null
+          patient_name?: string
+          provider_id?: string | null
+          started_at?: string
+          tool_calls?: number
+        }
+        Relationships: []
+      }
       consultations: {
         Row: {
           created_at: string

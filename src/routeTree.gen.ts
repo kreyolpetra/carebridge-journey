@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAccessLogRouteImport } from './routes/_authenticated/access-log'
+import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAppointmentsRouteImport } from './routes/_authenticated/appointments'
 import { Route as AuthenticatedClinicianRouteImport } from './routes/_authenticated/clinician'
 import { Route as AuthenticatedConsentRouteImport } from './routes/_authenticated/consent'
@@ -52,6 +53,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedAccessLogRoute = AuthenticatedAccessLogRouteImport.update({
   id: '/access-log',
   path: '/access-log',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgentsRoute = AuthenticatedAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAppointmentsRoute =
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/access-log': typeof AuthenticatedAccessLogRoute
+  '/agents': typeof AuthenticatedAgentsRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clinician': typeof AuthenticatedClinicianRoute
   '/consent': typeof AuthenticatedConsentRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/access-log': typeof AuthenticatedAccessLogRoute
+  '/agents': typeof AuthenticatedAgentsRoute
   '/appointments': typeof AuthenticatedAppointmentsRoute
   '/clinician': typeof AuthenticatedClinicianRoute
   '/consent': typeof AuthenticatedConsentRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/access-log': typeof AuthenticatedAccessLogRoute
+  '/_authenticated/agents': typeof AuthenticatedAgentsRoute
   '/_authenticated/appointments': typeof AuthenticatedAppointmentsRoute
   '/_authenticated/clinician': typeof AuthenticatedClinicianRoute
   '/_authenticated/consent': typeof AuthenticatedConsentRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/access-log'
+    | '/agents'
     | '/appointments'
     | '/clinician'
     | '/consent'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/access-log'
+    | '/agents'
     | '/appointments'
     | '/clinician'
     | '/consent'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/access-log'
+    | '/_authenticated/agents'
     | '/_authenticated/appointments'
     | '/_authenticated/clinician'
     | '/_authenticated/consent'
@@ -362,6 +374,13 @@ declare module '@tanstack/react-router' {
       path: '/access-log'
       fullPath: '/access-log'
       preLoaderRoute: typeof AuthenticatedAccessLogRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agents': {
+      id: '/_authenticated/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AuthenticatedAgentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/appointments': {
@@ -516,6 +535,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessLogRoute: typeof AuthenticatedAccessLogRoute
+  AuthenticatedAgentsRoute: typeof AuthenticatedAgentsRoute
   AuthenticatedAppointmentsRoute: typeof AuthenticatedAppointmentsRoute
   AuthenticatedClinicianRoute: typeof AuthenticatedClinicianRoute
   AuthenticatedConsentRoute: typeof AuthenticatedConsentRoute
@@ -539,6 +559,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessLogRoute: AuthenticatedAccessLogRoute,
+  AuthenticatedAgentsRoute: AuthenticatedAgentsRoute,
   AuthenticatedAppointmentsRoute: AuthenticatedAppointmentsRoute,
   AuthenticatedClinicianRoute: AuthenticatedClinicianRoute,
   AuthenticatedConsentRoute: AuthenticatedConsentRoute,

@@ -23,7 +23,7 @@ import { KIND_PRESET, type FacilityKind } from "@/lib/facility-capability";
 
 const kindPreset = (kind: string) => KIND_PRESET[kind as FacilityKind] ?? KIND_PRESET.clinic;
 
-export const SEED_VERSION = 30;
+export const SEED_VERSION = 31;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -757,6 +757,7 @@ export function buildSeed(): Tables {
     stock_items: [],
     lab_results: [],
     discharges: [],
+    agent_runs: [],
     profiles: [],
     user_roles: [],
     facility_staff: [],
@@ -2628,6 +2629,51 @@ export function buildSeed(): Tables {
     degraded["continuity_since"] = daysAgo(2);
     degraded["continuity_note"] =
       "Open on generator power. No laboratory or imaging — bloods are being sent to Jamaica General Hospital.";
+  }
+
+  /**
+   * A fortnight of agent runs.
+   *
+   * The activity console is a governance record, and a governance record that
+   * starts empty on the day you look at it proves nothing. Acceptance is
+   * seeded at roughly three in four, which is the honest shape of a tool
+   * clinicians find useful but do not obey — a hundred per cent would say
+   * either that nobody is reading it or that nobody dares disagree.
+   */
+  const AGENT_SHAPES: [string, number, number, number][] = [
+    // agent, tool calls, findings, base ms
+    ["Intake triage", 5, 3, 0.6],
+    ["Pre-consult brief", 7, 5, 0.4],
+    ["Ask", 1, 0, 0.2],
+  ];
+  const runPool = t["patients"]!.slice(0, 120);
+  for (let i = 0; i < 168; i++) {
+    const [agent, tools, findings, baseMs] = pick(rng, AGENT_SHAPES);
+    const patient = agent === "Ask" ? null : pick(rng, runPool);
+    const daysBack = Math.floor(i / 12);
+    const startedAt = new Date(
+      nowMs() - daysBack * 86400000 - int(rng, 0, 8) * 3600000 - int(rng, 0, 59) * 60000,
+    ).toISOString();
+    // Consent refuses a read on roughly one run in six — the denials are the
+    // point of the column, so they must not all be zero.
+    const denied = chance(rng, 0.17) ? 1 : 0;
+    const decided = chance(rng, 0.82);
+    t["agent_runs"]!.push({
+      id: uuid(rng),
+      agent,
+      model_id: "rules/v1",
+      patient_id: patient ? patient["id"] : null,
+      patient_name: patient ? patient["full_name"] : "—",
+      provider_id: null,
+      started_at: startedAt,
+      ms: Math.round((baseMs + rng() * baseMs * 2) * 100) / 100,
+      tool_calls: tools + (denied ? 1 : 0),
+      denied_calls: denied,
+      findings: Math.max(0, findings - denied),
+      confidence: Math.round((0.45 + rng() * 0.5 - denied * 0.05) * 100) / 100,
+      decision: decided ? (chance(rng, 0.76) ? "accepted" : "dismissed") : null,
+      created_at: startedAt,
+    });
   }
 
   // ---- care-line conversations ----
