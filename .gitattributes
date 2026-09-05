@@ -1,0 +1,11 @@
+# The built prototype is a deliverable, not source.
+#
+# dist-spa holds the whole product inlined into one self-contained file, which
+# is committed on purpose: a judge can download it and open the entire thing
+# with no server. But at 1.6 MB apiece the two builds are more than twice the
+# byte weight of the actual codebase, and GitHub measures languages in bytes —
+# so the repository was being labelled an HTML project written in TypeScript.
+#
+# Marking them generated keeps the files, drops them from the language stats,
+# and collapses them in diffs, where a 1.6 MB minified blob is pure noise.
+dist-spa/** linguist-generated=true
