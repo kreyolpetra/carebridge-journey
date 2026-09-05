@@ -1,4 +1,4 @@
-// Runs client-side. Was a TanStack Start server function calling the Lovable AI
+// Runs client-side. Was a TanStack Start server function calling a hosted AI
 // gateway (the key must stay server-side), with ruleBasedTriage as its fallback.
 // With no gateway configured and no backend to host the call, the fallback was
 // the only path that ever ran — so it now runs directly in the browser, which
