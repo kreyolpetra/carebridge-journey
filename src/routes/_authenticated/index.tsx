@@ -49,6 +49,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePatientLang } from "@/hooks/usePatientLang";
 
 const ACTIVITY_META: Record<ActivityItem["kind"], { icon: typeof HeartPulse; tone: string }> = {
   message: { icon: MessageSquareText, tone: "text-primary bg-primary/12" },
@@ -86,6 +87,7 @@ function bandTone(band?: string) {
 }
 
 function Greeting({ subtitle }: { subtitle: string }) {
+  const { t } = usePatientLang();
   const { profile, role } = useAuth();
   const name = profile?.full_name ?? "there";
   return (
@@ -96,7 +98,9 @@ function Greeting({ subtitle }: { subtitle: string }) {
           {profile?.organisation ? ` · ${profile.organisation}` : ""}
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl">
-          {role === "patient" ? `Hello, ${firstName(name)}.` : `Good day, ${firstName(name)}.`}
+          {role === "patient"
+            ? t("Hello, {name}.", { name: firstName(name) })
+            : `Good day, ${firstName(name)}.`}
         </h1>
         <p className="mt-2 max-w-xl text-[14.5px] leading-relaxed text-muted-foreground">
           {subtitle}
@@ -140,6 +144,7 @@ function SurfaceLinks() {
 
 function PatientHome() {
   const { profile } = useAuth();
+  const { t } = usePatientLang();
   const patientId = profile?.patient_id;
   const bundle = useQuery({
     ...patientBundleQuery(patientId ?? "none"),
@@ -157,7 +162,7 @@ function PatientHome() {
 
   return (
     <>
-      <Greeting subtitle="Today’s readings, your medications and what needs your attention. Your visits, referrals and who can see your record live under My record." />
+      <Greeting subtitle={t("Today's readings, your medications and what needs your attention.")} />
 
       {/* The context a clinician sees at the top of her chart, on her own
           home: how far she is from care, what she speaks, who pays. */}
@@ -173,13 +178,13 @@ function PatientHome() {
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
-          label="My risk level"
+          label={t("My risk level")}
           value={risk ? `${risk.band.toUpperCase()} · ${Math.round(risk.score)}` : "—"}
           hint={risk ? `Trend: ${risk.trend}` : "Log a reading to compute"}
           tone={risk?.band === "critical" || risk?.band === "high" ? "critical" : "low"}
         />
         <Stat
-          label="Blood pressure"
+          label={t("Blood pressure")}
           value={latestVital?.systolic ? `${latestVital.systolic}/${latestVital.diastolic}` : "—"}
           hint={
             latestVital ? `Last reading ${timeAgo(latestVital.measured_at)}` : "No readings yet"
@@ -187,12 +192,12 @@ function PatientHome() {
           tone={latestVital?.systolic && latestVital.systolic >= 160 ? "critical" : "signal"}
         />
         <Stat
-          label="Blood sugar"
+          label={t("Blood sugar")}
           value={latestVital?.glucose_mmol ? Number(latestVital.glucose_mmol).toFixed(1) : "—"}
           hint="mmol/L, most recent"
         />
         <Stat
-          label="Medication adherence"
+          label={t("Medication adherence")}
           value={adherence !== null ? `${adherence}%` : "—"}
           hint={
             lowMeds.length

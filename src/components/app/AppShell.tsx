@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeGrid } from "@/hooks/useRealtime";
 import { navFor } from "@/lib/nav";
 import { useScope } from "@/hooks/useScope";
+import { usePatientLang } from "@/hooks/usePatientLang";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
 import { cn } from "@/lib/utils";
 import { firstName, initials } from "@/lib/names";
@@ -76,6 +77,9 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
 
 function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => void }) {
   const { staffRole } = useScope();
+  // A patient reads their own sidebar in their own language; everyone else
+  // gets the console vocabulary untouched.
+  const { t } = usePatientLang();
   const items = navFor(role, staffRole);
   const groups = ["Work", "Account"] as const;
 
@@ -103,7 +107,7 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
                   }}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
-                  {item.label}
+                  {t(item.label)}
                 </Link>
               ))}
             </div>

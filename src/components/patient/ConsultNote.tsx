@@ -82,7 +82,9 @@ export function ConsultNote({
       onOpenChange(false);
       setSummary("");
       setPlan("");
-      toast("Visit closed", { description: "The note is on the record for whoever sees them next." });
+      toast("Visit closed", {
+        description: "The note is on the record for whoever sees them next.",
+      });
     },
     onError: (e: Error) => toast("Could not save the note", { description: e.message }),
   });

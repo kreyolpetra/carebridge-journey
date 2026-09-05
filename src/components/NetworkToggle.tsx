@@ -1,14 +1,19 @@
-import { useNetworkOnline, setNetworkOnline } from "@/lib/offline";
+import { useNetworkOnline, setNetworkOnline, usePendingCount } from "@/lib/offline";
 import { Wifi, WifiOff } from "lucide-react";
 
 export function NetworkToggle({ onDark = false }: { onDark?: boolean } = {}) {
   const online = useNetworkOnline();
+  const waiting = usePendingCount();
 
   return (
     <button
       type="button"
       onClick={() => setNetworkOnline(!online)}
-      title="Simulate the island connection dropping"
+      title={
+        online
+          ? "Simulate the island connection dropping"
+          : `${waiting} write${waiting === 1 ? "" : "s"} held in memory — a reload loses them`
+      }
       className={
         "flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors " +
         (online
@@ -19,7 +24,13 @@ export function NetworkToggle({ onDark = false }: { onDark?: boolean } = {}) {
       }
     >
       {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-      {online ? "Network up" : "Offline — queuing"}
+      {online
+        ? waiting
+          ? `Syncing ${waiting}`
+          : "Network up"
+        : waiting
+          ? `Offline — ${waiting} waiting`
+          : "Offline"}
     </button>
   );
 }

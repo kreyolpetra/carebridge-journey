@@ -78,11 +78,7 @@ export function CareRequests({ patientId }: { patientId: string }) {
       <PanelHeader
         title="Open requests"
         subtitle="Asked for on this patient and not yet done"
-        right={
-          <Pill className="border-high/40 bg-high/10 text-high">
-            {rows.length} open
-          </Pill>
-        }
+        right={<Pill className="border-high/40 bg-high/10 text-high">{rows.length} open</Pill>}
       />
       <div className="divide-y divide-border">
         {rows.map((r) => {
