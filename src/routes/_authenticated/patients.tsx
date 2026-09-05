@@ -353,29 +353,39 @@ function Patients() {
   const [briefFor, setBriefFor] = useState<string | null>(null);
   const [briefDecision, setBriefDecision] = useState<"accepted" | "dismissed" | null>(null);
 
-  const brief = useMemo(() => {
-    if (!b || briefFor !== selected) return null;
-    const island = (islands.data ?? []).find((i) => i.code === b.patient.island_code);
-    return runClinicianBrief({
-      patient: b.patient,
-      vitals: b.vitals,
-      medications: b.medications,
-      conditions: b.conditions,
-      messages: b.messages,
-      risk: b.risk,
-      referrals: b.referrals,
-      grants: b.grants,
-      actor: { name: profile?.full_name ?? "Clinician", island: profile?.island_code ?? null },
-      localSpecialties: [
-        ...new Set(
-          (providers.data ?? [])
-            .filter((p) => p.island_code === b.patient.island_code)
-            .map((p) => p.specialty),
-        ),
-      ],
-      islandTier: island?.tier,
-    });
-  }, [b, briefFor, selected, islands.data, providers.data, profile]);
+  /**
+   * The brief runs through the model adapter, so it is asynchronous — see
+   * lib/agents/model.ts. A query rather than a memo, keyed on the patient it
+   * was asked for, so a brief can never outlive the chart that requested it.
+   */
+  const briefQuery = useQuery({
+    queryKey: ["clinician-brief", briefFor, b?.patient.id ?? null],
+    enabled: Boolean(b) && briefFor === selected,
+    staleTime: 60_000,
+    queryFn: () => {
+      const island = (islands.data ?? []).find((i) => i.code === b!.patient.island_code);
+      return runClinicianBrief({
+        patient: b!.patient,
+        vitals: b!.vitals,
+        medications: b!.medications,
+        conditions: b!.conditions,
+        messages: b!.messages,
+        risk: b!.risk,
+        referrals: b!.referrals,
+        grants: b!.grants,
+        actor: { name: profile?.full_name ?? "Clinician", island: profile?.island_code ?? null },
+        localSpecialties: [
+          ...new Set(
+            (providers.data ?? [])
+              .filter((p) => p.island_code === b!.patient.island_code)
+              .map((p) => p.specialty),
+          ),
+        ],
+        islandTier: island?.tier,
+      });
+    },
+  });
+  const brief = briefQuery.data ?? null;
 
   /**
    * One worklist row. Extracted because it is now rendered on both sides of

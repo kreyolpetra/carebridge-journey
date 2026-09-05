@@ -365,7 +365,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
       // The same send, recorded as an observable agent run: which tools it
       // called, which reads consent refused, and a recommendation a clinician
       // has to accept before anything happens.
-      const { run } = runIntakeAgent({
+      const { run } = await runIntakeAgent({
         patient: b.patient,
         message: body,
         vitals: b.vitals,

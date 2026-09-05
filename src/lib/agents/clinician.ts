@@ -7,8 +7,18 @@
 //
 // Deterministic by design — see ./core.ts for why.
 
-import type { Condition, ConsentGrant, Medication, Message, Patient, Referral, RiskScore, Vital } from "@/lib/api";
+import type {
+  Condition,
+  ConsentGrant,
+  Medication,
+  Message,
+  Patient,
+  Referral,
+  RiskScore,
+  Vital,
+} from "@/lib/api";
 import { isGrantActive } from "@/lib/access";
+import { getAdapter } from "./model";
 import {
   AGENT_DISCLAIMER,
   denyTool,
@@ -55,7 +65,7 @@ function windowed(vitals: Vital[], fromDaysAgo: number, toDaysAgo: number) {
   });
 }
 
-export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
+export async function runClinicianBrief(input: ClinicianAgentInput): Promise<AgentRun> {
   const started = performance.now();
   const trace: ToolCall[] = [];
   const findings: Finding[] = [];
@@ -69,7 +79,11 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
   // The agent inherits the clinician's permissions; it is not a way around
   // them. A category the clinician cannot open is a category the agent never
   // receives, and the brief says so rather than quietly looking complete.
-  const sensitiveConditions = conditions.filter((c) => (c as { sensitivity?: string }).sensitivity && (c as { sensitivity?: string }).sensitivity !== "standard");
+  const sensitiveConditions = conditions.filter(
+    (c) =>
+      (c as { sensitivity?: string }).sensitivity &&
+      (c as { sensitivity?: string }).sensitivity !== "standard",
+  );
   const grantedCategories = new Set(
     grants.filter((g) => isGrantActive(g.status)).flatMap((g) => g.scope),
   );
@@ -88,12 +102,10 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
     }
   }
 
-  const visibleConditions = conditions.filter(
-    (c) => {
-      const s = (c as { sensitivity?: string }).sensitivity;
-      return !s || s === "standard" || grantedCategories.has(s);
-    },
-  );
+  const visibleConditions = conditions.filter((c) => {
+    const s = (c as { sensitivity?: string }).sensitivity;
+    return !s || s === "standard" || grantedCategories.has(s);
+  });
 
   runTool(trace, { tool: "read_conditions", args: { patient: patient.id } }, () => ({
     value: visibleConditions,
@@ -104,14 +116,30 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
   }));
 
   // ---- vitals trend -------------------------------------------------------
-  const recent = runTool(trace, { tool: "read_vitals", args: { patient: patient.id, window: "10d" } }, () => {
-    const rows = windowed(vitals, 10, 0);
-    return { value: rows, summary: `Read ${rows.length} reading(s) from the last 10 days`, count: rows.length };
-  });
-  const baseline = runTool(trace, { tool: "read_vitals", args: { patient: patient.id, window: "10-40d" } }, () => {
-    const rows = windowed(vitals, 40, 10);
-    return { value: rows, summary: `Read ${rows.length} reading(s) from the prior 30 days as a baseline`, count: rows.length };
-  });
+  const recent = runTool(
+    trace,
+    { tool: "read_vitals", args: { patient: patient.id, window: "10d" } },
+    () => {
+      const rows = windowed(vitals, 10, 0);
+      return {
+        value: rows,
+        summary: `Read ${rows.length} reading(s) from the last 10 days`,
+        count: rows.length,
+      };
+    },
+  );
+  const baseline = runTool(
+    trace,
+    { tool: "read_vitals", args: { patient: patient.id, window: "10-40d" } },
+    () => {
+      const rows = windowed(vitals, 40, 10);
+      return {
+        value: rows,
+        summary: `Read ${rows.length} reading(s) from the prior 30 days as a baseline`,
+        count: rows.length,
+      };
+    },
+  );
 
   const recentSys = mean(recent.map((v) => v.systolic as number));
   const baseSys = mean(baseline.map((v) => v.systolic as number));
@@ -131,7 +159,9 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
       evidence: [
         `Last 10 days: mean systolic ${Math.round(recentSys)} mmHg across ${recent.length} readings`,
         `Prior 30 days: mean systolic ${Math.round(baseSys)} mmHg across ${baseline.length} readings`,
-        homeReadings.length ? `${homeReadings.length} of the recent readings were self-reported from home` : "All readings clinic-captured",
+        homeReadings.length
+          ? `${homeReadings.length} of the recent readings were self-reported from home`
+          : "All readings clinic-captured",
       ],
       sourceTool: "read_vitals",
     });
@@ -166,8 +196,12 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
     findings.push({
       severity: runningOut.some((m) => m.days_supply_left <= 0) ? "high" : "moderate",
       title: `Out of, or about to run out of, ${runningOut.length} medication(s)`,
-      detail: "Supply, not dose, is the immediate problem. Escalating a dose the patient cannot fill will not help.",
-      evidence: runningOut.map((m) => `${m.name} ${m.dosage} — ${m.days_supply_left} day(s) left, last filled ${m.last_refill_on ?? "unknown"}`),
+      detail:
+        "Supply, not dose, is the immediate problem. Escalating a dose the patient cannot fill will not help.",
+      evidence: runningOut.map(
+        (m) =>
+          `${m.name} ${m.dosage} — ${m.days_supply_left} day(s) left, last filled ${m.last_refill_on ?? "unknown"}`,
+      ),
       sourceTool: "read_medications",
     });
   }
@@ -185,7 +219,12 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
   // The clinically important synthesis: a rising trend on top of missed doses
   // is usually an access or tolerance problem, not an under-treated one. Doses
   // get escalated on this picture all the time, and it is the wrong move.
-  if (recentSys !== null && baseSys !== null && recentSys - baseSys > 6 && (poorAdherence.length || runningOut.length)) {
+  if (
+    recentSys !== null &&
+    baseSys !== null &&
+    recentSys - baseSys > 6 &&
+    (poorAdherence.length || runningOut.length)
+  ) {
     findings.push({
       severity: "high",
       title: "Rising pressure coincides with missed doses — treat as adherence first",
@@ -194,18 +233,31 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
       evidence: [
         `Systolic up ${Math.round(recentSys - baseSys)} mmHg over the same period`,
         ...poorAdherence.map((m) => `${m.name} at ${m.adherence_pct}% adherence`),
-        ...runningOut.map((m) => `${m.name} supply exhausted ${m.days_supply_left <= 0 ? "already" : `in ${m.days_supply_left} days`}`),
+        ...runningOut.map(
+          (m) =>
+            `${m.name} supply exhausted ${m.days_supply_left <= 0 ? "already" : `in ${m.days_supply_left} days`}`,
+        ),
       ],
       sourceTool: "read_medications + read_vitals",
     });
-    openQuestions.push("Has the patient actually been taking the medication — and if not, is it cost, access, side effects, or understanding?");
+    openQuestions.push(
+      "Has the patient actually been taking the medication — and if not, is it cost, access, side effects, or understanding?",
+    );
   }
 
   // ---- patient's own words ------------------------------------------------
-  const inbound = runTool(trace, { tool: "read_messages", args: { patient: patient.id, direction: "in" } }, () => {
-    const rows = messages.filter((m) => m.direction === "in").slice(-3);
-    return { value: rows, summary: `Read the patient's last ${rows.length} inbound message(s)`, count: rows.length };
-  });
+  const inbound = runTool(
+    trace,
+    { tool: "read_messages", args: { patient: patient.id, direction: "in" } },
+    () => {
+      const rows = messages.filter((m) => m.direction === "in").slice(-3);
+      return {
+        value: rows,
+        summary: `Read the patient's last ${rows.length} inbound message(s)`,
+        count: rows.length,
+      };
+    },
+  );
 
   if (inbound.length) {
     findings.push({
@@ -263,25 +315,41 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
         : `There is no ${impliedSpecialty} anywhere in ${patient.island_code}. Any referral is cross-border and needs a consent grant before the record can travel.`,
       evidence: [
         `Country: ${patient.island_code}${input.islandTier === "under_resourced" ? " (under-resourced)" : ""}`,
-        hasLocal ? `${impliedSpecialty} available locally` : `No local ${impliedSpecialty} — cross-border routing required`,
+        hasLocal
+          ? `${impliedSpecialty} available locally`
+          : `No local ${impliedSpecialty} — cross-border routing required`,
       ],
       sourceTool: "read_referrals",
     });
     if (!hasLocal) {
-      agenda.push(`Raise a cross-border ${impliedSpecialty} referral and obtain the patient's consent grant first`);
-      openQuestions.push(`Is the patient able to attend a teleconsult, given ${patient.island_code} connectivity and cost?`);
+      agenda.push(
+        `Raise a cross-border ${impliedSpecialty} referral and obtain the patient's consent grant first`,
+      );
+      openQuestions.push(
+        `Is the patient able to attend a teleconsult, given ${patient.island_code} connectivity and cost?`,
+      );
     } else {
       agenda.push(`Raise a local ${impliedSpecialty} referral`);
     }
   }
 
   // ---- agenda -------------------------------------------------------------
-  if (runningOut.length) agenda.unshift(`Confirm resupply of ${runningOut.map((m) => m.name).join(", ")} before anything else`);
-  if (recentSys !== null && recentSys >= 160) agenda.unshift("Recheck blood pressure at the start of the consult");
-  if (poorAdherence.length) agenda.push("Work through adherence barriers — cost, access, side effects, understanding");
-  if (recentGlu !== null && recentGlu >= 8.5) agenda.push("Review diet, timing and dose for glycaemic control");
-  if (redactions.length) agenda.push("Decide whether the restricted section is needed for today's decision");
-  if (!agenda.length) agenda.push("Routine review — no time-critical item surfaced from the record");
+  // Taken through the model seam. The findings above are grounded arithmetic
+  // and stay that way; only the ordering of what to raise is a narration task.
+  const referralLine = agenda.length ? agenda[agenda.length - 1]! : null;
+  const { value: narrated, degraded: agendaDegraded } = await getAdapter().narrateAgenda({
+    signals: {
+      runningOutNames: runningOut.map((m) => m.name),
+      recentSystolic: recentSys,
+      recentGlucose: recentGlu,
+      poorAdherenceCount: poorAdherence.length,
+      redactionCount: redactions.length,
+      referralLine,
+    },
+  });
+  agenda.length = 0;
+  agenda.push(...narrated);
+  void agendaDegraded;
 
   // ---- confidence ---------------------------------------------------------
   // Reflects how much record there was to read, not how right the reasoning is.
@@ -294,12 +362,14 @@ export function runClinicianBrief(input: ClinicianAgentInput): AgentRun {
   if (redactions.length) gaps.push("a restricted section was withheld");
 
   if (!recent.length) {
-    openQuestions.push("No readings in the last 10 days — is the patient still sending them, and is the channel working?");
+    openQuestions.push(
+      "No readings in the last 10 days — is the patient still sending them, and is the channel working?",
+    );
   }
 
   return {
     agent: "Pre-consult brief",
-    model: "deterministic-rules-v1 (no language model)",
+    model: getAdapter().id,
     patientId: patient.id,
     patientName: patient.full_name,
     startedAt: new Date().toISOString(),

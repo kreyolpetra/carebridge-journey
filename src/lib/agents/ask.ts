@@ -11,6 +11,8 @@
 // returns the same Intent, and leaving everything below it untouched.
 
 import type { Island, Patient, Provider, Referral, RiskScore, StockItem } from "@/lib/api";
+import { SPECIALTIES, type Intent } from "./ask.rules";
+import { getAdapter } from "./model";
 
 export interface AskRow {
   id: string;
@@ -37,76 +39,25 @@ export interface AskData {
   stock: StockItem[];
 }
 
-const SPECIALTIES = [
-  "Cardiology",
-  "Endocrinology",
-  "Nephrology",
-  "Internal Medicine",
-  "General Practice",
-  "Ophthalmology",
-  "Psychiatry",
-];
-
 /** "1 is critical" / "3 are critical" — small thing, but it reads as broken otherwise. */
 function plural(n: number, singular: string, pluralForm: string) {
   return `${n} ${n === 1 ? singular : pluralForm}`;
 }
 
-type Intent =
-  | { kind: "risk"; island?: string | undefined; band?: string | undefined }
-  | { kind: "gap"; specialty?: string | undefined }
-  | { kind: "supply"; island?: string | undefined }
-  | { kind: "referrals" }
-  | { kind: "country"; code: string }
-  | { kind: "equity" }
-  | { kind: "meds_out" };
-
-/** Resolve a free-text question to an intent. Replaceable by a model call. */
-function classify(q: string, islands: Island[]): Intent | null {
-  const s = q.toLowerCase().trim();
-  if (s.length < 3) return null;
-
-  const island = islands.find(
-    (i) => s.includes(i.name.toLowerCase()) || new RegExp(`\\b${i.code.toLowerCase()}\\b`).test(s),
-  );
-  const specialty = SPECIALTIES.find((sp) => s.includes(sp.toLowerCase()));
-
-  if (/\b(equit|fair|gap|unequal|disparit)/.test(s)) return { kind: "equity" };
-
-  if (/\b(no|without|lack|missing|gap)\b/.test(s) && (specialty || /special/.test(s))) {
-    return { kind: "gap", specialty };
-  }
-
-  // Plurals matter here: a trailing \b after "shortage" will not match
-  // "shortages", which is how people actually phrase this.
-  if (/\b(stock|shortages?|supplies|supply|stockouts?|out of stock|running low)\b/.test(s)) {
-    return { kind: "supply", island: island?.code };
-  }
-
-  if (/\b(run(ning)? out|refill|days? (of )?(supply|medication)|out of medication)\b/.test(s)) {
-    return { kind: "meds_out" };
-  }
-
-  if (/\b(referral|referred|booked|teleconsult|waiting)\b/.test(s)) return { kind: "referrals" };
-
-  if (/\b(risk|critical|high[- ]risk|sickest|deteriorat|worst)\b/.test(s)) {
-    const band = /critical/.test(s) ? "critical" : /high/.test(s) ? "high" : undefined;
-    return { kind: "risk", island: island?.code, band };
-  }
-
-  if (island && s.split(/\s+/).length <= 4) return { kind: "country", code: island.code };
-
-  return null;
-}
-
-export function askGrid(query: string, data: AskData): AskResult | null {
-  const intent = classify(query, data.islands);
+export async function askGrid(query: string, data: AskData): Promise<AskResult | null> {
+  // The one judgement in this agent, taken through the seam. Everything below
+  // is arithmetic over rows the reader is already allowed to see.
+  const { value: intent } = await getAdapter().classifyQuestion({
+    question: query,
+    islands: data.islands,
+  });
   if (!intent) return null;
 
   const latestRisk = new Map<string, RiskScore>();
   for (const r of data.risks) {
     const prev = latestRisk.get(r.patient_id);
-    if (!prev || new Date(r.computed_at) > new Date(prev.computed_at)) latestRisk.set(r.patient_id, r);
+    if (!prev || new Date(r.computed_at) > new Date(prev.computed_at))
+      latestRisk.set(r.patient_id, r);
   }
   const islandName = (code: string) => data.islands.find((i) => i.code === code)?.name ?? code;
 
@@ -156,7 +107,9 @@ export function askGrid(query: string, data: AskData): AskResult | null {
         }
       }
       return {
-        intent: intent.specialty ? `Countries with no ${intent.specialty}` : "Specialist coverage gaps",
+        intent: intent.specialty
+          ? `Countries with no ${intent.specialty}`
+          : "Specialist coverage gaps",
         answer: rows.length
           ? `${rows.length} of ${data.islands.length} countries have a gap. Every referral raised there has to cross a border, which needs a consent grant first.`
           : "No coverage gaps found.",
@@ -227,18 +180,27 @@ export function askGrid(query: string, data: AskData): AskResult | null {
     case "country": {
       const island = data.islands.find((i) => i.code === intent.code)!;
       const pts = data.patients.filter((p) => p.island_code === island.code);
-      const have = new Set(data.providers.filter((p) => p.island_code === island.code).map((p) => p.specialty));
+      const have = new Set(
+        data.providers.filter((p) => p.island_code === island.code).map((p) => p.specialty),
+      );
       const missing = SPECIALTIES.filter((s) => !have.has(s));
       const critical = pts.filter((p) => latestRisk.get(p.id)?.band === "critical").length;
       return {
         intent: `${island.name} at a glance`,
         answer: `${(island.population / 1e6).toFixed(1)}M people · ${island.physPer1k} physicians/1,000 · ${island.connectivity} connectivity · care paid ${island.payment.replace("_", " ")}.`,
         rows: [
-          { id: "pts", label: `${pts.length} monitored patients`, sub: `${critical} at critical risk`, to: "/clinician" },
+          {
+            id: "pts",
+            label: `${pts.length} monitored patients`,
+            sub: `${critical} at critical risk`,
+            to: "/clinician",
+          },
           {
             id: "gaps",
             label: missing.length ? `No ${missing.join(", ")}` : "All specialties covered locally",
-            sub: missing.length ? "Referrals in these specialties must cross a border" : "No cross-border referral needed",
+            sub: missing.length
+              ? "Referrals in these specialties must cross a border"
+              : "No cross-border referral needed",
             to: "/dashboard",
           },
         ],
@@ -248,7 +210,8 @@ export function askGrid(query: string, data: AskData): AskResult | null {
 
     case "equity": {
       const byTier = new Map<string, { patients: number; refs: number }>();
-      for (const i of data.islands) if (!byTier.has(i.tier)) byTier.set(i.tier, { patients: 0, refs: 0 });
+      for (const i of data.islands)
+        if (!byTier.has(i.tier)) byTier.set(i.tier, { patients: 0, refs: 0 });
       const tierOf = new Map(data.islands.map((i) => [i.code, i.tier]));
       for (const p of data.patients) {
         const t = tierOf.get(p.island_code);

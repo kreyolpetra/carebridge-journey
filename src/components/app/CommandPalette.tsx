@@ -97,27 +97,26 @@ export function CommandPalette({
 
   // Answers questions over live data instead of only filtering a list. Runs on
   // deterministic intent matching, not a language model — the footer says so.
-  const ask = useMemo(() => {
-    if (!query.trim() || isPatient) return null;
-    if (!islands.data || !patients.data) return null;
-    return askGrid(query, {
-      islands: islands.data,
-      patients: patients.data,
-      risks: risks.data ?? [],
-      providers: providers.data ?? [],
-      referrals: referrals.data ?? [],
-      stock: stock.data ?? [],
-    });
-  }, [
-    query,
-    isPatient,
-    islands.data,
-    patients.data,
-    risks.data,
-    providers.data,
-    referrals.data,
-    stock.data,
-  ]);
+  /**
+   * Runs through the model adapter, so it is asynchronous whichever adapter is
+   * live — a seam that only worked with the synchronous one would not be a
+   * seam. Keyed on the query so a stale answer cannot outlive its question.
+   */
+  const askQuery = useQuery({
+    queryKey: ["ask", query, Boolean(islands.data), Boolean(patients.data)],
+    enabled: Boolean(query.trim()) && !isPatient && Boolean(islands.data && patients.data),
+    staleTime: 30_000,
+    queryFn: () =>
+      askGrid(query, {
+        islands: islands.data ?? [],
+        patients: patients.data ?? [],
+        risks: risks.data ?? [],
+        providers: providers.data ?? [],
+        referrals: referrals.data ?? [],
+        stock: stock.data ?? [],
+      }),
+  });
+  const ask = askQuery.data ?? null;
 
   const close = () => {
     onOpenChange(false);

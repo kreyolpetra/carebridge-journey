@@ -17,7 +17,8 @@
  */
 import type { AgentRun, Finding, ToolCall } from "./core";
 import { AGENT_DISCLAIMER, denyTool, runTool, sortFindings } from "./core";
-import { ruleBasedTriage, type PatientContext, type TriageResult } from "../triage.server";
+import type { PatientContext, TriageResult } from "../triage.server";
+import { getAdapter } from "./model";
 import type { Condition, Medication, Patient, Vital } from "../api";
 import { isSensitive, SENSITIVE_LABEL } from "../sensitivity";
 
@@ -38,7 +39,9 @@ const SEVERITY_TO_FINDING: Record<string, Finding["severity"]> = {
   info: "info",
 };
 
-export function runIntakeAgent(input: IntakeInput): { run: AgentRun; triage: TriageResult } {
+export async function runIntakeAgent(
+  input: IntakeInput,
+): Promise<{ run: AgentRun; triage: TriageResult }> {
   const started = performance.now();
   const trace: ToolCall[] = [];
   const { patient, message, vitals, medications, conditions, grantedCategories } = input;
@@ -135,7 +138,10 @@ export function runIntakeAgent(input: IntakeInput): { run: AgentRun; triage: Tri
       glucose: v.glucose_mmol,
     })),
   };
-  const triage = ruleBasedTriage(context, message);
+  // The judgement, taken through the model seam — see ./model.ts. Everything
+  // above it is tool calls and consent filtering, and stays deterministic
+  // whichever adapter is live.
+  const { value: triage } = await getAdapter().triage({ context, message });
 
   const findings: Finding[] = [
     {
@@ -184,7 +190,7 @@ export function runIntakeAgent(input: IntakeInput): { run: AgentRun; triage: Tri
   const run: AgentRun = {
     agent: "Intake agent",
     // Never a model name unless a model ran.
-    model: "rules/intake-v1 (deterministic — no model configured)",
+    model: getAdapter().id,
     patientId: patient.id,
     patientName: patient.full_name,
     startedAt: new Date().toISOString(),
