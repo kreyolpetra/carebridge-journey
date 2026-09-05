@@ -311,7 +311,9 @@ export function AppShell() {
           </header>
 
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <main className="flex-1">
+          {/* The wash lives on the scroll region rather than the body so it
+              stays anchored to the top of the content, not to the viewport. */}
+          <main className="flex-1 bg-[image:var(--grad-page)] bg-no-repeat">
             <Outlet />
           </main>
         </div>

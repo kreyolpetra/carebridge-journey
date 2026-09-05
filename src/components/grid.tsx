@@ -19,9 +19,9 @@ export function PanelHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border/70 px-5 py-3.5">
+    <div className="flex items-start justify-between gap-4 border-b border-border/60 px-6 py-4">
       <div className="min-w-0">
-        <h2 className="font-display text-[15.5px] font-semibold tracking-[-0.011em]">{title}</h2>
+        <h2 className="font-display text-[16.5px] font-semibold tracking-[-0.014em]">{title}</h2>
         {subtitle ? (
           <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{subtitle}</p>
         ) : null}
@@ -63,21 +63,44 @@ export function Stat({
         : tone === "low"
           ? "text-low"
           : "text-foreground";
+  /**
+   * A hairline of the tile's own tone across the top, fading out to the right.
+   *
+   * A flat rule across every tile is the look of a dashboard template, and a
+   * grey one on the tile that has no state to report is worse than none —
+   * it draws a line and says nothing with it. So the wash fades, and a tile
+   * with nothing to say draws no line at all.
+   */
+  const edge =
+    tone === "critical"
+      ? "before:bg-[linear-gradient(90deg,var(--color-critical)_0%,transparent_62%)]"
+      : tone === "low"
+        ? "before:bg-[linear-gradient(90deg,var(--color-low)_0%,transparent_62%)]"
+        : tone === "signal"
+          ? "before:bg-[linear-gradient(90deg,var(--color-primary)_0%,transparent_62%)]"
+          : "";
   return (
-    <div className="panel px-5 py-4">
-      <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+    <div
+      className={cn(
+        "panel relative overflow-hidden px-6 py-5",
+        tone !== "default" &&
+          "before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:opacity-70 before:content-['']",
+        edge,
+      )}
+    >
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
         {label}
       </div>
       <div
         className={cn(
-          "mono-num mt-2 text-[29px] font-semibold leading-none tracking-[-0.02em]",
+          "mono-num mt-3 text-[34px] font-semibold leading-none tracking-[-0.028em]",
           toneClass,
         )}
       >
         {value}
       </div>
       {hint ? (
-        <div className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{hint}</div>
+        <div className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">{hint}</div>
       ) : null}
     </div>
   );
@@ -99,7 +122,7 @@ export function SectionTitle({
           {eyebrow}
         </div>
       ) : null}
-      <h2 className="mt-1.5 font-display text-[26px] font-semibold tracking-[-0.022em]">{title}</h2>
+      <h2 className="mt-2 font-display text-[28px] font-semibold tracking-[-0.026em]">{title}</h2>
       {blurb ? <p className="mt-1.5 max-w-2xl text-[14px] text-muted-foreground">{blurb}</p> : null}
     </div>
   );
