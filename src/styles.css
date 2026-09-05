@@ -316,7 +316,11 @@
 
   aside,
   header,
-  .report-actions {
+  .report-actions,
+  /* The summary now sits at the foot of the patient's home. On paper the rest
+     of that home is noise — a clinician handed this needs the conditions and
+     the medicines, not a greeting and a consent list. */
+  .screen-only {
     display: none !important;
   }
 

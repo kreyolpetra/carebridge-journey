@@ -16,6 +16,7 @@ import {
   type Provider,
 } from "@/lib/api";
 import { Panel, Stat, RowList, Row } from "@/components/grid";
+import { HealthSummary } from "@/components/patient/HealthSummary";
 import { usd, timeAgo, LANGUAGE_LABEL } from "@/lib/format";
 import { activityQuery, type ActivityItem } from "@/lib/activity";
 import { useAuth } from "@/hooks/useAuth";
@@ -165,12 +166,16 @@ function PatientHome() {
 
   return (
     <>
-      <Greeting subtitle={t("Today's readings, your medications and what needs your attention.")} />
+      <div className="screen-only">
+        <Greeting
+          subtitle={t("Today's readings, your medications and what needs your attention.")}
+        />
+      </div>
 
       {/* The context a clinician sees at the top of her chart, on her own
           home: how far she is from care, what she speaks, who pays. */}
       {bundle.data?.patient ? (
-        <p className="-mt-2 text-[13px] text-muted-foreground">
+        <p className="screen-only -mt-2 text-[13px] text-muted-foreground">
           {bundle.data.patient.age}
           {bundle.data.patient.sex} · {bundle.data.patient.parish},{" "}
           {bundle.data.patient.island_code} · {bundle.data.patient.km_to_facility} km from the
@@ -179,7 +184,7 @@ function PatientHome() {
         </p>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="screen-only grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label={t("My risk level")}
           value={risk ? `${risk.band.toUpperCase()} · ${Math.round(risk.score)}` : "—"}
@@ -214,10 +219,18 @@ function PatientHome() {
           trend. These were on My record, behind the care network and the visit
           archive — the wrong depth for the thing a patient opens the app to
           do. */}
-      {patientId ? <HomeReadingCard patientId={patientId} /> : null}
-      {bundle.data ? <HealthTrends bundle={bundle.data} /> : null}
+      {patientId ? (
+        <div className="screen-only">
+          <HomeReadingCard patientId={patientId} />
+        </div>
+      ) : null}
+      {bundle.data ? (
+        <div className="screen-only">
+          <HealthTrends bundle={bundle.data} />
+        </div>
+      ) : null}
 
-      <section className="grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
+      <section className="screen-only grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">
           <div className="flex items-center gap-2">
             <HeartPulse className="h-4 w-4 text-primary" />
@@ -312,7 +325,17 @@ function PatientHome() {
         </Panel>
       </section>
 
-      <ActivityFeed maxHeight="440px" />
+      <div className="screen-only">
+        <ActivityFeed maxHeight="440px" />
+      </div>
+
+      {/*
+        The summary that used to be its own menu item. Same facts as the
+        screens above, in the form you can fold into a pocket and hand to a
+        clinician whose system cannot reach this one. Printing from here drops
+        everything above it.
+      */}
+      <HealthSummary />
     </>
   );
 }
@@ -754,7 +777,10 @@ function Home() {
         </>
       )}
       {role === "patient" ? null : <ActivityFeed maxHeight="420px" />}
-      <SurfaceLinks />
+      {/* A list of links is never part of a printed document. */}
+      <div className="screen-only">
+        <SurfaceLinks />
+      </div>
     </div>
   );
 }

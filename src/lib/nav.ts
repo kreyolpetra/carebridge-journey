@@ -175,7 +175,10 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/reports",
     label: "Reports",
     icon: FileBarChart,
-    roles: ALL,
+    // Not patients. Their summary is not a separate destination — it sits at
+    // the foot of their own home, because "my health" and "my health summary"
+    // are not two places a person should have to tell apart.
+    roles: ["clinician", "ministry", "insurer", "admin"],
     group: "Work",
     keywords: "report export print pdf summary population panel governance adherence",
   },
@@ -194,7 +197,6 @@ const PATIENT_LABELS: Record<string, string> = {
   "/patient": "My messages",
   "/appointments": "My appointments",
   "/record": "My record",
-  "/reports": "My health summary",
   "/consent": "My privacy",
 };
 

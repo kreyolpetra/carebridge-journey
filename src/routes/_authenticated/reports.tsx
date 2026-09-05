@@ -12,7 +12,7 @@
  * there is no second source of truth to drift — the report is a rendering of
  * the record, not a copy of it.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -62,7 +62,10 @@ const LAST_90 = `${shortDate(new Date(Date.now() - 90 * 86400000).toISOString())
 
 function Reports() {
   const { role } = useAuth();
-  if (role === "patient") return <PatientReport />;
+  // The patient summary moved onto the patient home — see
+  // components/patient/HealthSummary.tsx. Anyone arriving here on an old
+  // link goes where it lives now rather than to an orphan page.
+  if (role === "patient") return <Navigate to="/" />;
   if (role === "ministry") return <MinistryReport />;
   if (role === "insurer") return <InsurerReport />;
   if (role === "admin") return <GovernanceReport />;
@@ -629,117 +632,6 @@ function GovernanceReport() {
 /* ------------------------------------------------------------------ */
 /* Patient — my health summary                                         */
 /* ------------------------------------------------------------------ */
-
-function PatientReport() {
-  const { profile } = useAuth();
-  const id = profile?.patient_id ?? "";
-  const bundle = useQuery({ ...patientBundleQuery(id), enabled: Boolean(id) });
-  const providers = useQuery(providersQuery);
-  const b = bundle.data;
-
-  if (!b) return <Loading label="Assembling your summary…" />;
-
-  const providerName = (pid: string | null) =>
-    (providers.data ?? []).find((p) => p.id === pid)?.full_name ?? "Unassigned";
-  const latest = b.vitals[0];
-
-  return (
-    <ReportShell
-      title="My health summary"
-      subtitle="Everything a clinician needs if you walk into a clinic that cannot open CareBridge: your conditions, your medicines, your recent readings and who is treating you."
-      period={LAST_90}
-      onExport={() =>
-        downloadCsv("my-health-summary.csv", [
-          ["Section", "Item", "Detail"],
-          ...b.conditions.map((c) => ["Condition", c.name, c.diagnosed_on ?? ""]),
-          ...b.medications.map((m) => ["Medication", m.name, `${m.dosage} ${m.frequency}`]),
-          ...b.vitals
-            .slice(0, 30)
-            .map((v) => [
-              "Reading",
-              v.measured_at,
-              `${v.systolic ?? "—"}/${v.diastolic ?? "—"} mmHg${v.glucose_mmol ? `, ${v.glucose_mmol} mmol/L` : ""}`,
-            ]),
-        ])
-      }
-    >
-      <ReportSection
-        title="Who I am"
-        note="Take this to any clinic — it does not need a connection to be read."
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat
-            label="Name"
-            value={b.patient.full_name}
-            hint={`${b.patient.age}${b.patient.sex}`}
-          />
-          <Stat
-            label="Record number"
-            value={b.patient.mrn}
-            hint={`Born ${shortDate(b.patient.date_of_birth)}`}
-          />
-          <Stat
-            label="Where I live"
-            value={`${b.patient.parish}`}
-            hint={`${b.patient.island_code} · ${b.patient.km_to_facility} km from care`}
-          />
-          <Stat
-            label="Language"
-            value={LANGUAGE_LABEL[b.patient.language] ?? b.patient.language}
-            hint={b.patient.insurer ?? "Uninsured"}
-          />
-        </div>
-      </ReportSection>
-
-      <ReportSection title="My conditions" note="What I am being treated for.">
-        <ReportTable
-          head={["Condition", "Since"]}
-          rows={b.conditions.map((c) => [c.name, c.diagnosed_on ? shortDate(c.diagnosed_on) : "—"])}
-          empty="No long-term conditions recorded."
-        />
-      </ReportSection>
-
-      <ReportSection title="My medicines" note="Doses, and how much supply is left.">
-        <ReportTable
-          head={["Medicine", "Dose", "How often", "Days left"]}
-          rows={b.medications.map((m) => [m.name, m.dosage, m.frequency, m.days_supply_left])}
-          empty="No medications recorded."
-        />
-      </ReportSection>
-
-      <ReportSection
-        title="My recent readings"
-        note={latest ? `Most recent taken ${timeAgo(latest.measured_at)}.` : "No readings yet."}
-      >
-        <ReportTable
-          head={["When", "Blood pressure", "Blood sugar"]}
-          rows={b.vitals
-            .slice(0, 10)
-            .map((v) => [
-              shortDate(v.measured_at),
-              v.systolic ? `${v.systolic}/${v.diastolic ?? "—"}` : "—",
-              v.glucose_mmol ? Number(v.glucose_mmol).toFixed(1) : "—",
-            ])}
-          empty="No readings sent yet."
-        />
-      </ReportSection>
-
-      <ReportSection title="Who is treating me" note="And who I have given access to my record.">
-        <ReportTable
-          head={["Who", "Purpose", "Status"]}
-          rows={b.grants.map((g) => [
-            providerName(g.provider_id),
-            g.purpose,
-            <Pill className={bandClasses(isGrantActive(g.status) ? "low" : "moderate")}>
-              {g.status}
-            </Pill>,
-          ])}
-          empty="Nobody outside your clinic has access."
-        />
-      </ReportSection>
-    </ReportShell>
-  );
-}
 
 /** Kept so an unknown role still renders something rather than nothing. */
 export function EmptyReport() {
