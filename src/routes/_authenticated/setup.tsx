@@ -415,7 +415,7 @@ function Setup() {
           <>
             <PanelHeader
               title="Who else works here?"
-              subtitle="Paste the list you already have — a roster, a WhatsApp message, a column from a spreadsheet"
+              subtitle="Your roster, and an invitation to sign up — not a grant of access"
             />
             <div className="space-y-4 px-5 py-5">
               {!invites.length ? (
@@ -453,10 +453,11 @@ function Setup() {
                   </div>
                   {/* Said before they paste, since it decides what they paste. */}
                   <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                    One person per line, in any order. A phone number is enough — most staff here
-                    have WhatsApp and no work email, which is the same reason the patient care line
-                    runs on it. Names, numbers and jobs are picked out for you, and you can correct
-                    anything that comes out wrong.
+                    This builds your roster and invites them to sign up — it does not hand out
+                    access on its own. One person per line, in any order. A phone number is enough —
+                    most staff here have WhatsApp and no work email, which is the same reason the
+                    patient care line runs on it. Names, numbers and jobs are picked out for you,
+                    and you can correct anything that comes out wrong.
                   </p>
                 </>
               ) : (
@@ -472,7 +473,7 @@ function Setup() {
                             Phone or email
                           </th>
                           <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                            Job
+                            Expected job
                           </th>
                           <th className="w-9" />
                         </tr>
@@ -603,9 +604,22 @@ function Setup() {
                     ))}
                   </div>
 
+                  {/* The thing the old version left ambiguous. A Job column
+                      beside a list of names reads like handing out
+                      permissions, and it is not — nor should it be. */}
+                  <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed">
+                    <span className="font-semibold text-foreground">
+                      This does not give anybody access.
+                    </span>{" "}
+                    It records who works here and asks them to sign up. They get in by registering
+                    with their own licence number and being confirmed on{" "}
+                    <span className="font-medium text-foreground">Facility console → Roster</span> —
+                    so nobody can open a patient's chart because an administrator typed their name.
+                    The job you pick here is what you were expecting, and it makes confirming them
+                    one click instead of a phone call.
+                  </p>
                   <p className="rounded-lg border border-accent/40 bg-accent/8 px-3 py-2.5 text-[12.5px] leading-relaxed">
-                    In this prototype the invitations are prepared, not sent. Everyone here is added
-                    to the roster as pending, and nothing leaves the building.
+                    In this prototype the invitations are prepared, not sent.
                   </p>
                 </>
               )}

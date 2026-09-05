@@ -23,7 +23,7 @@ import { KIND_PRESET, type FacilityKind } from "@/lib/facility-capability";
 
 const kindPreset = (kind: string) => KIND_PRESET[kind as FacilityKind] ?? KIND_PRESET.clinic;
 
-export const SEED_VERSION = 29;
+export const SEED_VERSION = 30;
 
 export const HERO_PATIENT_ID = "11111111-1111-4111-8111-111111111111";
 export const JM_CLINIC_ID = "a0ce1541-1e9d-4cce-81a5-218002bddd9d";
@@ -3049,6 +3049,54 @@ export function buildSeed(): Tables {
   ];
 
   // ---- demo persona profiles / roles / facility postings ----
+  /**
+   * People waiting to be let in.
+   *
+   * Sign-up already asks a clinician for their own registration number and the
+   * facility that can confirm it, then holds them at the door — but nothing in
+   * the product could open that door, so anyone who signed up stayed pending
+   * forever. These two are the pair that matters: one was invited during setup
+   * and matches a roster row, so confirming her is a match; the other named the
+   * hospital without anybody expecting him, which is the case that needs a
+   * human to actually think.
+   */
+  const PENDING_SIGNUPS: Row[] = [
+    {
+      id: uuid(rng),
+      full_name: "Sister Andrea Boodoo",
+      primary_role: "clinician",
+      island_code: "TT",
+      patient_id: null,
+      provider_id: null,
+      organisation: "Trinidad and Tobago General Hospital",
+      facility_id: TT_HOSPITAL_ID,
+      staff_role: "nurse",
+      is_demo: false,
+      onboarded: true,
+      licence_no: "RN-TT-20714",
+      verification_status: "pending",
+      created_at: daysAgo(2),
+      updated_at: daysAgo(2),
+    },
+    {
+      id: uuid(rng),
+      full_name: "Dr. Ravi Persaud",
+      primary_role: "clinician",
+      island_code: "TT",
+      patient_id: null,
+      provider_id: null,
+      organisation: "Trinidad and Tobago General Hospital",
+      facility_id: TT_HOSPITAL_ID,
+      staff_role: "doctor",
+      is_demo: false,
+      onboarded: true,
+      licence_no: "MD-TT-11938",
+      verification_status: "pending",
+      created_at: daysAgo(1),
+      updated_at: daysAgo(1),
+    },
+  ];
+
   t.profiles = [
     {
       id: DEMO_USER_IDS.patient,
@@ -3132,6 +3180,7 @@ export function buildSeed(): Tables {
       created_at: daysAgo(365),
       updated_at: daysAgo(0),
     },
+    ...PENDING_SIGNUPS,
   ];
   t.user_roles = Object.entries(DEMO_USER_IDS).map(([persona, id]) => ({
     id: uuid(rng),
@@ -3177,6 +3226,22 @@ export function buildSeed(): Tables {
       title: "Consultant cardiologist",
       full_name: "Dr. Anand Rampersad",
       created_at: daysAgo(365),
+    },
+    /**
+     * Invited during setup and not yet signed up: a roster row with nobody
+     * behind it. This is what the wizard writes, and it is what makes
+     * confirming somebody later a match rather than a judgement call.
+     */
+    {
+      id: uuid(rng),
+      user_id: null,
+      facility_id: TT_HOSPITAL_ID,
+      staff_role: "nurse",
+      title: "",
+      full_name: "Sister Andrea Boodoo",
+      contact: "868-555-0164",
+      invited_at: daysAgo(6),
+      created_at: daysAgo(6),
     },
     ...TTGH_STAFF.map(([full_name, staff_role, title]) => ({
       id: uuid(rng),

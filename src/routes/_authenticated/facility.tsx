@@ -17,6 +17,7 @@ import {
 } from "@/lib/org";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InpatientsPanel } from "@/components/facility/InpatientsPanel";
+import { PendingStaff } from "@/components/facility/PendingStaff";
 import { useScope } from "@/hooks/useScope";
 import { RegistryPage } from "@/components/facility/Registry";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
@@ -348,7 +349,10 @@ function FacilityConsole() {
         </TabsContent>
 
         {canAdminister ? (
-          <TabsContent value="roster" className="mt-4">
+          <TabsContent value="roster" className="mt-4 space-y-4">
+            {/* The confirmation step the verification gate always implied and
+                nothing could actually perform. */}
+            <PendingStaff facilityId={facilityId} />
             <RegistryPage />
           </TabsContent>
         ) : null}

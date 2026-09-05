@@ -22,6 +22,9 @@ export type FacilityStaff = {
   staff_role: string;
   title: string;
   full_name: string | null;
+  /** Written when somebody is invited during setup — see lib/staff-invite.ts. */
+  contact?: string;
+  invited_at?: string | null;
 };
 
 export const STAFF_ROLE_LABEL: Record<string, string> = {
