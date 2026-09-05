@@ -295,6 +295,14 @@ export function AppShell() {
               <Brand />
             </div>
 
+            {/* On a phone, the only offline indicator was inside the navigation
+                drawer — which is shut. So the person most likely to lose power,
+                on the device most likely to be the only one they have, could
+                write something during a blackout and see nothing telling them it
+                was held rather than sent. It shows in the header now, and only
+                when there is something to say. */}
+            <NetworkToggle compact className="lg:hidden" />
+
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
