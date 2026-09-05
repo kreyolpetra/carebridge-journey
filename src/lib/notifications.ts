@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { alertsQuery, patientsQuery, referralsQuery } from "@/lib/api";
 import { useScope } from "@/hooks/useScope";
 
-const STORAGE_KEY = "caricare.readNotifications";
+const STORAGE_KEY = "carebridge.readNotifications";
 
 export type GridNotification = {
   id: string;

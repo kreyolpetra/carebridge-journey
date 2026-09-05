@@ -33,13 +33,13 @@ import { useAccessDecision } from "@/lib/access-basis";
 export const Route = createFileRoute("/_authenticated/record")({
   head: () => ({
     meta: [
-      { title: "My Health Record — Vitals, Medications & Care History | CariCare Grid" },
+      { title: "My Health Record — Vitals, Medications & Care History | CareBridge Journey" },
       {
         name: "description",
         content:
           "Your full chronic-care record in one place: risk score, blood pressure and glucose trends, medications, conditions, triage history and referrals.",
       },
-      { property: "og:title", content: "My Health Record — CariCare Grid" },
+      { property: "og:title", content: "My Health Record — CareBridge Journey" },
       {
         property: "og:description",
         content:
@@ -231,7 +231,7 @@ function MyRecord() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel>
           <PanelHeader
-            title="What the Grid found"
+            title="What CareBridge found"
             subtitle="Every time your messages were triaged"
           />
           <div className="divide-y divide-border">

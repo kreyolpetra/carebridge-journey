@@ -32,7 +32,7 @@ import { SafetyPanel } from "@/components/patient/SafetyPanel";
 import { PatientContinuityNote } from "@/components/ContinuityBanner";
 import { DischargeHandoff } from "@/components/patient/DischargeHandoff";
 import { CareRequests } from "@/components/patient/CareRequests";
-import { ResultsOnTheGrid } from "@/components/patient/ResultsOnTheGrid";
+import { ResultsOnCareBridge } from "@/components/patient/ResultsOnCareBridge";
 import { PatientLine as CareLine } from "@/components/patient/CareLineView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
@@ -372,7 +372,7 @@ export function PatientChart({
         <TabsContent value="history" className="mt-4 space-y-4">
           {/* Before the timeline: the commonest waste on a small island is
               re-ordering a test whose result already sits at another facility. */}
-          <ResultsOnTheGrid patientId={b.patient.id} />
+          <ResultsOnCareBridge patientId={b.patient.id} />
 
           <CareTimeline
             patientId={b.patient.id}

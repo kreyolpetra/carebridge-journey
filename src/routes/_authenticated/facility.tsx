@@ -28,16 +28,16 @@ import { logRecordAccess } from "@/lib/audit";
 export const Route = createFileRoute("/_authenticated/facility")({
   head: () => ({
     meta: [
-      { title: "Facility Console — Hospital & Clinic Records | CariCare Grid" },
+      { title: "Facility Console — Hospital & Clinic Records | CareBridge Journey" },
       {
         name: "description",
         content:
-          "Run your hospital or clinic on the Grid: patients seen at your facility, records shared in from other hospitals and clinics, staff roster and open encounters.",
+          "Run your hospital or clinic on CareBridge: patients seen at your facility, records shared in from other hospitals and clinics, staff roster and open encounters.",
       },
-      { property: "og:title", content: "Facility Console — CariCare Grid" },
+      { property: "og:title", content: "Facility Console — CareBridge Journey" },
       {
         property: "og:description",
-        content: "One record per patient across every hospital and clinic on the Grid.",
+        content: "One record per patient across every hospital and clinic on CareBridge.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -80,14 +80,14 @@ function FacilityConsole() {
     [view],
   );
 
-  // Records shared in automatically from another Grid facility are still a
+  // Records shared in automatically from another facility on CareBridge are still a
   // third-party read — write each one to the patient's consent access log.
   useEffect(() => {
     if (!sharedPatientIds || !profile || !facility) return;
     const ids = sharedPatientIds.split(",").filter(Boolean);
     let wrote = false;
     for (const pid of ids) {
-      const key = `caricare:access:${profile.id}:${pid}:shared:${facility.id}`;
+      const key = `carebridge:access:${profile.id}:${pid}:shared:${facility.id}`;
       if (sessionStorage.getItem(key)) continue;
       sessionStorage.setItem(key, "1");
       wrote = true;
@@ -206,7 +206,7 @@ function FacilityConsole() {
                 tone="signal"
               />
               <Stat
-                label="Staff on the Grid"
+                label="Staff on CareBridge"
                 value={myStaff.length}
                 hint="Doctors, nurses and admin"
               />
@@ -265,13 +265,13 @@ function FacilityConsole() {
               <Panel>
                 <PanelHeader
                   title="Shared in from other facilities"
-                  subtitle="Care your patients received elsewhere on the Grid — visible to your team automatically"
+                  subtitle="Care your patients received elsewhere on CareBridge — visible to your team automatically"
                 />
                 <div className="divide-y divide-border">
                   {view.shared.length === 0 ? (
                     <p className="px-5 py-6 text-[13px] text-muted-foreground">
-                      Nothing shared in yet. As soon as one of your patients is seen at another Grid
-                      facility, it lands here.
+                      Nothing shared in yet. As soon as one of your patients is seen at another
+                      facility on CareBridge, it lands here.
                     </p>
                   ) : (
                     view.shared.slice(0, 12).map((e) => (
@@ -302,13 +302,13 @@ function FacilityConsole() {
               <Panel>
                 <PanelHeader
                   title="Staff roster"
-                  subtitle="Who at this facility can open a Grid record"
+                  subtitle="Who at this facility can open a record on CareBridge"
                   right={<Users className="h-4 w-4 text-muted-foreground" />}
                 />
                 <div className="divide-y divide-border">
                   {myStaff.length === 0 ? (
                     <p className="px-5 py-6 text-[13px] text-muted-foreground">
-                      No Grid accounts registered to this facility yet.
+                      No CareBridge accounts registered to this facility yet.
                     </p>
                   ) : (
                     myStaff.map((s) => (
@@ -316,7 +316,7 @@ function FacilityConsole() {
                         <span className="truncate text-[13.5px] font-semibold">
                           {s.user_id === profile?.id
                             ? profile.full_name
-                            : (s.full_name ?? s.title ?? "Grid account")}
+                            : (s.full_name ?? s.title ?? "CareBridge account")}
                         </span>
                         <Pill className="border-border bg-surface text-muted-foreground">
                           {STAFF_ROLE_LABEL[s.staff_role] ?? s.staff_role}

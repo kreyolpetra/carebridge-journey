@@ -25,13 +25,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — CariCare Grid" },
+      { title: "Sign in — CareBridge Journey" },
       {
         name: "description",
         content:
-          "Sign in to CariCare Grid: WhatsApp intake, AI triage, cross-island telemedicine routing and chronic disease management for the Caribbean.",
+          "Sign in to CareBridge Journey: WhatsApp intake, AI triage, cross-island telemedicine routing and chronic disease management for the Caribbean.",
       },
-      { property: "og:title", content: "Sign in — CariCare Grid" },
+      { property: "og:title", content: "Sign in — CareBridge Journey" },
       {
         property: "og:description",
         content:
@@ -165,7 +165,7 @@ function AuthPage() {
               </svg>
             </span>
             <span className="font-display text-[17px] font-bold tracking-tight">
-              CariCare<span className="text-primary"> Grid</span>
+              CareBridge<span className="text-primary"> Journey</span>
             </span>
           </div>
         </div>
@@ -201,7 +201,7 @@ function AuthPage() {
 
       <section className="flex flex-col justify-center px-6 py-12 sm:px-12">
         <div className="mx-auto w-full max-w-[420px]">
-          <h2 className="font-display text-2xl font-bold tracking-tight">Sign in to the Grid</h2>
+          <h2 className="font-display text-2xl font-bold tracking-tight">Sign in to CareBridge</h2>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">
             Pick a demo workspace for an instant tour, or use an account.
           </p>

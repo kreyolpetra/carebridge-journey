@@ -5,7 +5,7 @@ import { PatientLine } from "@/components/patient/CareLineView";
 export const Route = createFileRoute("/_authenticated/patient")({
   head: () => ({
     meta: [
-      { title: "Messages — WhatsApp Intake & AI Triage | CariCare Grid" },
+      { title: "Messages — WhatsApp Intake & AI Triage | CareBridge Journey" },
       {
         name: "description",
         content:
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/patient")({
       {
         property: "og:description",
         content:
-          "No app install, no data plan required. The patient texts; the Grid triages and routes.",
+          "No app install, no data plan required. The patient texts; CareBridge triages and routes.",
       },
     ],
   }),

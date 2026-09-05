@@ -6,8 +6,8 @@ import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { shortDate } from "@/lib/format";
 
 /**
- * Every hospital and clinic on the Grid that has seen this patient.
- * Because they all run on the Grid, each of them reads the same single record.
+ * Every hospital and clinic on CareBridge that has seen this patient.
+ * Because they all run on CareBridge, each of them reads the same single record.
  */
 export function CareNetwork({
   patientId,
@@ -48,7 +48,7 @@ export function CareNetwork({
         subtitle={
           entries.length > 1
             ? `${entries.length} hospitals and clinics have treated ${patientFirstName ?? "you"} — they all read this one record`
-            : "Hospitals and clinics on the Grid that hold part of this record"
+            : "Hospitals and clinics on CareBridge that hold part of this record"
         }
         right={
           <Pill className="border-primary/30 bg-primary/10 text-primary">{rows.length} visits</Pill>
@@ -94,9 +94,9 @@ export function CareNetwork({
         )}
       </div>
       <p className="border-t border-border px-5 py-3 text-[12px] text-muted-foreground">
-        Any facility on the Grid with an active visit sees the full record — readings, medications,
-        notes and referrals from every other hospital or clinic. Every look-up is written to the
-        consent ledger.
+        Any facility on CareBridge with an active visit sees the full record — readings,
+        medications, notes and referrals from every other hospital or clinic. Every look-up is
+        written to the consent ledger.
       </p>
     </Panel>
   );

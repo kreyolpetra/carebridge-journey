@@ -31,7 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Listener = () => void;
 
-const KEY = "caricare-offline-queue";
+const KEY = "carebridge-offline-queue";
 
 /**
  * A write, described rather than performed.
@@ -68,10 +68,30 @@ function persist() {
   }
 }
 
+/**
+ * Read the queue back, including a queue left under the product's old name.
+ *
+ * Renaming the product must not throw away a write somebody made during an
+ * outage. The old key is checked once, carried over, and removed — after which
+ * this is dead weight that can go.
+ */
+const LEGACY_KEY = "caricare-offline-queue";
+const LEGACY_DRAFT = "caricare-draft:";
+
 function restore() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (raw) pending = JSON.parse(raw) as WriteIntent[];
+    if (localStorage.getItem(LEGACY_KEY)) {
+      localStorage.setItem(KEY, raw ?? "[]");
+      localStorage.removeItem(LEGACY_KEY);
+    }
+    for (const k of Object.keys(localStorage)) {
+      if (!k.startsWith(LEGACY_DRAFT)) continue;
+      const moved = "carebridge-draft:" + k.slice(LEGACY_DRAFT.length);
+      if (!localStorage.getItem(moved)) localStorage.setItem(moved, localStorage.getItem(k) ?? "");
+      localStorage.removeItem(k);
+    }
   } catch {
     durable = false;
   }
@@ -216,7 +236,7 @@ export function usePendingCount() {
  */
 export function saveDraft(key: string, value: unknown) {
   try {
-    localStorage.setItem(`caricare-draft:${key}`, JSON.stringify(value));
+    localStorage.setItem(`carebridge-draft:${key}`, JSON.stringify(value));
   } catch {
     /* a lost draft is a lost draft, not a lost form */
   }
@@ -224,7 +244,7 @@ export function saveDraft(key: string, value: unknown) {
 
 export function readDraft<T>(key: string): T | null {
   try {
-    const raw = localStorage.getItem(`caricare-draft:${key}`);
+    const raw = localStorage.getItem(`carebridge-draft:${key}`);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
@@ -233,7 +253,7 @@ export function readDraft<T>(key: string): T | null {
 
 export function clearDraft(key: string) {
   try {
-    localStorage.removeItem(`caricare-draft:${key}`);
+    localStorage.removeItem(`carebridge-draft:${key}`);
   } catch {
     /* ignore */
   }

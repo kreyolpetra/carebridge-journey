@@ -48,7 +48,7 @@ export function DocumentDetailDialog({
           </DialogTitle>
           <DialogDescription className="text-[13px]">
             {/* Two different dates, never collapsed: what the paper says, and
-                when it entered the Grid. A record whose dates disagree is
+                when it entered CareBridge. A record whose dates disagree is
                 telling you something, and hiding one of them loses it. */}
             {doc.record_date ? (
               <>

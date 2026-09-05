@@ -519,7 +519,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
         {call ? (
           <CallOverlay
             mode={call}
-            title={isPatient ? "CariCare Grid care line" : (b?.patient.full_name ?? "Patient")}
+            title={isPatient ? "CareBridge care line" : (b?.patient.full_name ?? "Patient")}
             onEnd={hangUp}
           />
         ) : null}
@@ -548,7 +548,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
                 ) : null}
                 <div>
                   <div className="font-display text-[15px] font-semibold text-chat-foreground">
-                    {isPatient ? "CariCare Grid" : b.patient.full_name}
+                    {isPatient ? "CareBridge" : b.patient.full_name}
                   </div>
                   <div className="text-[11.5px] text-muted-foreground">
                     {isPatient
@@ -563,7 +563,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
             <div ref={scroller} className="flex-1 space-y-3 overflow-y-auto bg-chat px-5 py-5">
               {b.messages.map((m) => {
                 // From the patient's own handset, their messages sit on the right (green).
-                // "in" is from the patient, "out" is from the Grid. This screen used to
+                // "in" is from the patient, "out" is from CareBridge. This screen used to
                 // write and read "inbound"/"outbound" while the seed, the activity feed
                 // and the brief agent all used the short form, so every seeded message
                 // rendered on the wrong side of the thread.
@@ -659,7 +659,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
 
               {send.isPending ? (
                 <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Grid is triaging…
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> CareBridge is triaging…
                 </div>
               ) : null}
             </div>
@@ -705,7 +705,7 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
       <div className="space-y-4">
         <Panel>
           <PanelHeader
-            title={isPatient ? "What the Grid saw" : "AI triage"}
+            title={isPatient ? "What CareBridge saw" : "AI triage"}
             subtitle={
               isPatient
                 ? "How your last message was assessed"
@@ -716,8 +716,8 @@ export function PatientLine({ pinnedPatientId }: { pinnedPatientId?: string } = 
             {!triage ? (
               <p className="text-[13px] text-muted-foreground">
                 {isPatient
-                  ? "Send a message — or tap a quick action — and the Grid will read your vitals, judge how urgent it is and get you to the right clinician."
-                  : "Send a message — or tap a quick action — to watch the Grid extract vitals, assign urgency and route the patient."}
+                  ? "Send a message — or tap a quick action — and CareBridge will read your vitals, judge how urgent it is and get you to the right clinician."
+                  : "Send a message — or tap a quick action — to watch CareBridge extract vitals, assign urgency and route the patient."}
               </p>
             ) : (
               <>

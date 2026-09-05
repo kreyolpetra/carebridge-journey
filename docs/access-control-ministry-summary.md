@@ -1,7 +1,7 @@
-# CariCare Grid — Who Can See a Patient's Record, and Why
+# CareBridge Journey — Who Can See a Patient's Record, and Why
 ### One-page summary for health-ministry review
 
-The Grid lets a patient's health record follow them between clinics, hospitals
+CareBridge lets a patient's health record follow them between clinics, hospitals
 and islands. The question that matters is not whether the record can move — it
 is who is allowed to look, for how long, and how the patient finds out. Six
 rules govern that.
@@ -74,7 +74,7 @@ and why it was allowed. It cannot be edited or deleted by anyone, including
 administrators. Patients are notified automatically the first time a new
 facility opens their file, whenever a sensitive section is opened, and always
 for an emergency override, and they can flag any entry they do not recognise as
-a formal complaint. *Problem solved: because most lawful access on the Grid
+a formal complaint. *Problem solved: because most lawful access on CareBridge
 happens without a patient tap, visibility after the fact — not the consent
 button — is the patient's real safeguard.*
 

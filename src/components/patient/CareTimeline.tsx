@@ -1,6 +1,6 @@
 /**
- * The longitudinal record — every visit this patient has had anywhere on the
- * Grid, assembled across hospitals, clinics and borders.
+ * The longitudinal record — every visit this patient has had anywhere on
+ * CareBridge, assembled across hospitals, clinics and borders.
  *
  * This is the thing the product leads with and the one thing the clinician's
  * chart did not show. The patient could already see it on their own record
@@ -66,7 +66,7 @@ function disclosureFor(
 }
 
 const DISCLOSURE_NOTE: Record<CareTier, string> = {
-  attending: "You hold the longitudinal record: notes from every facility on the Grid.",
+  attending: "You hold the longitudinal record: notes from every facility on CareBridge.",
   consulting:
     "Current episodes and facilities you hold an agreement with in full; other visits in summary.",
   nursing: "Current episodes in full; earlier visits elsewhere appear in summary.",
@@ -184,7 +184,7 @@ export function CareTimeline({
   if (!rows.length) {
     return (
       <Panel>
-        <PanelHeader title="Care history" subtitle="Visits recorded anywhere on the Grid" />
+        <PanelHeader title="Care history" subtitle="Visits recorded anywhere on CareBridge" />
         <p className="px-5 py-6 text-[13px] text-muted-foreground">
           No visits recorded yet. This patient's history begins here.
         </p>
@@ -248,7 +248,7 @@ export function CareTimeline({
           subtitle={
             docRows.length
               ? `${encounterRows.length} ${encounterRows.length === 1 ? "visit" : "visits"} and ${docRows.length} paper ${docRows.length === 1 ? "record" : "records"}, newest first`
-              : `${encounterRows.length} visits recorded across the Grid, newest first`
+              : `${encounterRows.length} visits recorded across CareBridge, newest first`
           }
           right={
             tier ? (

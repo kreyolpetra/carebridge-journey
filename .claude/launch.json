@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "caricare-grid",
+      "name": "carebridge-journey",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -11,7 +11,7 @@
       "port": 8080
     },
     {
-      "name": "caricare-spa",
+      "name": "carebridge-spa",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "-y",

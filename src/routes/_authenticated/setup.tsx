@@ -1,5 +1,5 @@
 /**
- * Standing a facility up on the Grid.
+ * Standing a facility up on CareBridge.
  *
  * The product could be joined but not started: signing up made you pick a
  * facility that already existed and wait for it to confirm you, so a brand-new
@@ -83,7 +83,7 @@ function Setup() {
    * patients in".
    *
    * The first version of this step was a tick box that connected you to the
-   * patients already on the Grid. It did nothing, because there is nothing
+   * patients already on CareBridge. It did nothing, because there is nothing
    * honest for it to do: a clinic does not get to see a country's records by
    * ticking a box — it sees the people it treats, once a lawful basis exists.
    * So the choice now changes where you land, which is real, and the copy says
@@ -110,7 +110,7 @@ function Setup() {
   /**
    * How many people would land on the first worklist.
    *
-   * Counted from patients already on the Grid for that country, because that is
+   * Counted from patients already on CareBridge for that country, because that is
    * what actually happens when a clinic joins a shared record: the people are
    * already there, and joining is what makes them visible.
    */
@@ -186,7 +186,7 @@ function Setup() {
       // facility's session size drawing the worklist's line.
       await refreshProfile();
       void qc.invalidateQueries();
-      toast("Workspace ready", { description: `${name.trim()} is on the Grid.` });
+      toast("Workspace ready", { description: `${name.trim()} is on CareBridge.` });
       void navigate({ to: startWith === "import" ? "/facility" : "/patients" });
     },
     onError: (e: Error) => toast("Could not finish setup", { description: e.message }),
@@ -205,7 +205,7 @@ function Setup() {
           Set up your workspace
         </p>
         <h1 className="mt-1.5 font-display text-2xl font-bold tracking-tight">
-          Put your facility on the Grid
+          Put your facility on CareBridge
         </h1>
         <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
           Four steps, and you can skip any of them. Everything here is editable afterwards — the
@@ -402,9 +402,9 @@ function Setup() {
 
               {!caps.has_lab ? (
                 <p className="rounded-lg border border-border bg-surface px-3 py-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                  With no laboratory here, results taken elsewhere on the Grid matter more, not less
-                  — the chart will lead with what has already been done so nobody sends a patient
-                  away for a test that exists.
+                  With no laboratory here, results taken elsewhere on CareBridge matter more, not
+                  less — the chart will lead with what has already been done so nobody sends a
+                  patient away for a test that exists.
                 </p>
               ) : null}
             </div>
@@ -638,7 +638,7 @@ function Setup() {
                 [
                   [
                     "grid",
-                    "My patients are already on the Grid",
+                    "My patients are already on CareBridge",
                     `About ${wouldSee} people in ${islandName} are monitored here already. You do not import them — you see the ones you treat, as soon as a basis exists: an episode at this facility, a referral you accept, a discharge handed to you, or their consent.`,
                   ],
                   [
@@ -702,8 +702,8 @@ function Setup() {
                   <li>
                     ·{" "}
                     {caps.has_lab
-                      ? "Results from your own laboratory alongside everything taken elsewhere on the Grid"
-                      : "Results taken anywhere on the Grid, leading with tests already done so nobody repeats one"}
+                      ? "Results from your own laboratory alongside everything taken elsewhere on CareBridge"
+                      : "Results taken anywhere on CareBridge, leading with tests already done so nobody repeats one"}
                   </li>
                   <li>· A care line on WhatsApp in English, Patois, Kreyòl and Spanish</li>
                 </ul>

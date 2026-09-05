@@ -115,7 +115,7 @@ export function evaluateSafety(
       kind: "duplicate_therapy",
       tier: "review",
       title: `Two ${label}s prescribed together`,
-      detail: `${meds.map((m) => m.name).join(" and ")} are both ${label}s. This is occasionally intended; more often it is two prescribers who could not see each other's record — the problem this Grid exists to solve.`,
+      detail: `${meds.map((m) => m.name).join(" and ")} are both ${label}s. This is occasionally intended; more often it is two prescribers who could not see each other's record — the problem CareBridge exists to solve.`,
       evidence: meds.map((m) => `${m.name} ${m.dosage} ${m.frequency}`),
     });
   }

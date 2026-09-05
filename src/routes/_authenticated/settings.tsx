@@ -19,23 +19,23 @@ import { Building2 } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Profile & Settings — CariCare Grid" },
+      { title: "Profile & Settings — CareBridge Journey" },
       {
         name: "description",
         content:
-          "Manage your CariCare Grid profile, island, workspace role and notification preferences.",
+          "Manage your CareBridge Journey profile, island, workspace role and notification preferences.",
       },
-      { property: "og:title", content: "Profile & Settings — CariCare Grid" },
+      { property: "og:title", content: "Profile & Settings — CareBridge Journey" },
       {
         property: "og:description",
-        content: "Your account and workspace preferences on the Grid.",
+        content: "Your account and workspace preferences on CareBridge.",
       },
     ],
   }),
   component: SettingsPage,
 });
 
-const PREF_KEY = "caricare.prefs";
+const PREF_KEY = "carebridge.prefs";
 
 function SettingsPage() {
   const qc = useQueryClient();
@@ -129,8 +129,8 @@ function SettingsPage() {
             />
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
               <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Adding a new clinic or hospital to the Grid takes four steps, and every one of them
-                can be skipped.
+                Adding a new clinic or hospital to CareBridge takes four steps, and every one of
+                them can be skipped.
               </p>
               <Link
                 to="/setup"
@@ -231,7 +231,7 @@ function SettingsPage() {
         <Panel>
           <PanelHeader
             title="Notifications"
-            subtitle="What the Grid pushes to you while you work"
+            subtitle="What CareBridge pushes to you while you work"
           />
           <div className="divide-y divide-border">
             {[

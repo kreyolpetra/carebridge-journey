@@ -1,6 +1,6 @@
 import { buildSeed, SEED_VERSION, type Tables } from "./seed";
 
-const STORAGE_PREFIX = "caricare-grid-mock-db-v";
+const STORAGE_PREFIX = "carebridge-journey-mock-db-v";
 const STORAGE_KEY = `${STORAGE_PREFIX}${SEED_VERSION}`;
 
 /**
@@ -80,7 +80,7 @@ export function persist() {
       if (!warnedAboutQuota) {
         warnedAboutQuota = true;
         console.warn(
-          "CariCare Grid: could not persist the mock database (storage quota). " +
+          "CareBridge Journey: could not persist the mock database (storage quota). " +
             "The app will keep working, but changes will not survive a reload.",
           err,
         );

@@ -1,7 +1,7 @@
-# CariCare Grid — Access Control Specification v2
+# CareBridge Journey — Access Control Specification v2
 
 Scope: cross-border clinical record access between Jamaican and Trinidadian
-facilities on the Grid. Supersedes the v1 model ("consent grant OR treating
+facilities on CareBridge. Supersedes the v1 model ("consent grant OR treating
 facility, indefinite, facility-wide").
 
 v1 had four defects: one lawful basis doing two jobs, an unbounded treating
@@ -311,7 +311,7 @@ language, and — for DSA reads — the agreement name and purpose.
   facility's privacy officer and the ministry surface, with a response SLA.
 
 **Regulator framing.** Consent controls what may happen; the log tells the
-patient what did happen. Most access on the Grid will be lawful without a tap —
+patient what did happen. Most access on CareBridge will be lawful without a tap —
 treating relationships and institutional agreements — which makes visibility
 after the fact the patient's primary safeguard, not an audit by-product. Making
 it append-only and unfilterable is what makes it evidence rather than a report.

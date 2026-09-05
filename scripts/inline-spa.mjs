@@ -43,9 +43,7 @@ if (!css) {
  * inside a regex literal.
  */
 function makeScriptSafe(code) {
-  return code
-    .replace(/<\/(script)([\s/>])/gi, "<\\/$1$2")
-    .replace(/<!--/g, "<\\!--");
+  return code.replace(/<\/(script)([\s/>])/gi, "<\\/$1$2").replace(/<!--/g, "<\\!--");
 }
 
 /**
@@ -79,7 +77,9 @@ const headEndRe = /<\/head>/i;
 
 const withCss = insert(html, linkRe, styleTag) ?? insert(html, headEndRe, `${styleTag}\n</head>`);
 if (!withCss) {
-  console.error("inline-spa: found neither an app.css <link> nor a </head> to inject into. Aborting.");
+  console.error(
+    "inline-spa: found neither an app.css <link> nor a </head> to inject into. Aborting.",
+  );
   process.exit(1);
 }
 html = withCss;
@@ -130,7 +130,7 @@ if (/<link[^>]+href="[^"]*app\.(css|js)"/i.test(html) || /src="[^"]*app\.js"/i.t
   process.exit(1);
 }
 
-const outPath = resolve(dist, "caricare-grid.html");
+const outPath = resolve(dist, "carebridge-journey.html");
 writeFileSync(outPath, html, "utf8");
 
 // --- artifact variant -----------------------------------------------------
@@ -151,7 +151,7 @@ if (!styleBlock || !scriptBlock) {
 // Take the real <title> from the source document instead of hardcoding one: the
 // tag always beats the publish-time title parameter, so a stale literal here
 // would quietly misname the artifact.
-const pageTitle = html.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "CariCare Grid";
+const pageTitle = html.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "CareBridge Journey";
 
 const artifact = [
   `<title>${pageTitle}</title>`,
@@ -161,7 +161,7 @@ const artifact = [
   scriptBlock,
 ].join("\n");
 
-writeFileSync(resolve(dist, "caricare-grid-artifact.html"), artifact, "utf8");
+writeFileSync(resolve(dist, "carebridge-journey-artifact.html"), artifact, "utf8");
 
 // Clean up the pieces so dist-spa/ holds just the one shareable file.
 rmSync(jsPath, { force: true });
@@ -172,4 +172,4 @@ for (const leftover of ["robots.txt"]) {
 }
 
 const mb = (Buffer.byteLength(html, "utf8") / 1024 / 1024).toFixed(2);
-console.log(`inline-spa: wrote dist-spa/caricare-grid.html (${mb} MB, fully self-contained)`);
+console.log(`inline-spa: wrote dist-spa/carebridge-journey.html (${mb} MB, fully self-contained)`);

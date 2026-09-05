@@ -21,7 +21,7 @@ export function useRealtimeGrid() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const channel = supabase.channel("caricare-grid");
+    const channel = supabase.channel("carebridge-journey");
 
     for (const table of WATCHED) {
       channel.on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {
@@ -35,7 +35,7 @@ export function useRealtimeGrid() {
           }
         }
         if (table === "referrals" && payload.eventType === "INSERT") {
-          toast.success("New referral routed onto the Grid");
+          toast.success("New referral routed onto CareBridge");
         }
       });
     }

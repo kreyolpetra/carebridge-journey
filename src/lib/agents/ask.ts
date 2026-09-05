@@ -1,6 +1,6 @@
 // Ask — natural-language querying in the command palette.
 //
-// Deterministic intent matching over the Grid's own data. No language model, for
+// Deterministic intent matching over CareBridge's own data. No language model, for
 // the reasons set out in ./core.ts, and the UI says so rather than implying one.
 //
 // The point is not to look clever. It is that a ministry analyst can type "where

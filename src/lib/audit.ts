@@ -66,7 +66,7 @@ export function useLogRecordAccess(
     if (role === "patient") return;
     // Key on the basis as well, so a refusal followed by a granted read (the
     // clinician accepts the referral, say) both appear in the ledger.
-    const key = `caricare:access:${profile.id}:${patientId}:${resource}:${decision.basis}`;
+    const key = `carebridge:access:${profile.id}:${patientId}:${resource}:${decision.basis}`;
     if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(key)) return;
     sessionStorage?.setItem(key, "1");
     void logRecordAccess({

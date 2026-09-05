@@ -2,8 +2,8 @@
  * Turning a finding into something somebody can actually do.
  *
  * Two panels in this product identify work and then stop. Safety says a drug
- * has run out; the only button raised a review nobody fulfils. Results on the
- * Grid says a repeat test would duplicate one the Grid already holds, and
+ * has run out; the only button raised a review nobody fulfils. Results on
+ * CareBridge says a repeat test would duplicate one CareBridge already holds, and
  * separately that a test is due — with no way to ask for it. Both were advice
  * into a void, which is worse than no advice: it teaches people that the panel
  * is a thing you read rather than a thing you use.

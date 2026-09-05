@@ -47,7 +47,7 @@ import { bandClasses, shortDate, timeAgo, usd, TIER_LABEL, LANGUAGE_LABEL } from
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
     meta: [
-      { title: "Reports — Dated, Printable Summaries by Role | CariCare Grid" },
+      { title: "Reports — Dated, Printable Summaries by Role | CareBridge Journey" },
       {
         name: "description",
         content:
@@ -137,10 +137,10 @@ function MinistryReport() {
   return (
     <ReportShell
       title="Regional health system report"
-      subtitle="Chronic disease burden, specialist capacity, medication supply and cross-border referral performance across the countries on the Grid."
+      subtitle="Chronic disease burden, specialist capacity, medication supply and cross-border referral performance across the countries on CareBridge."
       period={LAST_90}
       onExport={() =>
-        downloadCsv("caricare-regional-report.csv", [
+        downloadCsv("carebridge-regional-report.csv", [
           [
             "Country",
             "Tier",
@@ -300,7 +300,7 @@ function ClinicianReport() {
       subtitle="Everyone you hold a lawful basis for, ranked by deterioration risk, with the referrals and appointments attached to you."
       period={LAST_90}
       onExport={() =>
-        downloadCsv("caricare-panel-report.csv", [
+        downloadCsv("carebridge-panel-report.csv", [
           ["MRN", "Name", "Age", "Sex", "Parish", "Country", "Risk", "Band", "Trend", "Basis"],
           ...panel.map((r) => [
             r.p.mrn,
@@ -424,7 +424,7 @@ function InsurerReport() {
       subtitle="Insured cohort by carrier, deterioration risk concentration, and the overseas spend avoided by treating in-region."
       period={LAST_90}
       onExport={() =>
-        downloadCsv("caricare-pricing-report.csv", [
+        downloadCsv("carebridge-pricing-report.csv", [
           ["Insurer", "Members", "High risk", "High risk %"],
           ...byInsurer.map((r) => [r.name, r.members, r.high, r.highPct.toFixed(1)]),
         ])
@@ -438,7 +438,7 @@ function InsurerReport() {
             hint={`${byInsurer.length} carriers`}
           />
           <Stat
-            label="Uninsured on the Grid"
+            label="Uninsured on CareBridge"
             value={((patients.data?.length ?? 0) - insured.length).toLocaleString()}
             hint="Out of scope for pricing"
           />
@@ -516,10 +516,10 @@ function GovernanceReport() {
   return (
     <ReportShell
       title="Governance and access report"
-      subtitle="Who reached patient records and under what lawful basis, which agreements need review, and the state of consent across the Grid."
+      subtitle="Who reached patient records and under what lawful basis, which agreements need review, and the state of consent across CareBridge."
       period={LAST_90}
       onExport={() =>
-        downloadCsv("caricare-governance-report.csv", [
+        downloadCsv("carebridge-governance-report.csv", [
           ["When", "Actor", "Resource", "Basis", "Allowed"],
           ...log
             .slice(0, 500)
@@ -646,7 +646,7 @@ function PatientReport() {
   return (
     <ReportShell
       title="My health summary"
-      subtitle="Everything a clinician needs if you walk into a clinic that cannot open the Grid: your conditions, your medicines, your recent readings and who is treating you."
+      subtitle="Everything a clinician needs if you walk into a clinic that cannot open CareBridge: your conditions, your medicines, your recent readings and who is treating you."
       period={LAST_90}
       onExport={() =>
         downloadCsv("my-health-summary.csv", [

@@ -174,7 +174,7 @@ export function validatePatientRow(
 
   const island = (row.island_code || "").trim().toUpperCase();
   if (island && !knownIslands.has(island)) {
-    return { line, ok: false, error: `island_code "${island}" is not a country on the Grid` };
+    return { line, ok: false, error: `island_code "${island}" is not a country on CareBridge` };
   }
 
   return {
@@ -216,7 +216,7 @@ export function validateStaffRow(row: CsvRow, line: number, knownIslands: Set<st
 
   const island = (row.island_code || "").trim().toUpperCase();
   if (island && !knownIslands.has(island)) {
-    return { line, ok: false, error: `island_code "${island}" is not a country on the Grid` };
+    return { line, ok: false, error: `island_code "${island}" is not a country on CareBridge` };
   }
 
   return {

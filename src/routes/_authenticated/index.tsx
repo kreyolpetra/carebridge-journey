@@ -62,13 +62,16 @@ const ACTIVITY_META: Record<ActivityItem["kind"], { icon: typeof HeartPulse; ton
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Home — CariCare Grid" },
+      { title: "Home — CareBridge Journey" },
       {
         name: "description",
         content:
-          "Your role-aware CariCare Grid home: messages, clinician queue, regional coordination or insurer engine, personalised to your sign-in.",
+          "Your role-aware CareBridge Journey home: messages, clinician queue, regional coordination or insurer engine, personalised to your sign-in.",
       },
-      { property: "og:title", content: "CariCare Grid — The Front Door to Caribbean Healthcare" },
+      {
+        property: "og:title",
+        content: "CareBridge Journey — The Front Door to Caribbean Healthcare",
+      },
       {
         property: "og:description",
         content:

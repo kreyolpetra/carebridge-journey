@@ -6,7 +6,7 @@
  * and a laboratory that serves a whole island spends its capacity confirming
  * something it already knows.
  *
- * The Grid already holds the earlier result. All that was missing was showing
+ * CareBridge already holds the earlier result. All that was missing was showing
  * it to the clinician about to order the test — and saying, in the plainest
  * terms, how long ago it was done and whether that is recent enough to rely on.
  */

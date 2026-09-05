@@ -16,13 +16,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/detection")({
   head: () => ({
     meta: [
-      { title: "Early Detection — Catch Deterioration Before Crisis | CariCare Grid" },
+      { title: "Early Detection — Catch Deterioration Before Crisis | CareBridge Journey" },
       {
         name: "description",
         content:
-          "Home cuff and glucometer readings stream into the Grid, trends are compared against each patient's own baseline, and clinicians get a worklist of people drifting toward crisis.",
+          "Home cuff and glucometer readings stream into CareBridge, trends are compared against each patient's own baseline, and clinicians get a worklist of people drifting toward crisis.",
       },
-      { property: "og:title", content: "Early Detection — CariCare Grid" },
+      { property: "og:title", content: "Early Detection — CareBridge Journey" },
       {
         property: "og:description",
         content:

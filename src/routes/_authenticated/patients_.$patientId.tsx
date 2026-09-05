@@ -23,7 +23,7 @@ import { Panel, Loading } from "@/components/grid";
 export const Route = createFileRoute("/_authenticated/patients_/$patientId")({
   head: () => ({
     meta: [
-      { title: "Patient record — CariCare Grid" },
+      { title: "Patient record — CareBridge Journey" },
       {
         name: "description",
         content:

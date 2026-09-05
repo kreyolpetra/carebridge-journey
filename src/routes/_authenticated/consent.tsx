@@ -22,7 +22,7 @@ import { AccessLog } from "@/components/governance/AccessHistory";
 export const Route = createFileRoute("/_authenticated/consent")({
   head: () => ({
     meta: [
-      { title: "Privacy — Who Can See This Record, and Who Has | CariCare Grid" },
+      { title: "Privacy — Who Can See This Record, and Who Has | CareBridge Journey" },
       {
         name: "description",
         content:

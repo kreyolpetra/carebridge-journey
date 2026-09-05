@@ -65,7 +65,7 @@ export function ReportShell({
         <div className="flex flex-wrap items-start justify-between gap-4 p-5">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              CariCare Grid report
+              CareBridge Journey report
             </p>
             <h1 className="mt-1 font-display text-[24px] font-bold tracking-tight">{title}</h1>
             <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground">
@@ -76,7 +76,7 @@ export function ReportShell({
               <strong className="font-semibold text-foreground">Generated:</strong>{" "}
               {now.toLocaleString()} ·{" "}
               <strong className="font-semibold text-foreground">By:</strong>{" "}
-              {profile?.full_name ?? "Grid user"}
+              {profile?.full_name ?? "CareBridge user"}
               {profile?.organisation ? ` (${profile.organisation})` : ""}
             </p>
           </div>
@@ -106,8 +106,9 @@ export function ReportShell({
       <div className="space-y-4">{children}</div>
 
       <p className="mt-6 text-[11.5px] leading-relaxed text-muted-foreground">
-        Produced by CariCare Grid from the live record. Figures reflect the moment of generation and
-        will move as the underlying data does. All patient data in this prototype is synthetic.
+        Produced by CareBridge Journey from the live record. Figures reflect the moment of
+        generation and will move as the underlying data does. All patient data in this prototype is
+        synthetic.
       </p>
     </div>
   );

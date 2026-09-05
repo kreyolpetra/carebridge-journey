@@ -108,7 +108,7 @@ export function RegistryPage() {
       if (!row.ok) throw new Error(row.error);
 
       const existing = (patients.data ?? []).find((p) => (p as { mrn?: string }).mrn === mrn);
-      if (existing) throw new Error(`MRN ${mrn} already exists on the Grid`);
+      if (existing) throw new Error(`MRN ${mrn} already exists on CareBridge`);
 
       const { conditions, ...patientFields } = row.value as Record<string, unknown> & {
         conditions: string[];
@@ -276,14 +276,14 @@ export function RegistryPage() {
             },
           ];
     const csv = toCsv(headers, example);
-    downloadCsv(`caricare-${kind}-template.csv`, csv);
+    downloadCsv(`carebridge-${kind}-template.csv`, csv);
     setCsvPreview({ title: `${kind} template`, text: csv });
   };
 
   const exportPatients = () => {
     const headers = ["mrn", "full_name", "age", "sex", "island_code", "parish", "language"];
     const csv = toCsv(headers, (patients.data ?? []) as unknown as Record<string, unknown>[]);
-    downloadCsv("caricare-patient-registry.csv", csv);
+    downloadCsv("carebridge-patient-registry.csv", csv);
     setCsvPreview({ title: `patient registry (${patients.data?.length ?? 0} rows)`, text: csv });
   };
 
@@ -294,7 +294,7 @@ export function RegistryPage() {
       <header className="mb-5">
         <p className="eyebrow">Registry &amp; onboarding</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">
-          Get a clinic onto the Grid
+          Get a clinic onto CareBridge
         </h1>
         <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-muted-foreground">
           Most clinics in this region keep records on paper or in a spreadsheet, not in a system
@@ -306,7 +306,7 @@ export function RegistryPage() {
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
-          label="Patients on the Grid"
+          label="Patients on CareBridge"
           value={(patients.data?.length ?? 0).toLocaleString()}
           hint="Across all countries"
         />

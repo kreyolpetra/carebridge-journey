@@ -47,7 +47,7 @@ export function Prevention() {
     name: "",
     rule: { condition: "Hypertension", riskMin: 45 },
     template:
-      "Hi {name}, this is your CariCare care team. Please reply with your latest blood pressure reading, or type CHECK for a free check nearby.",
+      "Hi {name}, this is your CareBridge care team. Please reply with your latest blood pressure reading, or type CHECK for a free check nearby.",
     channel: "whatsapp",
   });
 

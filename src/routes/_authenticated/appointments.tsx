@@ -36,11 +36,11 @@ import { shortDate, clockTime } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/appointments")({
   head: () => ({
     meta: [
-      { title: "Appointments — Clinics & Teleconsults | CariCare Grid" },
+      { title: "Appointments — Clinics & Teleconsults | CareBridge Journey" },
       {
         name: "description",
         content:
-          "Upcoming and past appointments across the Grid, including cross-island teleconsults, with the call started from the appointment itself.",
+          "Upcoming and past appointments across CareBridge, including cross-island teleconsults, with the call started from the appointment itself.",
       },
     ],
   }),

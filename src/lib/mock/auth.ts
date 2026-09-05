@@ -7,7 +7,7 @@ type MockSession = { access_token: string; user: MockUser };
 type AuthChangeEvent = "SIGNED_IN" | "SIGNED_OUT";
 type Listener = (event: AuthChangeEvent, session: MockSession | null) => void;
 
-const SESSION_KEY = "caricare-grid-mock-session";
+const SESSION_KEY = "carebridge-journey-mock-session";
 const listeners = new Set<Listener>();
 
 // The session lives in memory and is only mirrored to localStorage so it can

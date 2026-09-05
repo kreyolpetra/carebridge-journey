@@ -16,7 +16,7 @@ const TOUR: Record<string, { title: string; points: string[] }> = {
   patient: {
     title: "Your health line",
     points: [
-      "Message the Grid in your own words — Patois, Creole or English.",
+      "Message CareBridge in your own words — Patois, Creole or English.",
       "AI triage reads your vitals and tells you what to do next.",
       "Messages queue safely offline and send when signal returns.",
     ],
@@ -71,7 +71,7 @@ export function OnboardingDialog() {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            Welcome to CariCare Grid, {profile ? firstName(profile.full_name) : "there"}
+            Welcome to CareBridge Journey, {profile ? firstName(profile.full_name) : "there"}
           </DialogTitle>
           <DialogDescription>
             You're signed in as {ROLE_LABEL[role] ?? role}. Here's what this workspace does for you.
@@ -93,7 +93,7 @@ export function OnboardingDialog() {
           to jump to a patient or surface.
         </p>
         <Button onClick={finish} disabled={saving} className="w-full">
-          {saving ? "Setting up…" : "Enter the Grid"}
+          {saving ? "Setting up…" : "Enter CareBridge"}
         </Button>
       </DialogContent>
     </Dialog>

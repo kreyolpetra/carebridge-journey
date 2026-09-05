@@ -128,7 +128,7 @@ export function SectionTitle({
   );
 }
 
-export function Loading({ label = "Loading the Grid…" }: { label?: string }) {
+export function Loading({ label = "Loading CareBridge…" }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 px-5 py-10 text-sm text-muted-foreground">
       <span className="h-3 w-3 animate-ping rounded-full bg-primary" />

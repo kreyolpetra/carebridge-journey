@@ -25,14 +25,14 @@ import { careRequestsQuery, raiseRequest, type CareRequest } from "@/lib/care-re
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 import { shortDate } from "@/lib/format";
 
-export function ResultsOnTheGrid({ patientId }: { patientId: string }) {
+export function ResultsOnCareBridge({ patientId }: { patientId: string }) {
   const { facilityId } = useScope();
   const { profile } = useAuth();
   const qc = useQueryClient();
   const requests = useQuery(careRequestsQuery);
 
   /**
-   * A test the Grid says is due had no way to be asked for — the panel named
+   * A test CareBridge says is due had no way to be asked for — the panel named
    * the gap and stopped. Asking is not ordering: it puts the request on the
    * chart for whoever collects bloods, which is what actually happens here.
    */
@@ -79,10 +79,13 @@ export function ResultsOnTheGrid({ patientId }: { patientId: string }) {
   if (!rows.length) {
     return (
       <Panel>
-        <PanelHeader title="Results on the Grid" subtitle="Nothing on file from any facility yet" />
+        <PanelHeader
+          title="Results on CareBridge"
+          subtitle="Nothing on file from any facility yet"
+        />
         <p className="px-5 py-5 text-[13px] leading-relaxed text-muted-foreground">
-          No laboratory results recorded for this patient anywhere on the Grid. Anything ordered now
-          will be the first of its kind on their record.
+          No laboratory results recorded for this patient anywhere on CareBridge. Anything ordered
+          now will be the first of its kind on their record.
         </p>
       </Panel>
     );
@@ -91,7 +94,7 @@ export function ResultsOnTheGrid({ patientId }: { patientId: string }) {
   return (
     <Panel>
       <PanelHeader
-        title="Results on the Grid"
+        title="Results on CareBridge"
         subtitle={
           elsewhere.length
             ? `${elsewhere.length} of ${rows.length} were taken at another facility — you would not otherwise see them`
@@ -164,8 +167,9 @@ export function ResultsOnTheGrid({ patientId }: { patientId: string }) {
       </div>
       {reusable.length ? (
         <p className="border-t border-border px-5 py-3 text-[12.5px] leading-relaxed text-muted-foreground">
-          Ordering any of the {reusable.length} marked current would repeat a test the Grid already
-          holds. Repeat anyway if there is a clinical reason — this is what exists, not what to do.
+          Ordering any of the {reusable.length} marked current would repeat a test CareBridge
+          already holds. Repeat anyway if there is a clinical reason — this is what exists, not what
+          to do.
         </p>
       ) : null}
     </Panel>

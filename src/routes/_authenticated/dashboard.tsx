@@ -20,7 +20,7 @@ import { severityClasses, timeAgo, usd, TIER_LABEL } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Coordination Dashboard — Regional NCD Operations | CariCare Grid" },
+      { title: "Coordination Dashboard — Regional NCD Operations | CareBridge Journey" },
       {
         name: "description",
         content:
@@ -78,7 +78,7 @@ function Dashboard() {
         return band === "critical" || band === "high";
       }).length;
       // National capacity comes from the country's own bed density, not from
-      // summing the facilities the Grid happens to model. Those facilities are
+      // summing the facilities CareBridge happens to model. Those facilities are
       // a sample — Cuba has hundreds of hospitals and this dataset carries
       // eight — so summing them either understates a country or, if they are
       // inflated to make the sum come out right, puts a nation's beds inside
@@ -304,7 +304,7 @@ function Dashboard() {
                 {Math.round(accessGap * 100)}%
               </strong>{" "}
               the rate of those in well-resourced ones. Parity is 100%. This is the region as it
-              stands, not a result the Grid has produced — the{" "}
+              stands, not a result CareBridge has produced — the{" "}
               <strong className="text-foreground">on need</strong> column is the correction now
               being applied.
             </p>

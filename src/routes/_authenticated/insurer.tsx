@@ -9,7 +9,7 @@ import { bandClasses, usd } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/insurer")({
   head: () => ({
     meta: [
-      { title: "Insurer Engine — Risk-Adjusted NCD Pricing | CariCare Grid" },
+      { title: "Insurer Engine — Risk-Adjusted NCD Pricing | CareBridge Journey" },
       {
         name: "description",
         content:
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/insurer")({
       {
         property: "og:description",
         content:
-          "Insurers fund the Grid because avoided admissions are worth more than the platform costs.",
+          "Insurers fund CareBridge because avoided admissions are worth more than the platform costs.",
       },
     ],
   }),
@@ -114,7 +114,7 @@ function Insurer() {
       <SectionTitle
         eyebrow="Sustainable funding"
         title="Insurer engine"
-        blurb="The Grid pays for itself before any ministry budget line is touched. Continuous adherence and home-monitoring data turns into premium credits for patients and live risk-adjusted pricing for insurers — replacing actuarial tables written before diabetes prevalence doubled."
+        blurb="CareBridge pays for itself before any ministry budget line is touched. Continuous adherence and home-monitoring data turns into premium credits for patients and live risk-adjusted pricing for insurers — replacing actuarial tables written before diabetes prevalence doubled."
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
@@ -136,7 +136,7 @@ function Insurer() {
           hint="Monthly, to engaged members"
         />
         <Stat
-          label="Insured lives on the Grid"
+          label="Insured lives on CareBridge"
           value={rows.length ? insurers.reduce((a, i) => a + i.lives, 0) : 0}
         />
       </div>

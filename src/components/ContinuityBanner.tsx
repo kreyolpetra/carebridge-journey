@@ -2,7 +2,7 @@
  * What happens to a patient when their facility goes down.
  *
  * The regional record has always survived a local building — that is what
- * putting the record on the Grid rather than in a server room means — but the
+ * putting the record on CareBridge rather than in a server room means — but the
  * product never said so, and a claim nobody can see is not a feature.
  *
  * Two audiences, one fact:
@@ -62,7 +62,7 @@ export function PatientContinuityNote({ patientId }: { patientId: string }) {
         <p className="mt-0.5 text-[12.5px] leading-relaxed">{affected.continuity_note}</p>
         <p className="mt-1 text-[12.5px] leading-relaxed opacity-90">
           Their record is not held in that building. Everything below is complete and current — it
-          lives on the Grid, so a closed clinic does not close the record.
+          lives on CareBridge, so a closed clinic does not close the record.
         </p>
       </div>
     </div>
@@ -148,7 +148,7 @@ export function ContinuityPanel() {
         ))}
       </div>
       <p className="border-t border-border px-5 py-3 text-[12.5px] leading-relaxed text-muted-foreground">
-        Every one of these {displaced} people can be treated at any other facility on the Grid
+        Every one of these {displaced} people can be treated at any other facility on CareBridge
         today, with their full history, because the record was never stored in the building that
         closed.
       </p>

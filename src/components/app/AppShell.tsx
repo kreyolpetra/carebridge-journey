@@ -68,8 +68,8 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
           (onDark ? "text-sidebar-foreground" : "")
         }
       >
-        CariCare
-        <span className={onDark ? "text-sidebar-gold" : "text-primary"}> Grid</span>
+        CareBridge
+        <span className={onDark ? "text-sidebar-gold" : "text-primary"}> Journey</span>
       </span>
     </Link>
   );
@@ -167,7 +167,7 @@ export function AppShell() {
   const navigate = useNavigate();
   const live = useRealtimeGrid();
 
-  const name = profile?.full_name ?? "Grid user";
+  const name = profile?.full_name ?? "CareBridge user";
 
   // Until the profile resolves we know the session but not the role, and
   // useAuth falls back to "patient". Rendering on that fallback would show a

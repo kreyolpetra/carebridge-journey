@@ -40,7 +40,7 @@ if (!rootEl) {
   // it sits in the document, so if it is ever moved back into <head> the mount
   // point will not exist yet and the page would otherwise fail silently.
   throw new Error(
-    "CariCare Grid: #root not found — the bundle must load after it in the document.",
+    "CareBridge Journey: #root not found — the bundle must load after it in the document.",
   );
 }
 

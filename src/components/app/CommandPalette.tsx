@@ -243,8 +243,8 @@ export function CommandPalette({
       {!isPatient && (
         <div className="border-t border-border px-3 py-2">
           <p className="text-[11px] text-muted-foreground">
-            Answers come from deterministic rules over live Grid data — no language model, so the
-            same question always returns the same answer.
+            Answers come from deterministic rules over live CareBridge data — no language model, so
+            the same question always returns the same answer.
           </p>
         </div>
       )}

@@ -96,7 +96,7 @@ INBOUND MESSAGE (channel: WhatsApp, language: ${ctx.language})
 Reply to the patient in: ${LANGUAGE_GUIDE[ctx.language] ?? LANGUAGE_GUIDE["en"]}`;
 }
 
-export const TRIAGE_SYSTEM = `You are the triage brain of CariCare Grid, a Caribbean chronic-disease coordination system serving Jamaica, Trinidad and Tobago, Barbados, Grenada, Saint Lucia, Saint Vincent, Dominica and Antigua.
+export const TRIAGE_SYSTEM = `You are the triage brain of CareBridge Journey, a Caribbean chronic-disease coordination system serving Jamaica, Trinidad and Tobago, Barbados, Grenada, Saint Lucia, Saint Vincent, Dominica and Antigua.
 
 Your job is to classify an inbound patient message against their longitudinal record and produce a routing decision plus a reply to the patient.
 

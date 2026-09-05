@@ -1,5 +1,5 @@
 /**
- * Getting a clinic's staff onto the Grid without typing them in one at a time.
+ * Getting a clinic's staff onto CareBridge without typing them in one at a time.
  *
  * The first version of this asked for a name and a job, one person per click,
  * and promised them an invitation it had no way to send — it collected no

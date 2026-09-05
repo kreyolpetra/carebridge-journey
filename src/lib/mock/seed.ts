@@ -135,7 +135,7 @@ export type Tables = {
   workflow_events: Row[];
 } & Record<string, Row[]>;
 
-// Resource profiles are what let the Grid reason about an unequal region rather
+// Resource profiles are what let CareBridge reason about an unequal region rather
 // than a uniform one. Figures are ILLUSTRATIVE — right order of magnitude, drawn
 // from public WHO / World Bank / PAHO country indicators of varying years. They
 // exist to make the asymmetry real, not to be cited as a harmonised dataset.
@@ -408,7 +408,7 @@ const LAST_NAMES_DR = [
 ];
 
 // Name pools by cultural tradition, not one Anglo-Caribbean list for all eleven
-// countries. The Grid covers Haiti, Cuba and the Dominican Republic, and a
+// countries. CareBridge covers Haiti, Cuba and the Dominican Republic, and a
 // Haitian patient called "Winston Campbell" or a Cuban called "Delroy Weekes"
 // reads as a placeholder the moment a Caribbean clinician looks at the screen.
 // Trinidad is split because roughly a third of the population is Indo-
@@ -708,7 +708,7 @@ const PARISHES: Record<string, string[]> = {
 // Registered patients per country. Trinidad carries the largest roster not
 // because it has the most people — Haiti alone has seven times its population —
 // but because Trinidad and Tobago General is the deployment site: the hospital
-// actually running the Grid registers its whole catchment, while other
+// actually running CareBridge registers its whole catchment, while other
 // countries are still onboarding through referrals and clinics.
 const PATIENT_WEIGHTS: Record<string, number> = {
   JM: 140,
@@ -1048,9 +1048,9 @@ export function buildSeed(): Tables {
   });
 
   // ---- the deployment site ----
-  // Trinidad and Tobago General is the hospital using the Grid day to day, so
+  // Trinidad and Tobago General is the hospital using CareBridge day to day, so
   // its own catchment is modelled properly: a registered roster, a ward, clinic
-  // lists and named care teams. Everyone else on the Grid arrives through a
+  // lists and named care teams. Everyone else on CareBridge arrives through a
   // referral or a clinic, and is deliberately thinner.
   const ttGeneralRoster = t.patients.filter((p) => p.island_code === "TT").slice(0, 220);
   const ttGeneralIds = new Set(ttGeneralRoster.map((p) => p.id as string));
@@ -1415,7 +1415,7 @@ export function buildSeed(): Tables {
       notes:
         lifecycle === "scheduled"
           ? "Cross-island teleconsult booked, awaiting the appointment."
-          : "Teleconsult completed via CariCare Grid.",
+          : "Teleconsult completed via CareBridge Journey.",
       plan:
         lifecycle === "scheduled"
           ? ""
@@ -1505,7 +1505,7 @@ export function buildSeed(): Tables {
    *
    * Two of them are the point of the panel: an HbA1c taken at the Jamaican
    * hospital six weeks ago is still current, so a Trinidad clinician ordering
-   * one would be repeating a test the Grid already holds — and the value
+   * one would be repeating a test CareBridge already holds — and the value
    * matches the faxed lab report in her paper records, because the same result
    * arriving twice by two routes should not disagree with itself.
    */
@@ -1922,7 +1922,7 @@ export function buildSeed(): Tables {
       kind: "clinic_visit",
       reason: "Walk-in: headaches and blurred vision",
       summary:
-        "BP 168/104 at the clinic. Started on amlodipine, referred into the Grid for cardiology.",
+        "BP 168/104 at the clinic. Started on amlodipine, referred into CareBridge for cardiology.",
       status: "closed",
       started_at: daysAgo(21),
       ended_at: new Date(nowMs() - 21 * 86400000 + 40 * 60000).toISOString(),
@@ -1964,7 +1964,7 @@ export function buildSeed(): Tables {
 
   // ---- Trinidad and Tobago General: a hospital in the middle of its day ----
   // Everything above describes a region. This describes one hospital actually
-  // running on the Grid — who is on the ward right now, who is in clinic today,
+  // running on CareBridge — who is on the ward right now, who is in clinic today,
   // and which consultant carries which patient. Without it the deployment site
   // looked like a pilot with three patients on it, because a clinician's panel
   // is built from care-team rows and episodes, not from the patient table.
@@ -2288,7 +2288,7 @@ export function buildSeed(): Tables {
   const ttFacility = t.facilities.find((f) => f.id === TT_HOSPITAL_ID);
   if (ttFacility) {
     // Occupancy should agree with the ward list sitting next to it: the modelled
-    // admissions plus the surgical, maternity and paediatric beds the Grid does
+    // admissions plus the surgical, maternity and paediatric beds CareBridge does
     // not track.
     const untracked = Math.round((ttFacility["beds_total"] as number) * 0.62);
     ttFacility["beds_occupied"] = Math.min(
@@ -2643,8 +2643,8 @@ export function buildSeed(): Tables {
    *
    * This is the scenario the regional record answers and nothing in the product
    * ever said out loud: when a building goes down, the people it was treating
-   * do not stop existing. Their record is not in that building — it is on the
-   * Grid — so the clinic on the next island can open it the same afternoon.
+   * do not stop existing. Their record is not in that building — it is on
+   * CareBridge — so the clinic on the next island can open it the same afternoon.
    *
    * Marked here rather than at facility creation because it has to fall on
    * buildings that actually have patients in them. Run earlier it picked two
@@ -2926,7 +2926,7 @@ export function buildSeed(): Tables {
       facility_id: null,
       cohort_rule: { condition: "Hypertension", no_reading_days: 30, risk_min: 30 },
       message_template:
-        "Hi {name}, this is your CariCare care team. It has been a while since your last blood pressure check. Reply with your reading (e.g. 148/92) or type CHECK and we will find you a free check nearby.",
+        "Hi {name}, this is your CareBridge care team. It has been a while since your last blood pressure check. Reply with your reading (e.g. 148/92) or type CHECK and we will find you a free check nearby.",
       channel: "whatsapp",
       status: "running",
       starts_on: dateDaysAgo(9),
@@ -3327,9 +3327,9 @@ export function buildSeed(): Tables {
     user_id: id,
     role: persona === "clinic_staff" ? "clinician" : persona,
   }));
-  // A hospital's Grid accounts are people, not job titles. The roster carries
+  // A hospital's CareBridge accounts are people, not job titles. The roster carries
   // names so the facility console reads like a staff list rather than a list of
-  // anonymous "Grid account" rows.
+  // anonymous "CareBridge account" rows.
   const TTGH_STAFF: [string, string, string][] = [
     ["Dr. Anjali Seepersad", "doctor", "Consultant endocrinologist"],
     ["Dr. Roger Alleyne", "doctor", "Consultant nephrologist"],

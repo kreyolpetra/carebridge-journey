@@ -109,9 +109,7 @@ export function VisitDialog({
             <p className="mt-1.5 text-[13px]">{provider?.full_name ?? "Care team"}</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
-              {provider
-                ? `${provider.specialty} · ${provider.island_code}`
-                : "CariCare Grid clinic"}
+              {provider ? `${provider.specialty} · ${provider.island_code}` : "CareBridge clinic"}
             </p>
           </section>
 

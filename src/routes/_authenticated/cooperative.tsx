@@ -35,7 +35,7 @@ import { usd, timeAgo } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/cooperative")({
   head: () => ({
     meta: [
-      { title: "Health Data Cooperative — Consent-Governed Research Access | CariCare Grid" },
+      { title: "Health Data Cooperative — Consent-Governed Research Access | CareBridge Journey" },
       {
         name: "description",
         content:

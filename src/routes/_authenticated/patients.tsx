@@ -55,7 +55,7 @@ const BELOW_PREVIEW = 25;
 export const Route = createFileRoute("/_authenticated/patients")({
   head: () => ({
     meta: [
-      { title: "Patients — Worklist & Directory | CariCare Grid" },
+      { title: "Patients — Worklist & Directory | CareBridge Journey" },
       {
         name: "description",
         content:
@@ -256,7 +256,7 @@ function Patients() {
   const handedOff = countByDisposition(allocation.below);
 
   /**
-   * Every patient on the Grid, browsable by name — the directory.
+   * Every patient on CareBridge, browsable by name — the directory.
    *
    * Identity only: name, age, sex, parish, country, language. Whether a row is
    * readable is shown on it (the basis you hold, or "sealed"), and selecting a
@@ -807,7 +807,7 @@ function Patients() {
             {tab === "mine" && accessReady && !queue.length ? (
               <p className="px-3 py-6 text-[13px] text-muted-foreground">
                 {query.trim() || bandFilter !== "all"
-                  ? "Nobody on your list matches that. The All patients tab searches the whole Grid."
+                  ? "Nobody on your list matches that. The All patients tab searches the whole of CareBridge."
                   : "No patients on your list. A referral you accept, an episode at your facility, or a consent grant from the patient will place someone here."}
               </p>
             ) : null}
@@ -815,7 +815,7 @@ function Patients() {
               <p className="px-3 py-6 text-[13px] leading-relaxed text-muted-foreground">
                 {isAggregateOnly
                   ? "Your role is aggregate and de-identified only, so the patient directory is not available to it."
-                  : `Nobody on the Grid matches “${query.trim()}”.`}
+                  : `Nobody on CareBridge matches “${query.trim()}”.`}
               </p>
             ) : null}
           </div>

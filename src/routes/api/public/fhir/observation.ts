@@ -15,7 +15,7 @@ const Body = z.object({
 
 /**
  * Partner write endpoint: a home device gateway, clinic system or community
- * health worker app pushes a reading into the Grid, where the detection layer
+ * health worker app pushes a reading into CareBridge, where the detection layer
  * picks it up.
  */
 export const Route = createFileRoute("/api/public/fhir/observation")({

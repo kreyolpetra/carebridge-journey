@@ -69,7 +69,7 @@ export interface ModelAdapter {
 
   /** Grade an inbound patient message. */
   triage(req: TriageRequest): Promise<Judgement<TriageResult>>;
-  /** Resolve a plain-language question to an intent the Grid can answer. */
+  /** Resolve a plain-language question to an intent CareBridge can answer. */
   classifyQuestion(req: QuestionRequest): Promise<Judgement<Intent | null>>;
   /** Order what a clinician should raise, given findings already computed. */
   narrateAgenda(req: AgendaRequest): Promise<Judgement<string[]>>;
@@ -99,7 +99,7 @@ export const rulesAdapter: ModelAdapter = {
   classifyQuestion: async (req) => ({
     value: classifyIntent(req.question, req.islands),
     degraded: true,
-    note: "Keyword and pattern matching over the Grid's own vocabulary.",
+    note: "Keyword and pattern matching over CareBridge's own vocabulary.",
   }),
 
   narrateAgenda: async (req) => ({

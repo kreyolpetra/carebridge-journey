@@ -1,4 +1,4 @@
-# CariCare Grid — Product Requirements
+# CareBridge Journey — Product Requirements
 
 **Version** 0.1 (draft) · **Updated** 30 August 2026 · **Status** Working prototype
 **Context** Caribbean health buildathon · **Team** 2 builders · **Codebase** Island Health Connect
@@ -48,7 +48,7 @@ connecting detection, access, and treatment across the region.
 
 ## 2. Product thesis
 
-CariCare Grid is a coordination layer, not a point tool. Its wager is that the four things
+CareBridge Journey is a coordination layer, not a point tool. Its wager is that the four things
 every team builds separately — a chatbot, a triage model, a referral directory, a dashboard —
 are only valuable when they are the same system operating on one shared record.
 
@@ -78,7 +78,7 @@ Three commitments distinguish it from a well-built single-island app:
 ### Non-goals
 
 - **Not a hospital information system.** No bed management, staff rostering, billing, or theatre scheduling. Facility data enters as a capacity signal, not an operations surface.
-- **Not an EHR replacement.** The Grid reads from and writes to existing systems through an open API; it does not attempt to become the system of record for a hospital.
+- **Not an EHR replacement.** CareBridge reads from and writes to existing systems through an open API; it does not attempt to become the system of record for a hospital.
 - **Not a diagnostic tool.** Triage classifies urgency and routes to a level of care. It never diagnoses in a patient-facing message.
 - **Not a pharmacy or logistics system.** Stock levels are consumed as signal; replenishment is out of scope.
 
@@ -146,7 +146,7 @@ the running prototype.
 ### 6.1 Patient care line · `/patient` · P0 · ✅ Built
 
 A WhatsApp-faithful thread inside the app, driven by the same message-handler layer a real
-webhook would call. This is the patient's entire interface to the Grid.
+webhook would call. This is the patient's entire interface to CareBridge.
 
 - Free-text and quick-action intake: log blood pressure, log glucose, report out of medication, send a voice note
 - Structured extraction of vitals, symptoms, and adherence from unstructured text
