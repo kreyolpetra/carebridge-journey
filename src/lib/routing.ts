@@ -88,13 +88,17 @@ export function computeNeed(args: {
     const overrun = localWaitDays - windowDays;
     if (overrun > 0) {
       score += Math.min(40, Math.round((overrun / Math.max(windowDays, 1)) * 18));
-      reasons.push(`Local wait of ${localWaitDays} days overshoots the clinical window by ${Math.round(overrun)} days`);
+      reasons.push(
+        `Local wait of ${localWaitDays} days overshoots the clinical window by ${Math.round(overrun)} days`,
+      );
     }
   }
 
   if (profile?.tier === "under_resourced") {
     score += 20;
-    reasons.push(`${profile.code}: ${profile.physPer1k} physicians per 1,000 — the region's thinnest workforce`);
+    reasons.push(
+      `${profile.code}: ${profile.physPer1k} physicians per 1,000 — the region's thinnest workforce`,
+    );
   } else if (profile?.tier === "clinician_rich") {
     // Deep clinical bench; the binding constraint here is medicine supply, not
     // access to a clinician, so a referral out is rarely what is short.
@@ -130,24 +134,41 @@ export function routePatient(args: {
   slots: RoutableSlot[];
   patientIslandProfile?: IslandProfile | undefined;
 }): RoutingDecision {
-  const { specialty, severity, patientIsland, patientLanguage, providers, slots, patientIslandProfile } = args;
+  const {
+    specialty,
+    severity,
+    patientIsland,
+    patientLanguage,
+    providers,
+    slots,
+    patientIslandProfile,
+  } = args;
   const windowHours = CLINICAL_WINDOW_HOURS[severity] ?? 336;
   const now = Date.now();
 
   const pool = providers.filter((p) => p.specialty === specialty);
-  const fallbackPool = pool.length ? pool : providers.filter((p) => p.specialty === "Internal Medicine");
+  const fallbackPool = pool.length
+    ? pool
+    : providers.filter((p) => p.specialty === "Internal Medicine");
   const effective = fallbackPool.length ? fallbackPool : providers;
 
   // Local capacity is judged against the requested specialty, not the fallback
   // pool — an internist standing in for absent cardiology is a substitution,
   // not evidence that the country has cardiology.
-  const localProviders = providers.filter((p) => p.island_code === patientIsland && p.specialty === specialty);
+  const localProviders = providers.filter(
+    (p) => p.island_code === patientIsland && p.specialty === specialty,
+  );
   const localWaitDays = localProviders.length
     ? Math.min(...localProviders.map((p) => p.next_local_wait_days))
     : 45;
   const noLocalCapacity = localProviders.length === 0;
 
-  const need = computeNeed({ noLocalCapacity, localWaitDays, windowHours, profile: patientIslandProfile });
+  const need = computeNeed({
+    noLocalCapacity,
+    localWaitDays,
+    windowHours,
+    profile: patientIslandProfile,
+  });
 
   const candidates: RoutingCandidate[] = effective.map((provider) => {
     const own = slots.filter((s) => s.provider_id === provider.id);
@@ -173,7 +194,9 @@ export function routePatient(args: {
     const timeliness = Math.max(0, 1 - hoursToSlot / windowHours);
     score += timeliness * 120;
     if (hoursToSlot <= windowHours) {
-      reasons.push(`Available in ${formatHours(hoursToSlot)} — inside the ${formatHours(windowHours)} clinical window`);
+      reasons.push(
+        `Available in ${formatHours(hoursToSlot)} — inside the ${formatHours(windowHours)} clinical window`,
+      );
     } else {
       // A slot outside the window is still the only care on offer when there is
       // no local alternative, so the penalty is softened in proportion to need.
@@ -197,7 +220,9 @@ export function routePatient(args: {
       // Charging a cross-border penalty to a patient whose country has no such
       // clinician penalises them for their government's capacity. Waive it.
       if (noLocalCapacity) {
-        reasons.push(`Cross-island from ${provider.island_code} — unavoidable, no local option exists`);
+        reasons.push(
+          `Cross-island from ${provider.island_code} — unavoidable, no local option exists`,
+        );
       } else {
         score -= 8;
         reasons.push(`Cross-island from ${provider.island_code} — consent grant required`);

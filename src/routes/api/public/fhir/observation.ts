@@ -22,7 +22,9 @@ export const Route = createFileRoute("/api/public/fhir/observation")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+        const token = (request.headers.get("authorization") ?? "")
+          .replace(/^Bearer\s+/i, "")
+          .trim();
         if (!token) return Response.json({ error: "Missing bearer token." }, { status: 401 });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -38,7 +40,10 @@ export const Route = createFileRoute("/api/public/fhir/observation")({
 
         const parsed = Body.safeParse(await request.json().catch(() => null));
         if (!parsed.success) {
-          return Response.json({ error: "Invalid observation", detail: parsed.error.issues }, { status: 400 });
+          return Response.json(
+            { error: "Invalid observation", detail: parsed.error.issues },
+            { status: 400 },
+          );
         }
         const b = parsed.data;
 
@@ -61,7 +66,9 @@ export const Route = createFileRoute("/api/public/fhir/observation")({
         if (error) return Response.json({ error: error.message }, { status: 400 });
 
         // Let the detection layer look at the new reading immediately.
-        const { data: trends } = await supabaseAdmin.rpc("detect_trend", { p_patient: b.patient_id });
+        const { data: trends } = await supabaseAdmin.rpc("detect_trend", {
+          p_patient: b.patient_id,
+        });
         for (const t of trends ?? []) {
           await supabaseAdmin.from("detection_signals").insert({
             patient_id: b.patient_id,
@@ -77,7 +84,12 @@ export const Route = createFileRoute("/api/public/fhir/observation")({
         }
 
         return Response.json(
-          { resourceType: "Observation", id: inserted.id, status: "final", signals_raised: (trends ?? []).length },
+          {
+            resourceType: "Observation",
+            id: inserted.id,
+            status: "final",
+            signals_raised: (trends ?? []).length,
+          },
           { status: 201 },
         );
       },

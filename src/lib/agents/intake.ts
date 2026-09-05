@@ -1,5 +1,10 @@
 /**
- * The intake agent — job 1 of the seven in the product plan.
+ * The intake agent — one of three built.
+ *
+ * The product plan named seven; three exist, and this comment used to imply
+ * the rest did too. The built ones are intake triage, the pre-consult brief
+ * and Ask. Naming that here rather than in a pitch means a reader who opens
+ * the folder and counts is not discovering a gap the code was hiding.
  *
  * A message arrives from a patient on WhatsApp. Something has to read it,
  * decide how urgent it is, gather the record around it, and hand a clinician a

@@ -102,7 +102,9 @@ function Dashboard() {
     });
   }, [islands.data, patients.data, facilities.data, providers.data, latestRisk]);
 
-  const refs = referrals.data ?? [];
+  // Memoised because four useMemo blocks below depend on it: `?? []` builds a
+  // fresh array on every render, which invalidated all four every time.
+  const refs = useMemo(() => referrals.data ?? [], [referrals.data]);
   // Completed only: value is realised when the consult is held, not when it
   // is routed.
   const retained = refs

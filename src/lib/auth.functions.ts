@@ -13,13 +13,20 @@ export async function demoSignIn({ data }: { data: { persona: DemoPersona } }) {
 /** Roles that carry access to other people's records, and so cannot be self-declared. */
 const VERIFIED_ROLES = new Set(["clinician", "ministry", "insurer", "admin"]);
 
+/** The roles the profiles table will accept. */
+export type AppRole = "patient" | "clinician" | "ministry" | "insurer" | "admin";
+
 export async function provisionProfile({
   data,
 }: {
   data: {
     userId: string;
     fullName: string;
-    role: string;
+    /**
+     * Narrowed to the roles the database actually accepts. It was `string`,
+     * which meant a typo in a caller compiled fine and failed at write time.
+     */
+    role: AppRole;
     licenceNo?: string | null;
     facilityId?: string | null;
     staffRole?: string | null;

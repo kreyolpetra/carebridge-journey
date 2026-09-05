@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-type Client = { id: string; name: string; organisation: string; scopes: string[]; status: string; token_prefix: string };
+type Client = {
+  id: string;
+  name: string;
+  organisation: string;
+  scopes: string[];
+  status: string;
+  token_prefix: string;
+};
 
 function unauthorised(detail: string) {
   return Response.json(
@@ -21,7 +28,9 @@ export const Route = createFileRoute("/api/public/fhir/patient/$id")({
   server: {
     handlers: {
       GET: async ({ request, params }) => {
-        const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+        const token = (request.headers.get("authorization") ?? "")
+          .replace(/^Bearer\s+/i, "")
+          .trim();
         if (!token) return unauthorised("Missing bearer token.");
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -34,7 +43,8 @@ export const Route = createFileRoute("/api/public/fhir/patient/$id")({
         );
         if (!client) return unauthorised("Unrecognised token.");
         if (client.status !== "active") return unauthorised(`Token is ${client.status}.`);
-        if (!client.scopes.includes("patient.read")) return unauthorised("Token lacks the patient.read scope.");
+        if (!client.scopes.includes("patient.read"))
+          return unauthorised("Token lacks the patient.read scope.");
 
         const patientId = params.id;
         const [patient, conditions, medications, vitals, encounters] = await Promise.all([
@@ -104,8 +114,14 @@ export const Route = createFileRoute("/api/public/fhir/patient/$id")({
                 effectiveDateTime: v.measured_at,
                 code: { text: "Blood pressure" },
                 component: [
-                  { code: { text: "Systolic" }, valueQuantity: { value: v.systolic, unit: "mmHg" } },
-                  { code: { text: "Diastolic" }, valueQuantity: { value: v.diastolic, unit: "mmHg" } },
+                  {
+                    code: { text: "Systolic" },
+                    valueQuantity: { value: v.systolic, unit: "mmHg" },
+                  },
+                  {
+                    code: { text: "Diastolic" },
+                    valueQuantity: { value: v.diastolic, unit: "mmHg" },
+                  },
                 ],
               },
             });

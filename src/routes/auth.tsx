@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { facilitiesQuery } from "@/lib/api";
-import { demoSignIn, provisionProfile } from "@/lib/auth.functions";
+import { demoSignIn, provisionProfile, type AppRole } from "@/lib/auth.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { DEMO_ACCOUNTS, type DemoPersona } from "@/lib/demo-accounts";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,10 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<DemoPersona>("patient");
+  // An app role, not a demo persona: the two overlap but "clinic_staff" is a
+  // demo login, not a role the profiles table accepts. Typing it as the
+  // persona let an invalid role compile.
+  const [role, setRole] = useState<AppRole>("patient");
   const [licenceNo, setLicenceNo] = useState("");
   const [facilityId, setFacilityId] = useState("");
   const [staffRole, setStaffRole] = useState("doctor");
@@ -301,7 +304,7 @@ function AuthPage() {
                 <select
                   id="role"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as DemoPersona)}
+                  onChange={(e) => setRole(e.target.value as AppRole)}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-[13.5px]"
                 >
                   <option value="patient">Patient</option>

@@ -52,7 +52,9 @@ export const ROLE_LABEL: Record<string, string> = {
 };
 
 /** Facilities the demo staff personas work at. */
-export const DEMO_FACILITY: Partial<Record<DemoPersona, { id: string; staffRole: string; title: string }>> = {
+export const DEMO_FACILITY: Partial<
+  Record<DemoPersona, { id: string; staffRole: string; title: string }>
+> = {
   clinic_staff: {
     id: "a0ce1541-1e9d-4cce-81a5-218002bddd9d",
     staffRole: "nurse",

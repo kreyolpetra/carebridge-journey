@@ -40,14 +40,15 @@ export function useNotifications() {
 
     const fromAlerts: GridNotification[] = (alerts.data ?? [])
       .filter((a) => (patientId ? a.patient_id === patientId : true))
-      .slice(0, 25).map((a) => ({
-      id: `alert:${a.id}`,
-      title: a.title,
-      detail: a.detail,
-      tone: a.severity === "high" || a.severity === "critical" ? "critical" : "warning",
-      at: a.created_at,
-      to: isPatient ? "/patient" : a.kind === "stockout" ? "/dashboard" : "/clinician",
-    }));
+      .slice(0, 25)
+      .map((a) => ({
+        id: `alert:${a.id}`,
+        title: a.title,
+        detail: a.detail,
+        tone: a.severity === "high" || a.severity === "critical" ? "critical" : "warning",
+        at: a.created_at,
+        to: isPatient ? "/patient" : a.kind === "stockout" ? "/dashboard" : "/clinician",
+      }));
 
     const fromReferrals: GridNotification[] = (referrals.data ?? [])
       .filter((r) => r.status === "pending")
@@ -72,8 +73,15 @@ export function useNotifications() {
   const markAllRead = useCallback(() => {
     const ids = items.map((i) => i.id);
     setRead(ids);
-    if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+    if (typeof window !== "undefined")
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
   }, [items]);
 
-  return { items, unread, unreadCount: unread.length, markAllRead, isRead: (id: string) => read.includes(id) };
+  return {
+    items,
+    unread,
+    unreadCount: unread.length,
+    markAllRead,
+    isRead: (id: string) => read.includes(id),
+  };
 }

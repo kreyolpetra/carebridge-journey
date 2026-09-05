@@ -22,12 +22,9 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDetectionRouteImport } from './routes/_authenticated/detection'
 import { Route as AuthenticatedFacilityRouteImport } from './routes/_authenticated/facility'
 import { Route as AuthenticatedInsurerRouteImport } from './routes/_authenticated/insurer'
-import { Route as AuthenticatedInteropRouteImport } from './routes/_authenticated/interop'
 import { Route as AuthenticatedPatientRouteImport } from './routes/_authenticated/patient'
 import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticated/patients'
-import { Route as AuthenticatedPreventionRouteImport } from './routes/_authenticated/prevention'
 import { Route as AuthenticatedRecordRouteImport } from './routes/_authenticated/record'
-import { Route as AuthenticatedRegistryRouteImport } from './routes/_authenticated/registry'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
@@ -102,11 +99,6 @@ const AuthenticatedInsurerRoute = AuthenticatedInsurerRouteImport.update({
   path: '/insurer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedInteropRoute = AuthenticatedInteropRouteImport.update({
-  id: '/interop',
-  path: '/interop',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedPatientRoute = AuthenticatedPatientRouteImport.update({
   id: '/patient',
   path: '/patient',
@@ -117,19 +109,9 @@ const AuthenticatedPatientsRoute = AuthenticatedPatientsRouteImport.update({
   path: '/patients',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPreventionRoute = AuthenticatedPreventionRouteImport.update({
-  id: '/prevention',
-  path: '/prevention',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedRecordRoute = AuthenticatedRecordRouteImport.update({
   id: '/record',
   path: '/record',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRegistryRoute = AuthenticatedRegistryRouteImport.update({
-  id: '/registry',
-  path: '/registry',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
@@ -183,12 +165,9 @@ export interface FileRoutesByFullPath {
   '/detection': typeof AuthenticatedDetectionRoute
   '/facility': typeof AuthenticatedFacilityRoute
   '/insurer': typeof AuthenticatedInsurerRoute
-  '/interop': typeof AuthenticatedInteropRoute
   '/patient': typeof AuthenticatedPatientRoute
   '/patients': typeof AuthenticatedPatientsRoute
-  '/prevention': typeof AuthenticatedPreventionRoute
   '/record': typeof AuthenticatedRecordRoute
-  '/registry': typeof AuthenticatedRegistryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/setup': typeof AuthenticatedSetupRoute
@@ -209,12 +188,9 @@ export interface FileRoutesByTo {
   '/detection': typeof AuthenticatedDetectionRoute
   '/facility': typeof AuthenticatedFacilityRoute
   '/insurer': typeof AuthenticatedInsurerRoute
-  '/interop': typeof AuthenticatedInteropRoute
   '/patient': typeof AuthenticatedPatientRoute
   '/patients': typeof AuthenticatedPatientsRoute
-  '/prevention': typeof AuthenticatedPreventionRoute
   '/record': typeof AuthenticatedRecordRoute
-  '/registry': typeof AuthenticatedRegistryRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/setup': typeof AuthenticatedSetupRoute
@@ -238,12 +214,9 @@ export interface FileRoutesById {
   '/_authenticated/detection': typeof AuthenticatedDetectionRoute
   '/_authenticated/facility': typeof AuthenticatedFacilityRoute
   '/_authenticated/insurer': typeof AuthenticatedInsurerRoute
-  '/_authenticated/interop': typeof AuthenticatedInteropRoute
   '/_authenticated/patient': typeof AuthenticatedPatientRoute
   '/_authenticated/patients': typeof AuthenticatedPatientsRoute
-  '/_authenticated/prevention': typeof AuthenticatedPreventionRoute
   '/_authenticated/record': typeof AuthenticatedRecordRoute
-  '/_authenticated/registry': typeof AuthenticatedRegistryRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
@@ -268,12 +241,9 @@ export interface FileRouteTypes {
     | '/detection'
     | '/facility'
     | '/insurer'
-    | '/interop'
     | '/patient'
     | '/patients'
-    | '/prevention'
     | '/record'
-    | '/registry'
     | '/reports'
     | '/settings'
     | '/setup'
@@ -294,12 +264,9 @@ export interface FileRouteTypes {
     | '/detection'
     | '/facility'
     | '/insurer'
-    | '/interop'
     | '/patient'
     | '/patients'
-    | '/prevention'
     | '/record'
-    | '/registry'
     | '/reports'
     | '/settings'
     | '/setup'
@@ -322,12 +289,9 @@ export interface FileRouteTypes {
     | '/_authenticated/detection'
     | '/_authenticated/facility'
     | '/_authenticated/insurer'
-    | '/_authenticated/interop'
     | '/_authenticated/patient'
     | '/_authenticated/patients'
-    | '/_authenticated/prevention'
     | '/_authenticated/record'
-    | '/_authenticated/registry'
     | '/_authenticated/reports'
     | '/_authenticated/settings'
     | '/_authenticated/setup'
@@ -439,13 +403,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInsurerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/interop': {
-      id: '/_authenticated/interop'
-      path: '/interop'
-      fullPath: '/interop'
-      preLoaderRoute: typeof AuthenticatedInteropRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/patient': {
       id: '/_authenticated/patient'
       path: '/patient'
@@ -460,25 +417,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPatientsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/prevention': {
-      id: '/_authenticated/prevention'
-      path: '/prevention'
-      fullPath: '/prevention'
-      preLoaderRoute: typeof AuthenticatedPreventionRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/record': {
       id: '/_authenticated/record'
       path: '/record'
       fullPath: '/record'
       preLoaderRoute: typeof AuthenticatedRecordRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/registry': {
-      id: '/_authenticated/registry'
-      path: '/registry'
-      fullPath: '/registry'
-      preLoaderRoute: typeof AuthenticatedRegistryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports': {
@@ -544,12 +487,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDetectionRoute: typeof AuthenticatedDetectionRoute
   AuthenticatedFacilityRoute: typeof AuthenticatedFacilityRoute
   AuthenticatedInsurerRoute: typeof AuthenticatedInsurerRoute
-  AuthenticatedInteropRoute: typeof AuthenticatedInteropRoute
   AuthenticatedPatientRoute: typeof AuthenticatedPatientRoute
   AuthenticatedPatientsRoute: typeof AuthenticatedPatientsRoute
-  AuthenticatedPreventionRoute: typeof AuthenticatedPreventionRoute
   AuthenticatedRecordRoute: typeof AuthenticatedRecordRoute
-  AuthenticatedRegistryRoute: typeof AuthenticatedRegistryRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
@@ -568,12 +508,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDetectionRoute: AuthenticatedDetectionRoute,
   AuthenticatedFacilityRoute: AuthenticatedFacilityRoute,
   AuthenticatedInsurerRoute: AuthenticatedInsurerRoute,
-  AuthenticatedInteropRoute: AuthenticatedInteropRoute,
   AuthenticatedPatientRoute: AuthenticatedPatientRoute,
   AuthenticatedPatientsRoute: AuthenticatedPatientsRoute,
-  AuthenticatedPreventionRoute: AuthenticatedPreventionRoute,
   AuthenticatedRecordRoute: AuthenticatedRecordRoute,
-  AuthenticatedRegistryRoute: AuthenticatedRegistryRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,

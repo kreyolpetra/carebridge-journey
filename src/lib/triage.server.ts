@@ -6,7 +6,9 @@ export const TriageSchema = z.object({
     .describe("Clinical urgency of this message"),
   category: z
     .string()
-    .describe("Short clinical category, e.g. Hypertensive crisis, Glycaemic control, Medication refill"),
+    .describe(
+      "Short clinical category, e.g. Hypertensive crisis, Glycaemic control, Medication refill",
+    ),
   specialty_needed: z
     .string()
     .describe(
@@ -44,7 +46,12 @@ export interface PatientContext {
   kmToFacility: number;
   conditions: string[];
   medications: { name: string; dosage: string; adherence: number; daysLeft: number }[];
-  recentVitals: { measured_at: string; systolic: number | null; diastolic: number | null; glucose: number | null }[];
+  recentVitals: {
+    measured_at: string;
+    systolic: number | null;
+    diastolic: number | null;
+    glucose: number | null;
+  }[];
 }
 
 const LANGUAGE_GUIDE: Record<string, string> = {
@@ -54,7 +61,8 @@ const LANGUAGE_GUIDE: Record<string, string> = {
   // separate orthographies. Collapsing them produces text that reads as broken
   // to both sets of speakers — and, worse, lets the router count a Kwéyòl
   // speaker as a language match for a Haitian patient.
-  "fr-cr": "Lesser Antillean Kwéyòl as spoken in St. Lucia and Dominica, as a local health worker would text.",
+  "fr-cr":
+    "Lesser Antillean Kwéyòl as spoken in St. Lucia and Dominica, as a local health worker would text.",
   ht: "Haitian Kreyòl in standard Haitian orthography, as a Haitian community health worker would text. Plain and respectful, never a caricature of French.",
   fr: "Haitian French — formal but warm, for the minority who read French rather than Kreyòl.",
   es: "Caribbean Spanish, warm and clear.",
@@ -104,7 +112,7 @@ Rules:
 
 export function ruleBasedTriage(ctx: PatientContext, message: string): TriageResult {
   const text = message.toLowerCase();
-  const bpMatch = text.match(/(\d{2,3})\s*[\/over]{1,4}\s*(\d{2,3})/);
+  const bpMatch = text.match(/(\d{2,3})\s*[/over]{1,4}\s*(\d{2,3})/);
   const latest = ctx.recentVitals[0];
   const systolic = bpMatch ? Number(bpMatch[1]) : (latest?.systolic ?? null);
   const diastolic = bpMatch ? Number(bpMatch[2]) : (latest?.diastolic ?? null);

@@ -1,4 +1,12 @@
-import { CalendarDays, MapPin, Stethoscope, Activity, FlaskConical, Pill as PillIcon, ClipboardList } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Stethoscope,
+  Activity,
+  FlaskConical,
+  Pill as PillIcon,
+  ClipboardList,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +61,15 @@ function glucoseFlag(g: number | null) {
   return { label: "in range", cls: bandClasses("low") };
 }
 
-export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, referral, medications }: Props) {
+export function VisitDialog({
+  visit,
+  onOpenChange,
+  provider,
+  vitals,
+  triage,
+  referral,
+  medications,
+}: Props) {
   if (!visit) return null;
   const when = new Date(visit.scheduled_at);
   const upcoming = when.getTime() > Date.now();
@@ -77,7 +93,9 @@ export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, ref
 
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill className={bandClasses(upcoming ? "moderate" : "low")}>{upcoming ? "upcoming" : visit.status}</Pill>
+            <Pill className={bandClasses(upcoming ? "moderate" : "low")}>
+              {upcoming ? "upcoming" : visit.status}
+            </Pill>
             {referral?.cross_island ? (
               <Pill className={bandClasses("moderate")}>seen from another island</Pill>
             ) : null}
@@ -91,7 +109,9 @@ export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, ref
             <p className="mt-1.5 text-[13px]">{provider?.full_name ?? "Care team"}</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" />
-              {provider ? `${provider.specialty} · ${provider.island_code}` : "CariCare Grid clinic"}
+              {provider
+                ? `${provider.specialty} · ${provider.island_code}`
+                : "CariCare Grid clinic"}
             </p>
           </section>
 
@@ -100,11 +120,15 @@ export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, ref
               <ClipboardList className="h-4 w-4 text-primary" /> Visit notes
             </h3>
             <p className="mt-1.5 text-[13px] leading-relaxed">
-              {visit.notes || (upcoming ? "Notes will appear here after your appointment." : "No notes recorded.")}
+              {visit.notes ||
+                (upcoming
+                  ? "Notes will appear here after your appointment."
+                  : "No notes recorded.")}
             </p>
             <h3 className="mt-4 text-[13px] font-semibold">Care plan</h3>
             <p className="mt-1.5 text-[13px] leading-relaxed">
-              {visit.plan || (upcoming ? "Your plan will be agreed at the visit." : "No plan recorded.")}
+              {visit.plan ||
+                (upcoming ? "Your plan will be agreed at the visit." : "No plan recorded.")}
             </p>
           </section>
 
@@ -122,19 +146,29 @@ export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, ref
                   const bp = bpFlag(v.systolic);
                   const g = glucoseFlag(v.glucose_mmol === null ? null : Number(v.glucose_mmol));
                   return (
-                    <div key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <div
+                      key={v.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2"
+                    >
                       <div className="text-[12.5px]">
                         <span className="font-semibold">
-                          {new Date(v.measured_at).toLocaleDateString([], { day: "numeric", month: "short" })}
+                          {new Date(v.measured_at).toLocaleDateString([], {
+                            day: "numeric",
+                            month: "short",
+                          })}
                         </span>{" "}
-                        <span className="text-muted-foreground">· {v.source.replace("_", " ")}</span>
+                        <span className="text-muted-foreground">
+                          · {v.source.replace("_", " ")}
+                        </span>
                         <div className="mt-0.5 flex flex-wrap gap-3 text-muted-foreground">
                           {v.systolic ? (
                             <span>
                               BP {v.systolic}/{v.diastolic ?? "—"} mmHg
                             </span>
                           ) : null}
-                          {v.glucose_mmol !== null ? <span>Glucose {Number(v.glucose_mmol).toFixed(1)} mmol/L</span> : null}
+                          {v.glucose_mmol !== null ? (
+                            <span>Glucose {Number(v.glucose_mmol).toFixed(1)} mmol/L</span>
+                          ) : null}
                           {v.pulse ? <span>Pulse {v.pulse} bpm</span> : null}
                           {v.weight_kg !== null && v.weight_kg !== undefined ? (
                             <span>Weight {Number(v.weight_kg).toFixed(1)} kg</span>
@@ -161,10 +195,14 @@ export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, ref
                 {relatedTriage.map((t) => (
                   <div key={t.id}>
                     <div className="flex items-center gap-2">
-                      <Pill className={severityClasses(t.severity)}>{t.severity.replace("_", " ")}</Pill>
+                      <Pill className={severityClasses(t.severity)}>
+                        {t.severity.replace("_", " ")}
+                      </Pill>
                       <span className="text-[12.5px] font-semibold">{t.category}</span>
                     </div>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{t.rationale}</p>
+                    <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                      {t.rationale}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -191,8 +229,10 @@ export function VisitDialog({ visit, onOpenChange, provider, vitals, triage, ref
 
           {referral ? (
             <section className="rounded-xl border border-border p-4 text-[12.5px] text-muted-foreground">
-              Referred for <span className="font-semibold text-foreground">{referral.specialty}</span> — {referral.reason}.
-              You waited {referral.wait_days_routed} days instead of {referral.wait_days_local}.
+              Referred for{" "}
+              <span className="font-semibold text-foreground">{referral.specialty}</span> —{" "}
+              {referral.reason}. You waited {referral.wait_days_routed} days instead of{" "}
+              {referral.wait_days_local}.
             </section>
           ) : null}
         </div>

@@ -1,4 +1,16 @@
-const TITLES = new Set(["dr", "dr.", "mr", "mr.", "mrs", "mrs.", "ms", "ms.", "nurse", "prof", "prof."]);
+const TITLES = new Set([
+  "dr",
+  "dr.",
+  "mr",
+  "mr.",
+  "mrs",
+  "mrs.",
+  "ms",
+  "ms.",
+  "nurse",
+  "prof",
+  "prof.",
+]);
 
 function parts(name: string) {
   return name.split(" ").filter((p) => p && !TITLES.has(p.toLowerCase()));

@@ -57,7 +57,10 @@ function detectTrend(patientId: string) {
   const vitals = getTable("vitals").filter((v) => v.patient_id === patientId);
   const meds = getTable("medications").filter((m) => m.patient_id === patientId);
 
-  const recentSys = avgNum(vitals.filter((v) => ageMs(v.measured_at as string) <= 10 * DAY), "systolic");
+  const recentSys = avgNum(
+    vitals.filter((v) => ageMs(v.measured_at as string) <= 10 * DAY),
+    "systolic",
+  );
   const baseSys = avgNum(
     vitals.filter((v) => {
       const a = ageMs(v.measured_at as string);
@@ -65,7 +68,10 @@ function detectTrend(patientId: string) {
     }),
     "systolic",
   );
-  const recentGlu = avgNum(vitals.filter((v) => ageMs(v.measured_at as string) <= 10 * DAY), "glucose_mmol");
+  const recentGlu = avgNum(
+    vitals.filter((v) => ageMs(v.measured_at as string) <= 10 * DAY),
+    "glucose_mmol",
+  );
   const baseGlu = avgNum(
     vitals.filter((v) => {
       const a = ageMs(v.measured_at as string);
@@ -73,7 +79,9 @@ function detectTrend(patientId: string) {
     }),
     "glucose_mmol",
   );
-  const supplyLeft = meds.length ? Math.min(...meds.map((m) => (m.days_supply_left as number) ?? 30)) : null;
+  const supplyLeft = meds.length
+    ? Math.min(...meds.map((m) => (m.days_supply_left as number) ?? 30))
+    : null;
   const adherence = avgNum(meds, "adherence_pct");
 
   const rows: Row[] = [];
@@ -85,7 +93,10 @@ function detectTrend(patientId: string) {
       delta_pct: Number((((recentSys - baseSys) / baseSys) * 100).toFixed(1)),
       severity: recentSys >= 160 ? "urgent" : recentSys >= 145 ? "elevated" : "watch",
       narrative: `Blood pressure has climbed from ${Math.round(baseSys)} to ${Math.round(recentSys)} mmHg over the last 10 days.`,
-      recommended_action: recentSys >= 160 ? "Call today; consider same-week teleconsult and medication review." : "Send a home-reading request and review adherence.",
+      recommended_action:
+        recentSys >= 160
+          ? "Call today; consider same-week teleconsult and medication review."
+          : "Send a home-reading request and review adherence.",
     });
   }
   if (recentGlu != null && baseGlu != null && recentGlu - baseGlu > 0.7) {
@@ -118,13 +129,17 @@ function detectTrend(patientId: string) {
       delta_pct: Number((adherence - 100).toFixed(1)),
       severity: adherence < 55 ? "urgent" : "elevated",
       narrative: `Medication adherence is averaging ${Math.round(adherence)}%.`,
-      recommended_action: "Enrol in the daily reminder track and check for cost or access barriers.",
+      recommended_action:
+        "Enrol in the daily reminder track and check for cost or access barriers.",
     });
   }
   return rows;
 }
 
-export function mockRpc(fn: string, args: Record<string, unknown>): { data: unknown; error: { message: string } | null } {
+export function mockRpc(
+  fn: string,
+  args: Record<string, unknown>,
+): { data: unknown; error: { message: string } | null } {
   try {
     const patientId = (args?.p_patient as string) ?? "";
     if (fn === "compute_risk") return { data: computeRisk(patientId), error: null };

@@ -21,7 +21,8 @@ export function HomeReadingCard({ patientId }: { patientId: string }) {
       const sys = systolic ? Number(systolic) : null;
       const dia = diastolic ? Number(diastolic) : null;
       const glu = glucose ? Number(glucose) : null;
-      if (sys === null && glu === null) throw new Error("Enter a blood pressure or a sugar reading.");
+      if (sys === null && glu === null)
+        throw new Error("Enter a blood pressure or a sugar reading.");
 
       const { error } = await supabase.from("vitals").insert({
         patient_id: patientId,

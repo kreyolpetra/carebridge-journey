@@ -44,9 +44,12 @@ export function GovernanceSections({
   const careTeam = useQuery(careTeamQuery(patientId));
   const breakGlass = useQuery(breakGlassQuery(patientId));
 
-  const facname = (id: string | null) => facilities.data?.find((f) => f.id === id)?.name ?? "Facility";
-  const facisland = (id: string | null) => facilities.data?.find((f) => f.id === id)?.island_code ?? "—";
-  const provname = (id: string | null) => providers.data?.find((p) => p.id === id)?.full_name ?? null;
+  const facname = (id: string | null) =>
+    facilities.data?.find((f) => f.id === id)?.name ?? "Facility";
+  const facisland = (id: string | null) =>
+    facilities.data?.find((f) => f.id === id)?.island_code ?? "—";
+  const provname = (id: string | null) =>
+    providers.data?.find((p) => p.id === id)?.full_name ?? null;
 
   const windows = useMemo(
     () => resolveTreatingWindows(encounters.data ?? [], facilities.data ?? [], policies.data ?? []),
@@ -56,7 +59,9 @@ export function GovernanceSections({
   const setSensitive = useMutation({
     mutationFn: async ({ category, allow }: { category: string; allow: boolean }) => {
       if (!patientId) throw new Error("Sign in as a patient to change these settings");
-      const existing = (sensitive.data ?? []).find((g) => g.category === category && !g.provider_id);
+      const existing = (sensitive.data ?? []).find(
+        (g) => g.category === category && !g.provider_id,
+      );
       const payload = {
         patient_id: patientId,
         category,
@@ -78,9 +83,17 @@ export function GovernanceSections({
   });
 
   const status = (category: string) =>
-    (sensitive.data ?? []).find((g) => g.category === category && !g.provider_id)?.status ?? "sealed";
+    (sensitive.data ?? []).find((g) => g.category === category && !g.provider_id)?.status ??
+    "sealed";
 
-  const tiers: CareTier[] = ["attending", "consulting", "nursing", "allied", "front_desk", "org_admin"];
+  const tiers: CareTier[] = [
+    "attending",
+    "consulting",
+    "nursing",
+    "allied",
+    "front_desk",
+    "org_admin",
+  ];
 
   return (
     <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -112,11 +125,15 @@ export function GovernanceSections({
                 </Pill>
               </div>
               <p className="mt-1 text-[12px] text-muted-foreground">
-                {a.reference} · {facisland(a.from_facility_id)} → {facisland(a.to_facility_id)} · {a.purpose}
+                {a.reference} · {facisland(a.from_facility_id)} → {facisland(a.to_facility_id)} ·{" "}
+                {a.purpose}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {a.scope.map((s) => (
-                  <span key={s} className="rounded-md border border-border bg-surface px-2 py-0.5 text-[11.5px] text-muted-foreground">
+                  <span
+                    key={s}
+                    className="rounded-md border border-border bg-surface px-2 py-0.5 text-[11.5px] text-muted-foreground"
+                  >
                     {s}
                   </span>
                 ))}
@@ -154,7 +171,13 @@ export function GovernanceSections({
                 </div>
               </div>
               <div className="text-right">
-                <Pill className={w.open ? "border-low/40 bg-low/10 text-low" : "border-border bg-surface text-muted-foreground"}>
+                <Pill
+                  className={
+                    w.open
+                      ? "border-low/40 bg-low/10 text-low"
+                      : "border-border bg-surface text-muted-foreground"
+                  }
+                >
                   {w.open ? "open" : "closed"}
                 </Pill>
                 <div className="mt-1 text-[11px] text-muted-foreground">
@@ -165,12 +188,14 @@ export function GovernanceSections({
           ))}
           {!windows.length ? (
             <p className="p-5 text-[13px] text-muted-foreground">
-              {isPatient ? "No facility currently holds treating access to your record." : "Select a patient to see their windows."}
+              {isPatient
+                ? "No facility currently holds treating access to your record."
+                : "Select a patient to see their windows."}
             </p>
           ) : null}
           <div className="px-5 py-3 text-[11.5px] text-muted-foreground">
-            Defaults: A&E 7 days · inpatient 30 · specialist 90 · primary care 365 rolling · pharmacy 30 · lab 14. Configurable per
-            facility type, capped at 365 days.
+            Defaults: A&E 7 days · inpatient 30 · specialist 90 · primary care 365 rolling ·
+            pharmacy 30 · lab 14. Configurable per facility type, capped at 365 days.
           </div>
         </div>
       </Panel>
@@ -205,7 +230,9 @@ export function GovernanceSections({
                   </Pill>
                   {isPatient ? (
                     <button
-                      onClick={() => setSensitive.mutate({ category: c.code, allow: s !== "active" })}
+                      onClick={() =>
+                        setSensitive.mutate({ category: c.code, allow: s !== "active" })
+                      }
                       className="mt-1.5 block w-full rounded-lg border border-border px-2.5 py-1 text-[11.5px] font-semibold text-muted-foreground hover:text-foreground"
                     >
                       {s === "active" ? "Seal again" : "Share"}
@@ -287,7 +314,9 @@ export function GovernanceSections({
               </div>
             ))}
             {!(breakGlass.data ?? []).length ? (
-              <p className="p-5 text-[13px] text-muted-foreground">No emergency overrides on record.</p>
+              <p className="p-5 text-[13px] text-muted-foreground">
+                No emergency overrides on record.
+              </p>
             ) : null}
             <div className="px-5 py-3 text-[11.5px] text-muted-foreground">
               Every override appears in{" "}

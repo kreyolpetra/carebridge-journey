@@ -233,7 +233,17 @@ export type TriageEvent = {
   confidence: number;
   created_at: string;
 };
-export type Condition = { id: string; patient_id: string; name: string; diagnosed_on: string };
+export type Condition = {
+  id: string;
+  patient_id: string;
+  name: string;
+  diagnosed_on: string | null;
+  /**
+   * Which sensitive category this falls in, if any — "standard" otherwise.
+   * The agents' consent gate reads it, and was casting around its absence.
+   */
+  sensitivity: string;
+};
 export type Consultation = {
   id: string;
   referral_id: string | null;

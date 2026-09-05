@@ -37,7 +37,9 @@ export function NotificationsMenu() {
         </div>
         <div className="max-h-[380px] overflow-y-auto">
           {!items.length ? (
-            <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">Nothing needs you right now.</p>
+            <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">
+              Nothing needs you right now.
+            </p>
           ) : (
             items.slice(0, 20).map((n) => (
               <Link
@@ -52,12 +54,18 @@ export function NotificationsMenu() {
                   <span
                     className={cn(
                       "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                      n.tone === "critical" ? "bg-critical" : n.tone === "warning" ? "bg-high" : "bg-primary",
+                      n.tone === "critical"
+                        ? "bg-critical"
+                        : n.tone === "warning"
+                          ? "bg-high"
+                          : "bg-primary",
                     )}
                   />
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold">{n.title}</p>
-                    <p className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">{n.detail}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">
+                      {n.detail}
+                    </p>
                     <p className="mt-1 text-[11px] text-muted-foreground">{timeAgo(n.at)}</p>
                   </div>
                 </div>

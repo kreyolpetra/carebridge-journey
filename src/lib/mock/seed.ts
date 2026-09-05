@@ -86,7 +86,54 @@ function identifiersFor(rng: Rng, islandCode: string, age: number) {
 }
 
 export type Row = Record<string, unknown>;
-export type Tables = Record<string, Row[]>;
+/**
+ * The mock database's tables, named rather than left as an index signature.
+ *
+ * As `Record<string, Row[]>` every `t.patients` in this file was both a
+ * possibly-undefined lookup and an index-signature access, which is where
+ * roughly three hundred of the project's TypeScript errors came from — all
+ * noise, none of them bugs, and enough of them to bury a real one.
+ */
+export type Tables = {
+  agent_runs: Row[];
+  alerts: Row[];
+  api_clients: Row[];
+  availability_slots: Row[];
+  break_glass_events: Row[];
+  campaign_targets: Row[];
+  care_team_members: Row[];
+  clinical_documents: Row[];
+  conditions: Row[];
+  consent_access_log: Row[];
+  consent_grants: Row[];
+  consultations: Row[];
+  cooperative_members: Row[];
+  data_requests: Row[];
+  data_sharing_agreements: Row[];
+  detection_signals: Row[];
+  discharges: Row[];
+  encounters: Row[];
+  facilities: Row[];
+  facility_staff: Row[];
+  islands: Row[];
+  lab_results: Row[];
+  medications: Row[];
+  messages: Row[];
+  patients: Row[];
+  profiles: Row[];
+  providers: Row[];
+  referrals: Row[];
+  risk_scores: Row[];
+  safety_reviews: Row[];
+  screening_campaigns: Row[];
+  sensitive_grants: Row[];
+  stock_items: Row[];
+  treating_window_policies: Row[];
+  triage_events: Row[];
+  user_roles: Row[];
+  vitals: Row[];
+  workflow_events: Row[];
+} & Record<string, Row[]>;
 
 // Resource profiles are what let the Grid reason about an unequal region rather
 // than a uniform one. Figures are ILLUSTRATIVE — right order of magnitude, drawn

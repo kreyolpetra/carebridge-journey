@@ -13,7 +13,9 @@ function matchIlike(value: unknown, pattern: string): boolean {
 }
 
 function newId(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 /**
@@ -145,7 +147,11 @@ export class MockQueryBuilder<T extends Row = Row> implements PromiseLike<Result
         // state. Real PostgREST returns fresh JSON every time; so does this now.
         const rows = this.sortAndLimit(table.filter((r) => this.matches(r))).map((r) => ({ ...r }));
         if (this.wantSingle) {
-          if (rows.length !== 1) return { data: null, error: { message: rows.length === 0 ? "Row not found" : "Multiple rows returned" } };
+          if (rows.length !== 1)
+            return {
+              data: null,
+              error: { message: rows.length === 0 ? "Row not found" : "Multiple rows returned" },
+            };
           return { data: rows[0] as T, error: null };
         }
         if (this.wantMaybeSingle) {
@@ -176,7 +182,8 @@ export class MockQueryBuilder<T extends Row = Row> implements PromiseLike<Result
         }
         persist();
         if (this.wantSingle) {
-          if (matched.length !== 1) return { data: null, error: { message: "no/multiple rows matched" } };
+          if (matched.length !== 1)
+            return { data: null, error: { message: "no/multiple rows matched" } };
           return { data: matched[0] as T, error: null };
         }
         if (this.wantMaybeSingle) return { data: (matched[0] as T) ?? null, error: null };
@@ -189,7 +196,8 @@ export class MockQueryBuilder<T extends Row = Row> implements PromiseLike<Result
         const results = items.map((item) => {
           let existing: Row | undefined;
           if (item.id) existing = table.find((r) => r.id === item.id);
-          else if (conflictCols?.length) existing = table.find((r) => conflictCols.every((c) => r[c] === item[c]));
+          else if (conflictCols?.length)
+            existing = table.find((r) => conflictCols.every((c) => r[c] === item[c]));
           if (existing) {
             Object.assign(existing, item);
             return existing;

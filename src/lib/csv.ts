@@ -21,7 +21,7 @@ export function parseCsv(text: string): ParsedCsv {
   let inQuotes = false;
 
   // Strip a UTF-8 BOM — Excel writes one and it corrupts the first header.
-  const src = text.replace(/^﻿/, "");
+  const src = text.replace(/^/, "");
 
   for (let i = 0; i < src.length; i++) {
     const ch = src[i];
@@ -148,7 +148,11 @@ export const STAFF_ROLES = ["clinician", "ministry", "insurer", "patient", "admi
  * thrown, so a clerk importing 250 records sees exactly which lines failed and
  * why — and the good rows still land.
  */
-export function validatePatientRow(row: CsvRow, line: number, knownIslands: Set<string>): RowResult {
+export function validatePatientRow(
+  row: CsvRow,
+  line: number,
+  knownIslands: Set<string>,
+): RowResult {
   const mrn = row.mrn?.trim();
   const first = row.first_name?.trim();
   const last = row.last_name?.trim();
@@ -157,13 +161,16 @@ export function validatePatientRow(row: CsvRow, line: number, knownIslands: Set<
   if (!mrn) return { line, ok: false, error: "mrn is required" };
   if (!first || !last) return { line, ok: false, error: "first_name and last_name are required" };
   if (!dob) return { line, ok: false, error: "date_of_birth is required" };
-  if (!ISO_DATE.test(dob)) return { line, ok: false, error: `date_of_birth "${dob}" must be YYYY-MM-DD` };
+  if (!ISO_DATE.test(dob))
+    return { line, ok: false, error: `date_of_birth "${dob}" must be YYYY-MM-DD` };
 
   const parsed = new Date(dob);
-  if (Number.isNaN(parsed.getTime())) return { line, ok: false, error: `date_of_birth "${dob}" is not a real date` };
+  if (Number.isNaN(parsed.getTime()))
+    return { line, ok: false, error: `date_of_birth "${dob}" is not a real date` };
 
   const age = Math.floor((Date.now() - parsed.getTime()) / (365.25 * 86400000));
-  if (age < 0 || age > 120) return { line, ok: false, error: `date_of_birth "${dob}" gives an implausible age of ${age}` };
+  if (age < 0 || age > 120)
+    return { line, ok: false, error: `date_of_birth "${dob}" gives an implausible age of ${age}` };
 
   const island = (row.island_code || "").trim().toUpperCase();
   if (island && !knownIslands.has(island)) {
@@ -200,7 +207,8 @@ export function validateStaffRow(row: CsvRow, line: number, knownIslands: Set<st
 
   if (!name) return { line, ok: false, error: "name is required" };
   if (!email) return { line, ok: false, error: "email is required" };
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { line, ok: false, error: `"${email}" is not a valid email` };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+    return { line, ok: false, error: `"${email}" is not a valid email` };
   if (!role) return { line, ok: false, error: "role is required" };
   if (!STAFF_ROLES.includes(role)) {
     return { line, ok: false, error: `role "${role}" must be one of ${STAFF_ROLES.join(", ")}` };

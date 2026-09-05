@@ -13,7 +13,11 @@ normalise dates to ISO (YYYY-MM-DD), and convert blood glucose to mmol/L only wh
 Return strict JSON, nothing else.`;
 
 export function parseExtraction(raw: string): ExtractionResult {
-  const cleaned = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1) {

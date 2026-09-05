@@ -118,7 +118,9 @@ export function HealthTrends({ bundle: b }: { bundle: PatientBundle }) {
                     ) : null}
                   </span>
                   <span className="text-[12px] text-muted-foreground">
-                    since {new Date(c.diagnosed_on).getFullYear()}
+                    {c.diagnosed_on
+                      ? `since ${c.diagnosed_on ? new Date(c.diagnosed_on).getFullYear() : null}`
+                      : "onset not recorded"}
                   </span>
                 </div>
               ))

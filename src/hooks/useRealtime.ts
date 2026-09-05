@@ -3,7 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const WATCHED = ["messages", "alerts", "referrals", "triage_events", "vitals", "consent_grants"] as const;
+const WATCHED = [
+  "messages",
+  "alerts",
+  "referrals",
+  "triage_events",
+  "vitals",
+  "consent_grants",
+] as const;
 
 /**
  * Subscribes the whole app to live database changes so consoles update without

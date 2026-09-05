@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Sparkles, ChevronDown, ChevronRight, ShieldAlert, Check, X, Wrench, Clock } from "lucide-react";
+import {
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  ShieldAlert,
+  Check,
+  X,
+  Wrench,
+  Clock,
+} from "lucide-react";
 import type { AgentRun, FindingSeverity } from "@/lib/agents/core";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
 
@@ -82,7 +91,9 @@ export function AgentBrief({
         ))}
 
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <h4 className="text-[12px] font-semibold uppercase tracking-wide text-primary">Proposed consult agenda</h4>
+          <h4 className="text-[12px] font-semibold uppercase tracking-wide text-primary">
+            Proposed consult agenda
+          </h4>
           <ol className="mt-2 space-y-1.5">
             {run.agenda.map((a, i) => (
               <li key={i} className="flex gap-2 text-[13px] text-foreground">
@@ -113,7 +124,11 @@ export function AgentBrief({
           onClick={() => setTraceOpen((v) => !v)}
           className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          {traceOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          {traceOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
           Show the agent's working — {run.toolCalls.length} tool calls
         </button>
 
@@ -140,8 +155,14 @@ export function AgentBrief({
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="mono-num font-semibold text-foreground">{c.tool}</span>
-                    {!c.allowed && <Pill className="bg-critical/15 text-critical border-critical/40">denied</Pill>}
-                    <span className="ml-auto mono-num text-[11px] text-muted-foreground">{c.ms}ms</span>
+                    {!c.allowed && (
+                      <Pill className="bg-critical/15 text-critical border-critical/40">
+                        denied
+                      </Pill>
+                    )}
+                    <span className="ml-auto mono-num text-[11px] text-muted-foreground">
+                      {c.ms}ms
+                    </span>
                   </div>
                   <p className="mt-1 text-muted-foreground">{c.summary}</p>
                   {c.denyReason && <p className="mt-1 text-critical">{c.denyReason}</p>}

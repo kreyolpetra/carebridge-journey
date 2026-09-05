@@ -182,7 +182,9 @@ export function PatientChart({
                 <li key={c.id}>
                   {c.name}{" "}
                   <span className="text-muted-foreground">
-                    since {new Date(c.diagnosed_on).getFullYear()}
+                    {c.diagnosed_on
+                      ? `since ${c.diagnosed_on ? new Date(c.diagnosed_on).getFullYear() : null}`
+                      : "onset not recorded"}
                   </span>
                 </li>
               ))}

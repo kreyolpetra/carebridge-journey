@@ -39,7 +39,9 @@ if (!rootEl) {
   // Loud on purpose: as a classic (non-module) script this file runs wherever
   // it sits in the document, so if it is ever moved back into <head> the mount
   // point will not exist yet and the page would otherwise fail silently.
-  throw new Error("CariCare Grid: #root not found — the bundle must load after it in the document.");
+  throw new Error(
+    "CariCare Grid: #root not found — the bundle must load after it in the document.",
+  );
 }
 
 createRoot(rootEl).render(

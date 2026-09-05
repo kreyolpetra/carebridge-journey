@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,7 +56,7 @@ export function OnboardingDialog() {
     if (profile && !profile.onboarded) setOpen(true);
   }, [profile]);
 
-  const tour = TOUR[role] ?? TOUR['patient']!;
+  const tour = TOUR[role] ?? TOUR["patient"]!;
 
   const finish = async () => {
     setSaving(true);
@@ -83,8 +89,8 @@ export function OnboardingDialog() {
           </ul>
         </div>
         <p className="text-[12px] text-muted-foreground">
-          Tip: press <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> anywhere to jump to a
-          patient or surface.
+          Tip: press <kbd className="rounded border border-border px-1 font-mono">⌘K</kbd> anywhere
+          to jump to a patient or surface.
         </p>
         <Button onClick={finish} disabled={saving} className="w-full">
           {saving ? "Setting up…" : "Enter the Grid"}

@@ -888,7 +888,8 @@ function Patients() {
                     run={brief}
                     decision={briefDecision}
                     onAccept={() => {
-                      (setBriefDecision("accepted"), void recordDecision(briefRunId, "accepted"));
+                      setBriefDecision("accepted");
+                      void recordDecision(briefRunId, "accepted");
                       void supabase.from("workflow_events").insert({
                         patient_id: b.patient.id,
                         actor_name: profile?.full_name ?? "Clinician",
@@ -903,7 +904,8 @@ function Patients() {
                       toast.success("Brief accepted — recorded against this episode");
                     }}
                     onDismiss={() => {
-                      (setBriefDecision("dismissed"), void recordDecision(briefRunId, "dismissed"));
+                      setBriefDecision("dismissed");
+                      void recordDecision(briefRunId, "dismissed");
                       void supabase.from("workflow_events").insert({
                         patient_id: b.patient.id,
                         actor_name: profile?.full_name ?? "Clinician",

@@ -1,13 +1,25 @@
 type ChangeEvent = "INSERT" | "UPDATE" | "DELETE";
-type ChangePayload = { eventType: ChangeEvent; new: Record<string, unknown> | null; old: Record<string, unknown> | null };
+type ChangePayload = {
+  eventType: ChangeEvent;
+  new: Record<string, unknown> | null;
+  old: Record<string, unknown> | null;
+};
 type ChangeListener = (payload: ChangePayload) => void;
 
 const tableListeners = new Map<string, Set<ChangeListener>>();
 
-export function emitChange(table: string, eventType: ChangeEvent, row: Record<string, unknown> | null) {
+export function emitChange(
+  table: string,
+  eventType: ChangeEvent,
+  row: Record<string, unknown> | null,
+) {
   const set = tableListeners.get(table);
   if (!set) return;
-  const payload: ChangePayload = { eventType, new: eventType === "DELETE" ? null : row, old: eventType === "DELETE" ? row : null };
+  const payload: ChangePayload = {
+    eventType,
+    new: eventType === "DELETE" ? null : row,
+    old: eventType === "DELETE" ? row : null,
+  };
   for (const cb of set) cb(payload);
 }
 
