@@ -15,7 +15,7 @@ import {
   type Patient,
   type Provider,
 } from "@/lib/api";
-import { Panel, Stat } from "@/components/grid";
+import { Panel, Stat, RowList, Row } from "@/components/grid";
 import { usd, timeAgo, LANGUAGE_LABEL } from "@/lib/format";
 import { activityQuery, type ActivityItem } from "@/lib/activity";
 import { useAuth } from "@/hooks/useAuth";
@@ -217,7 +217,7 @@ function PatientHome() {
       {patientId ? <HomeReadingCard patientId={patientId} /> : null}
       {bundle.data ? <HealthTrends bundle={bundle.data} /> : null}
 
-      <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">
           <div className="flex items-center gap-2">
             <HeartPulse className="h-4 w-4 text-primary" />
@@ -289,22 +289,26 @@ function PatientHome() {
             <ShieldCheck className="h-4 w-4 text-primary" />
             <h3 className="font-display text-[15px] font-semibold">My active consents</h3>
           </div>
-          <ul className="mt-4 space-y-2.5">
-            {activeGrants.length === 0 && (
-              <li className="text-[13px] text-muted-foreground">
-                No active grants — only your care team sees your record.
-              </li>
-            )}
-            {activeGrants.slice(0, 4).map((g) => (
-              <li key={g.id} className="rounded-lg border border-border bg-surface p-3 text-[13px]">
-                <p className="font-medium">{g.purpose}</p>
-                <p className="mt-0.5 text-[12px] text-muted-foreground">
-                  Scope: {g.scope.join(", ")}
-                  {g.expires_at ? ` · expires ${new Date(g.expires_at).toLocaleDateString()}` : ""}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {activeGrants.length === 0 ? (
+            <p className="mt-4 text-[13px] text-muted-foreground">
+              No active grants — only your care team sees your record.
+            </p>
+          ) : (
+            <RowList className="mt-2">
+              {activeGrants.slice(0, 4).map((g) => (
+                <Row
+                  key={g.id}
+                  title={g.purpose}
+                  detail={
+                    `Scope: ${g.scope.join(", ")}` +
+                    (g.expires_at
+                      ? ` · expires ${new Date(g.expires_at).toLocaleDateString()}`
+                      : "")
+                  }
+                />
+              ))}
+            </RowList>
+          )}
         </Panel>
       </section>
 
@@ -391,7 +395,7 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
       {/* Being seen right now, above who still needs seeing. */}
       <InSessionNow />
 
-      <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -460,30 +464,24 @@ function ClinicianHome({ provider }: { provider: Provider | null }) {
             <CalendarClock className="h-4 w-4 text-primary" />
             <h3 className="font-display text-[15px] font-semibold">Referrals waiting on me</h3>
           </div>
-          <ul className="mt-4 space-y-2.5">
-            {myReferrals.slice(0, 4).map((r) => {
-              const p = patientById.get(r.patient_id);
-              return (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-border bg-surface p-3 text-[13px]"
-                >
-                  <p className="font-medium">
-                    {p?.full_name ?? "Patient"} · {r.specialty}
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-muted-foreground">
-                    {r.cross_island ? "Cross-island" : "Local"} · local wait {r.wait_days_local}d →
-                    routed {r.wait_days_routed}d · {r.status}
-                  </p>
-                </li>
-              );
-            })}
-            {myReferrals.length === 0 && (
-              <li className="text-[13px] text-muted-foreground">
-                No pending referrals routed to you.
-              </li>
-            )}
-          </ul>
+          {myReferrals.length === 0 ? (
+            <p className="mt-4 text-[13px] text-muted-foreground">
+              No pending referrals routed to you.
+            </p>
+          ) : (
+            <RowList className="mt-2">
+              {myReferrals.slice(0, 4).map((r) => {
+                const p = patientById.get(r.patient_id);
+                return (
+                  <Row
+                    key={r.id}
+                    title={`${p?.full_name ?? "Patient"} · ${r.specialty}`}
+                    detail={`${r.cross_island ? "Cross-island" : "Local"} · local wait ${r.wait_days_local}d → routed ${r.wait_days_routed}d · ${r.status}`}
+                  />
+                );
+              })}
+            </RowList>
+          )}
         </Panel>
       </section>
     </>
@@ -554,7 +552,7 @@ function MinistryHome() {
         />
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -677,7 +675,7 @@ function InsurerHome() {
         />
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+      <section className="grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

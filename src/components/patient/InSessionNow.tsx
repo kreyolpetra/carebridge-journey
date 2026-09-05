@@ -154,7 +154,7 @@ export function InSessionNow() {
         <div
           className={
             open
-              ? "max-h-[300px] divide-y divide-border overflow-y-auto border-t border-border"
+              ? "scroll-fade max-h-[300px] divide-y divide-border overflow-y-auto border-t border-border"
               : "hidden"
           }
         >

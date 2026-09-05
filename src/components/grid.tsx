@@ -44,6 +44,20 @@ export function Pill({ className, children }: { className?: string; children: Re
   );
 }
 
+/**
+ * A headline figure.
+ *
+ * This was a bordered, shadowed tile with a coloured hairline across its top —
+ * the dashboard convention of about 2018, and the most dated thing on the
+ * home screen. Four of them in a row turned the most important numbers on the
+ * page into four identical boxes.
+ *
+ * The box is gone. What is left is a rule in the figure's own tone, the label,
+ * the number and its qualifier — so the four read as a set of measurements
+ * rather than a set of containers, and the tone does the work the border was
+ * doing badly. A figure with no state to report draws a neutral rule rather
+ * than a coloured one, because a line that says nothing is worse than none.
+ */
 export function Stat({
   label,
   value,
@@ -63,46 +77,88 @@ export function Stat({
         : tone === "low"
           ? "text-low"
           : "text-foreground";
-  /**
-   * A hairline of the tile's own tone across the top, fading out to the right.
-   *
-   * A flat rule across every tile is the look of a dashboard template, and a
-   * grey one on the tile that has no state to report is worse than none —
-   * it draws a line and says nothing with it. So the wash fades, and a tile
-   * with nothing to say draws no line at all.
-   */
-  const edge =
-    tone === "critical"
-      ? "before:bg-[linear-gradient(90deg,var(--color-critical)_0%,transparent_62%)]"
-      : tone === "low"
-        ? "before:bg-[linear-gradient(90deg,var(--color-low)_0%,transparent_62%)]"
-        : tone === "signal"
-          ? "before:bg-[linear-gradient(90deg,var(--color-primary)_0%,transparent_62%)]"
-          : "";
+  const ruleClass =
+    tone === "signal"
+      ? "bg-primary"
+      : tone === "critical"
+        ? "bg-critical"
+        : tone === "low"
+          ? "bg-low"
+          : "bg-border";
   return (
-    <div
-      className={cn(
-        "panel relative overflow-hidden px-6 py-5",
-        tone !== "default" &&
-          "before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:opacity-70 before:content-['']",
-        edge,
-      )}
-    >
-      <div className="text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
+    <div className="relative py-1 pl-4">
+      <span
+        aria-hidden
+        className={cn("absolute inset-y-0 left-0 w-[3px] rounded-full", ruleClass)}
+      />
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </div>
       <div
         className={cn(
-          "mono-num mt-3 text-[34px] font-semibold leading-none tracking-[-0.028em]",
+          "display-num mt-2.5 text-[38px] font-bold leading-[1.02] tracking-[-0.032em]",
           toneClass,
         )}
       >
         {value}
       </div>
       {hint ? (
-        <div className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">{hint}</div>
+        <div className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{hint}</div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * A list of things, as rows rather than as cards.
+ *
+ * The pattern this replaces was a bordered, filled card for every item, sitting
+ * inside a bordered panel — an object drawn twice. Border, fill, radius and
+ * shadow each say "separate thing", and spending all four on every row of a
+ * list leaves nothing left to lift the row that actually matters.
+ */
+export function RowList({ children, className }: { children: ReactNode; className?: string }) {
+  return <ul className={cn("divide-y divide-border/70", className)}>{children}</ul>;
+}
+
+export function Row({
+  title,
+  detail,
+  right,
+  onClick,
+}: {
+  title: ReactNode;
+  detail?: ReactNode;
+  right?: ReactNode;
+  onClick?: () => void;
+}) {
+  const inner = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-semibold">{title}</span>
+        {detail ? (
+          <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">
+            {detail}
+          </span>
+        ) : null}
+      </span>
+      {right}
+    </>
+  );
+  return (
+    <li>
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          className="flex w-full items-center gap-3 px-1 py-3 text-left transition-colors hover:bg-surface-hover"
+        >
+          {inner}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 px-1 py-3">{inner}</div>
+      )}
+    </li>
   );
 }
 

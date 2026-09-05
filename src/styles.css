@@ -34,6 +34,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
+  --color-surface-hover: var(--surface-hover);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -109,7 +110,9 @@
   --destructive: oklch(0.577 0.19 27);
   --destructive-foreground: oklch(0.99 0.002 260);
 
-  --border: oklch(0.925 0.008 260);
+  --border: oklch(0.938 0.006 262);
+  /* A row lifts on hover instead of being boxed. */
+  --surface-hover: oklch(0.968 0.005 261);
   --input: oklch(0.892 0.013 260);
   --ring: oklch(0.505 0.192 265);
 
@@ -165,12 +168,18 @@
   --grad-signal: linear-gradient(100deg, oklch(0.505 0.192 265), oklch(0.6 0.15 276));
   --grad-urgent: linear-gradient(100deg, oklch(0.53 0.19 27), oklch(0.6 0.14 55));
 
+  /*
+   * Elevation has to mean something or it means nothing.
+   *
+   * Every panel used to carry a three-layer shadow with a 32px spread, which
+   * lifted all of them equally — and a page where everything floats reads as
+   * flat, because nothing is in front of anything else. Panels now sit close
+   * to the page; the lift is spent on the things that are genuinely above it.
+   */
   --shadow-panel:
-    0 1px 1.5px -0.5px oklch(0.24 0.04 264 / 8%), 0 4px 8px -2px oklch(0.24 0.04 264 / 7%),
-    0 16px 32px -12px oklch(0.24 0.04 264 / 10%);
+    0 1px 1px -0.5px oklch(0.24 0.04 264 / 5%), 0 2px 6px -2px oklch(0.24 0.04 264 / 6%);
   --shadow-raised:
-    0 2px 4px -1px oklch(0.24 0.04 264 / 8%), 0 8px 16px -4px oklch(0.24 0.04 264 / 9%),
-    0 24px 48px -18px oklch(0.24 0.04 264 / 14%);
+    0 2px 4px -1px oklch(0.24 0.04 264 / 7%), 0 10px 22px -8px oklch(0.24 0.04 264 / 11%);
   --shadow-float:
     0 8px 16px -6px oklch(0.24 0.04 264 / 12%), 0 24px 48px -12px oklch(0.24 0.04 264 / 16%),
     0 48px 96px -28px oklch(0.24 0.04 264 / 22%);
@@ -253,6 +262,21 @@
     linear-gradient(to right, oklch(0.28 0.02 250 / 4.5%) 1px, transparent 1px),
     linear-gradient(to bottom, oklch(0.28 0.02 250 / 4.5%) 1px, transparent 1px);
   background-size: 48px 48px;
+}
+
+/* A headline figure belongs in the display face with lining numerals. Mono at
+   34px reads like a terminal readout, which is the look this was trying to
+   leave behind; mono stays where it belongs, on identifiers and doses. */
+/* A list that scrolls inside a panel used to end by slicing a row in half,
+   which reads as a rendering fault rather than as "there is more below". The
+   fade says the same thing on purpose. */
+@utility scroll-fade {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+}
+
+@utility display-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 @utility mono-num {

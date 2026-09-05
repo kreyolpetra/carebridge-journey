@@ -142,7 +142,7 @@ export function InpatientsPanel({ facility }: { facility: Facility | null | unde
             Nobody is admitted here at the moment.
           </p>
         ) : null}
-        <div className="max-h-[420px] divide-y divide-border overflow-y-auto">
+        <div className="scroll-fade max-h-[420px] divide-y divide-border overflow-y-auto">
           {onWard.slice(0, 40).map((e) => {
             const patient = patientById.get(e.patient_id);
             return (
