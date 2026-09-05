@@ -74,6 +74,10 @@ const STAGED: Row[] = [
     note: "Every patient, clinician, facility, reading, message and referral is generated. Nobody in here is real, and no real record has ever been in this system.",
   },
   {
+    what: "WhatsApp as the patient's front door",
+    note: "The care line is a WhatsApp conversation — the patient's own handset, their own language, tap-to-reply buttons, appointment notices and teleconsult invitations, with nothing to install. That premise is the product's, and the interface here is a faithful simulation of it: green bubbles, delivery states, the lot. What is not here is a Business API connection. No message in this prototype has left the browser, and there is no Meta account behind it. Wiring the real channel is an integration, not a redesign — every message the product sends already exists as text in four languages, addressed to a phone number.",
+  },
+  {
     what: "The video and voice consult",
     note: "A convincing consult interface with no media layer behind it. There is no call. It is a prop, and the demo says so rather than letting somebody assume otherwise.",
   },
