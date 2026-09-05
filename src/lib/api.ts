@@ -491,8 +491,8 @@ export const dataRequestsQuery = queryOptions({
  * A safety finding someone sent for independent review, and its outcome.
  *
  * Findings themselves are computed live from the chart, so there is no stored
- * copy to drift out of date. What is stored is the human part CareBridge's
- * §6.10 insists on keeping: who raised it, what the rule read at the time, who
+ * copy to drift out of date. What is stored is the human part §6.10 of the
+ * CareBridge specification insists on keeping: who raised it, what the rule read at the time, who
  * reviewed it, and what they decided.
  */
 export type SafetyReview = {

@@ -1,8 +1,8 @@
 /**
  * Safety interception.
  *
- * CareBridge's Safety Sentinel is the one thing that product has which this
- * one had no version of at all. Everything here is adapted from its §6.10 to
+ * The Safety Sentinel in §6.10 of the CareBridge specification is the one
+ * part of it this build had no version of at all. Everything here adapts it to
  * an outpatient regional service: the rules that matter when a clinician is
  * reviewing a chronic-disease chart from another island, not the ones that
  * matter at a hospital bedside with a barcode scanner.
