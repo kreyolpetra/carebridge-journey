@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/lib/api";
 import { Panel, Stat, RowList, Row } from "@/components/grid";
 import { HealthSummary } from "@/components/patient/HealthSummary";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { usd, timeAgo, LANGUAGE_LABEL } from "@/lib/format";
 import { activityQuery, type ActivityItem } from "@/lib/activity";
 import { useAuth } from "@/hooks/useAuth";
@@ -146,6 +148,27 @@ function SurfaceLinks() {
 
 /* ---------------- Patient home ---------------- */
 
+/**
+ * The patient's home.
+ *
+ * This screen had become a scroll: four figures, a reading form, a trend
+ * chart, an advisory list, a consent list, an activity log and then a complete
+ * printable health record, one after another. Everything a patient might ever
+ * want, arranged as though they wanted all of it at once.
+ *
+ * Three jobs live here and they happen at different rhythms. Sending today's
+ * reading and seeing what needs doing is daily. Looking at how the numbers
+ * have moved is weekly. Carrying the record out of the building is rare and
+ * matters enormously when it happens. Stacking them vertically makes the daily
+ * job scroll past the rare one; tabs let each be the whole screen when it is
+ * the one you came for.
+ *
+ * Two panels were removed rather than filed under a tab. "My active consents"
+ * and the activity log are both already on My privacy — which holds who can
+ * see the record and who has actually opened it, in more detail than a home
+ * screen summary could. A duplicate one click from the original is not
+ * convenience, it is a second thing to keep in sync.
+ */
 function PatientHome() {
   const { profile } = useAuth();
   const { t } = usePatientLang();
@@ -154,10 +177,10 @@ function PatientHome() {
     ...patientBundleQuery(patientId ?? "none"),
     enabled: Boolean(patientId),
   });
+  const [tab, setTab] = useState("today");
 
   const risk = bundle.data?.risk;
   const latestVital = bundle.data?.vitals[0];
-  const activeGrants = (bundle.data?.grants ?? []).filter((g) => isGrantActive(g.status));
   const meds = bundle.data?.medications ?? [];
   const lowMeds = meds.filter((m) => m.days_supply_left <= 7);
   const adherence = meds.length
@@ -170,172 +193,152 @@ function PatientHome() {
         <Greeting
           subtitle={t("Today's readings, your medications and what needs your attention.")}
         />
+        {bundle.data?.patient ? (
+          <p className="mt-3 text-[13px] text-muted-foreground">
+            {bundle.data.patient.age}
+            {bundle.data.patient.sex} · {bundle.data.patient.parish},{" "}
+            {bundle.data.patient.island_code} · {bundle.data.patient.km_to_facility} km from the
+            clinic · {LANGUAGE_LABEL[bundle.data.patient.language] ?? bundle.data.patient.language}{" "}
+            · {bundle.data.patient.insurer ?? "Uninsured"}
+          </p>
+        ) : null}
       </div>
 
-      {/* The context a clinician sees at the top of her chart, on her own
-          home: how far she is from care, what she speaks, who pays. */}
-      {bundle.data?.patient ? (
-        <p className="screen-only -mt-2 text-[13px] text-muted-foreground">
-          {bundle.data.patient.age}
-          {bundle.data.patient.sex} · {bundle.data.patient.parish},{" "}
-          {bundle.data.patient.island_code} · {bundle.data.patient.km_to_facility} km from the
-          clinic · {LANGUAGE_LABEL[bundle.data.patient.language] ?? bundle.data.patient.language} ·{" "}
-          {bundle.data.patient.insurer ?? "Uninsured"}
-        </p>
-      ) : null}
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="screen-only">
+          <TabsTrigger value="today">{t("Today")}</TabsTrigger>
+          <TabsTrigger value="readings">{t("Readings & medicines")}</TabsTrigger>
+          <TabsTrigger value="summary">{t("My summary")}</TabsTrigger>
+        </TabsList>
 
-      <section className="screen-only grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label={t("My risk level")}
-          value={risk ? `${risk.band.toUpperCase()} · ${Math.round(risk.score)}` : "—"}
-          hint={risk ? `Trend: ${risk.trend}` : "Log a reading to compute"}
-          tone={risk?.band === "critical" || risk?.band === "high" ? "critical" : "low"}
-        />
-        <Stat
-          label={t("Blood pressure")}
-          value={latestVital?.systolic ? `${latestVital.systolic}/${latestVital.diastolic}` : "—"}
-          hint={
-            latestVital ? `Last reading ${timeAgo(latestVital.measured_at)}` : "No readings yet"
-          }
-          tone={latestVital?.systolic && latestVital.systolic >= 160 ? "critical" : "signal"}
-        />
-        <Stat
-          label={t("Blood sugar")}
-          value={latestVital?.glucose_mmol ? Number(latestVital.glucose_mmol).toFixed(1) : "—"}
-          hint="mmol/L, most recent"
-        />
-        <Stat
-          label={t("Medication adherence")}
-          value={adherence !== null ? `${adherence}%` : "—"}
-          hint={
-            lowMeds.length
-              ? `${lowMeds.length} refill${lowMeds.length > 1 ? "s" : ""} due within 7 days`
-              : "Refills on track"
-          }
-        />
-      </section>
+        {/* The daily job: how am I, what do I have to do, and log today. */}
+        <TabsContent value="today" className="mt-6 space-y-6">
+          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat
+              label={t("My risk level")}
+              value={risk ? `${risk.band.toUpperCase()} · ${Math.round(risk.score)}` : "—"}
+              hint={risk ? `Trend: ${risk.trend}` : "Log a reading to compute"}
+              tone={risk?.band === "critical" || risk?.band === "high" ? "critical" : "low"}
+            />
+            <Stat
+              label={t("Blood pressure")}
+              value={
+                latestVital?.systolic ? `${latestVital.systolic}/${latestVital.diastolic}` : "—"
+              }
+              hint={
+                latestVital ? `Last reading ${timeAgo(latestVital.measured_at)}` : "No readings yet"
+              }
+              tone={latestVital?.systolic && latestVital.systolic >= 160 ? "critical" : "signal"}
+            />
+            <Stat
+              label={t("Blood sugar")}
+              value={latestVital?.glucose_mmol ? Number(latestVital.glucose_mmol).toFixed(1) : "—"}
+              hint="mmol/L, most recent"
+            />
+            <Stat
+              label={t("Medication adherence")}
+              value={adherence !== null ? `${adherence}%` : "—"}
+              hint={
+                lowMeds.length
+                  ? `${lowMeds.length} refill${lowMeds.length > 1 ? "s" : ""} due within 7 days`
+                  : "Refills on track"
+              }
+            />
+          </section>
 
-      {/* The daily loop: send today's reading, then see what it did to the
-          trend. These were on My record, behind the care network and the visit
-          archive — the wrong depth for the thing a patient opens the app to
-          do. */}
-      {patientId ? (
-        <div className="screen-only">
-          <HomeReadingCard patientId={patientId} />
-        </div>
-      ) : null}
-      {bundle.data ? (
-        <div className="screen-only">
-          <HealthTrends bundle={bundle.data} />
-        </div>
-      ) : null}
-
-      <section className="screen-only grid items-start gap-3 lg:grid-cols-[1.4fr_1fr]">
-        <Panel className="p-5">
-          <div className="flex items-center gap-2">
-            <HeartPulse className="h-4 w-4 text-primary" />
-            <h3 className="font-display text-[15px] font-semibold">What needs my attention</h3>
-          </div>
-          <ul className="mt-4 space-y-3 text-[13.5px]">
-            {risk &&
-            (risk.band === "high" || risk.band === "critical" || risk.band === "rising") ? (
-              <li className="flex gap-2.5 rounded-lg border border-critical/25 bg-critical/5 p-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-critical" />
-                <span>
-                  Your risk is <strong className={bandTone(risk.band)}>{risk.band}</strong>.{" "}
-                  {risk.drivers[0] ? `Main driver: ${risk.drivers[0].label}.` : ""} Message the line
-                  today so a clinician can review you.
-                </span>
-              </li>
-            ) : (
-              <li className="flex gap-2.5 rounded-lg border border-low/25 bg-low/5 p-3">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-low" />
-                <span>
-                  Your readings look steady. Keep logging daily — it keeps your risk score accurate.
-                </span>
-              </li>
-            )}
-            {lowMeds.map((m) => (
-              <li
-                key={m.id}
-                className="flex gap-2.5 rounded-lg border border-border bg-surface p-3"
+          {/* Logging today's reading and reading today's advice are the same
+              sitting, so they share a row rather than a scroll. */}
+          <section className="grid items-start gap-3 lg:grid-cols-[1.05fr_1fr]">
+            <div className="space-y-2">
+              {patientId ? <HomeReadingCard patientId={patientId} /> : null}
+              <button
+                type="button"
+                onClick={() => setTab("readings")}
+                className="inline-flex items-center gap-1.5 px-1 text-[12.5px] font-semibold text-primary hover:underline"
               >
-                <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <span>
-                  <strong>{m.name}</strong> has {m.days_supply_left} days left — ask the line to
-                  route a refill before it runs out.
-                </span>
-              </li>
-            ))}
-            <li className="flex gap-2.5 rounded-lg border border-border bg-surface p-3">
-              <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span>
-                Feeling unwell? Message your care team in plain language — Patois or English — and
-                the AI triage will route you.
-              </span>
-            </li>
-          </ul>
-          <div className="mt-5 flex flex-wrap gap-2.5">
-            <Link
-              to="/patient"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
-            >
-              Open my messages <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/record"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold"
-            >
-              View my full record
-            </Link>
-            <Link
-              to="/consent"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold"
-            >
-              Manage my consent
-            </Link>
-          </div>
-        </Panel>
+                {t("See how my readings have moved")} <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
 
-        <Panel className="p-5">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            <h3 className="font-display text-[15px] font-semibold">My active consents</h3>
-          </div>
-          {activeGrants.length === 0 ? (
-            <p className="mt-4 text-[13px] text-muted-foreground">
-              No active grants — only your care team sees your record.
-            </p>
-          ) : (
-            <RowList className="mt-2">
-              {activeGrants.slice(0, 4).map((g) => (
-                <Row
-                  key={g.id}
-                  title={g.purpose}
-                  detail={
-                    `Scope: ${g.scope.join(", ")}` +
-                    (g.expires_at
-                      ? ` · expires ${new Date(g.expires_at).toLocaleDateString()}`
-                      : "")
-                  }
-                />
-              ))}
-            </RowList>
-          )}
-        </Panel>
-      </section>
+            <Panel className="p-5">
+              <div className="flex items-center gap-2">
+                <HeartPulse className="h-4 w-4 text-primary" />
+                <h3 className="font-display text-[15px] font-semibold">
+                  {t("What needs my attention")}
+                </h3>
+              </div>
+              <ul className="mt-4 space-y-3 text-[13.5px]">
+                {risk &&
+                (risk.band === "high" || risk.band === "critical" || risk.band === "rising") ? (
+                  <li className="flex gap-2.5 rounded-lg border border-critical/25 bg-critical/5 p-3">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-critical" />
+                    <span>
+                      Your risk is <strong className={bandTone(risk.band)}>{risk.band}</strong>.{" "}
+                      {risk.drivers[0] ? `Main driver: ${risk.drivers[0].label}.` : ""} Message the
+                      line today so a clinician can review you.
+                    </span>
+                  </li>
+                ) : (
+                  <li className="flex gap-2.5 rounded-lg border border-low/25 bg-low/5 p-3">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-low" />
+                    <span>
+                      Your readings look steady. Keep logging daily — it keeps your risk score
+                      accurate.
+                    </span>
+                  </li>
+                )}
+                {lowMeds.map((m) => (
+                  <li
+                    key={m.id}
+                    className="flex gap-2.5 rounded-lg border border-border bg-surface p-3"
+                  >
+                    <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>
+                      <strong>{m.name}</strong> has {m.days_supply_left} days left — ask the line to
+                      route a refill before it runs out.
+                    </span>
+                  </li>
+                ))}
+                <li className="flex gap-2.5 rounded-lg border border-border bg-surface p-3">
+                  <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>
+                    Feeling unwell? Message your care team in plain language — Patois or English —
+                    and the AI triage will route you.
+                  </span>
+                </li>
+              </ul>
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                <Link
+                  to="/patient"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
+                >
+                  {t("Open my messages")} <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  to="/record"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold"
+                >
+                  {t("View my full record")}
+                </Link>
+              </div>
+            </Panel>
+          </section>
+        </TabsContent>
 
-      <div className="screen-only">
-        <ActivityFeed maxHeight="440px" />
-      </div>
+        {/* Weekly: what the numbers have been doing. */}
+        <TabsContent value="readings" className="mt-6">
+          {bundle.data ? <HealthTrends bundle={bundle.data} /> : null}
+        </TabsContent>
 
-      {/*
-        The summary that used to be its own menu item. Same facts as the
-        screens above, in the form you can fold into a pocket and hand to a
-        clinician whose system cannot reach this one. Printing from here drops
-        everything above it.
-      */}
-      <HealthSummary />
+        {/*
+          Rare, and critical when it happens: the record in a form you can fold
+          into a pocket. Radix leaves the other tabs unrendered, so printing
+          from here produces the document and nothing above it.
+        */}
+        <TabsContent value="summary" className="mt-6">
+          <HealthSummary />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

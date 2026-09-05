@@ -30,6 +30,11 @@ type Dict = Record<string, string>;
 
 const jam: Dict = {
   // navigation
+  // the tabs on the home screen
+  Today: "Tiday",
+  "Readings & medicines": "Mi readings an medicine",
+  "My summary": "Mi summary",
+  "See how my readings have moved": "See how mi readings a move",
   "My health": "Mi health",
   "My record": "Mi record",
   "My messages": "Mi message dem",
@@ -67,6 +72,10 @@ const jam: Dict = {
 };
 
 const ht: Dict = {
+  Today: "Jodi a",
+  "Readings & medicines": "Mezi ak medikaman mwen",
+  "My summary": "Rezime mwen",
+  "See how my readings have moved": "Gade kijan mezi mwen yo deplase",
   "My health": "Sante mwen",
   "My record": "Dosye mwen",
   "My messages": "Mesaj mwen",
@@ -102,6 +111,10 @@ const ht: Dict = {
 };
 
 const es: Dict = {
+  Today: "Hoy",
+  "Readings & medicines": "Lecturas y medicinas",
+  "My summary": "Mi resumen",
+  "See how my readings have moved": "Ver cómo han cambiado mis lecturas",
   "My health": "Mi salud",
   "My record": "Mi historial",
   "My messages": "Mis mensajes",
