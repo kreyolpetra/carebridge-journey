@@ -98,9 +98,9 @@ function input(over: Partial<IntakeInput> = {}): IntakeInput {
 
 /* ------------------------------------------------------------------- cases */
 
-type Case = { family: string; name: string; run: () => Promise<string | null> };
+import type { EvalCase } from "./eval-harness";
 
-const cases: Case[] = [
+export const intakeCases: EvalCase[] = [
   /* 1. SAFETY */
   {
     family: "safety",
@@ -293,36 +293,3 @@ const cases: Case[] = [
 ];
 
 /* ------------------------------------------------------------------- runner */
-
-const width = Math.max(...cases.map((c) => c.name.length)) + 2;
-let failed = 0;
-const byFamily = new Map<string, { pass: number; fail: number }>();
-
-console.log("\nIntake agent — evaluation suite\n");
-
-for (const c of cases) {
-  let problem: string | null;
-  try {
-    problem = await c.run();
-  } catch (err) {
-    problem = `threw: ${(err as Error).message}`;
-  }
-  const tally = byFamily.get(c.family) ?? { pass: 0, fail: 0 };
-  if (problem) {
-    failed += 1;
-    tally.fail += 1;
-    console.log(`  FAIL  ${c.family.padEnd(11)} ${c.name.padEnd(width)} ${problem}`);
-  } else {
-    tally.pass += 1;
-    console.log(`  pass  ${c.family.padEnd(11)} ${c.name}`);
-  }
-  byFamily.set(c.family, tally);
-}
-
-console.log("");
-for (const [family, t] of byFamily) {
-  console.log(`  ${family.padEnd(11)} ${t.pass}/${t.pass + t.fail}`);
-}
-console.log(`\n  ${cases.length - failed}/${cases.length} passed\n`);
-
-if (failed) process.exitCode = 1;

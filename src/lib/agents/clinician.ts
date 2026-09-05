@@ -354,7 +354,19 @@ export async function runClinicianBrief(input: ClinicianAgentInput): Promise<Age
   // ---- confidence ---------------------------------------------------------
   // Reflects how much record there was to read, not how right the reasoning is.
   const dataPoints = recent.length + baseline.length + meds.length + inbound.length;
-  const confidence = Math.max(0.25, Math.min(0.95, dataPoints / 40));
+  /**
+   * A withheld section lowers this, because a brief assembled from a partial
+   * record deserves less trust than one assembled from a whole one. The
+   * confidence reason already said a section was withheld while the number
+   * itself never moved — which is the same class of quiet dishonesty the
+   * intake agent had, where the penalty was applied before the upper clamp and
+   * so never showed. Clamp first, subtract second, floor last.
+   */
+  const completeness = Math.min(0.95, dataPoints / 40);
+  const confidence = Math.max(
+    0.2,
+    Math.round((completeness - redactions.length * 0.05) * 100) / 100,
+  );
   const gaps: string[] = [];
   if (recent.length < 3) gaps.push("few recent readings");
   if (!baseline.length) gaps.push("no baseline period");
