@@ -230,7 +230,7 @@ export function AppShell() {
         ) : null}
 
         <div className="flex min-h-screen w-full flex-col lg:pl-[248px]">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl sm:px-5">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/80 bg-card/88 px-4 shadow-[0_1px_0_oklch(0.24_0.04_264/4%),0_8px_24px_-16px_oklch(0.24_0.04_264/22%)] backdrop-blur-xl sm:px-5">
             <button
               type="button"
               aria-label="Open navigation"

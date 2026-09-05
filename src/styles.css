@@ -6,8 +6,14 @@
 
 /*
  * CariCare Grid design system.
- * Deep-ocean operations console: navy field, lagoon-teal signal, coral urgency.
- * All colour lives here as oklch tokens. Components never hardcode colour.
+ *
+ * Navy field, cobalt signal, coral accent. Red and amber are reserved for
+ * safety-critical states and are never spent on decoration.
+ *
+ * All colour lives here as oklch tokens; components never hardcode it. Depth
+ * is carried by a three-step elevation scale rather than by heavier borders —
+ * a hairline everywhere reads as a wireframe, which is what this looked like
+ * before: every surface on one plane, separated by 1px lines.
  */
 
 @theme inline {
@@ -76,14 +82,19 @@
      Red and amber stay reserved for safety-critical states, per §11 of the
      PRD — which is why the accent is coral rather than another warm tone that
      could be mistaken for a warning. */
-  --background: oklch(0.978 0.004 255);
+  --background: oklch(0.964 0.005 258);
   --foreground: oklch(0.24 0.042 264);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.24 0.042 264);
-  --surface: oklch(0.958 0.006 258);
+  --surface: oklch(0.972 0.005 258);
   --surface-foreground: oklch(0.24 0.042 264);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.24 0.042 264);
+
+  /* The base every radius is derived from. Its absence is why panels were
+     rendering at 0px: calc(var(--radius) + 4px) with no --radius is invalid,
+     so border-radius silently fell back to none on every card in the app. */
+  --radius: 0.7rem;
 
   --primary: oklch(0.505 0.192 265);
   --primary-foreground: oklch(0.99 0.002 260);
@@ -96,7 +107,7 @@
   --destructive: oklch(0.577 0.19 27);
   --destructive-foreground: oklch(0.99 0.002 260);
 
-  --border: oklch(0.9 0.012 260);
+  --border: oklch(0.918 0.009 260);
   --input: oklch(0.892 0.013 260);
   --ring: oklch(0.505 0.192 265);
 
@@ -139,8 +150,23 @@
   --grad-urgent: linear-gradient(100deg, oklch(0.53 0.19 27), oklch(0.6 0.14 55));
 
   --shadow-panel:
-    0 1px 2px 0 oklch(0.24 0.04 264 / 6%), 0 8px 24px -18px oklch(0.24 0.04 264 / 45%);
+    0 1px 1.5px -0.5px oklch(0.24 0.04 264 / 7%), 0 3px 6px -2px oklch(0.24 0.04 264 / 6%),
+    0 12px 26px -10px oklch(0.24 0.04 264 / 8%);
+  --shadow-raised:
+    0 2px 4px -1px oklch(0.24 0.04 264 / 8%), 0 8px 16px -4px oklch(0.24 0.04 264 / 9%),
+    0 24px 48px -18px oklch(0.24 0.04 264 / 14%);
+  --shadow-float:
+    0 8px 16px -6px oklch(0.24 0.04 264 / 12%), 0 24px 48px -12px oklch(0.24 0.04 264 / 16%),
+    0 48px 96px -28px oklch(0.24 0.04 264 / 22%);
   --shadow-lift: 0 18px 40px -24px oklch(0.24 0.04 264 / 40%);
+  /* The rail is a physical panel, not a block of flat colour. */
+  --grad-sidebar: linear-gradient(
+    177deg,
+    oklch(0.247 0.063 265) 0%,
+    oklch(0.223 0.058 265) 42%,
+    oklch(0.198 0.05 264) 100%
+  );
+  --grad-primary: linear-gradient(180deg, oklch(1 0 0 / 13%) 0%, oklch(1 0 0 / 0%) 58%);
   --glow-signal:
     0 0 0 1px oklch(0.505 0.192 265 / 20%), 0 0 24px -10px oklch(0.505 0.192 265 / 45%);
 }
@@ -171,6 +197,18 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-panel);
+}
+
+/* A panel you can click sits up slightly, and further on hover. Depth as a
+   signal that something is interactive, rather than as decoration. */
+@utility panel-interactive {
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+@utility elevated {
+  box-shadow: var(--shadow-raised);
 }
 
 @utility hero-field {
@@ -258,5 +296,54 @@
     box-shadow: none !important;
     border: 1px solid #d4d4d4 !important;
     background: #fff !important;
+  }
+}
+
+@layer base {
+  /* The navigation rail. A single flat fill reads as a coloured rectangle;
+     a shallow gradient and a lit inner edge read as a surface with the page
+     sitting in front of it. */
+  aside.bg-sidebar {
+    background: var(--grad-sidebar);
+    box-shadow:
+      inset -1px 0 0 oklch(1 0 0 / 6%),
+      2px 0 24px -12px oklch(0.15 0.04 264 / 55%);
+  }
+
+  /* Solid primary controls. The top-edge highlight and a shadow tinted with
+     the button's own hue are what separate a considered control from a
+     coloured rectangle — spent only on buttons, never on badges or fills. */
+  button.bg-primary:not(:disabled),
+  a.bg-primary {
+    background-image: var(--grad-primary);
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 24%),
+      0 1px 1px oklch(0.2 0.05 265 / 18%),
+      0 3px 8px -2px oklch(0.505 0.192 265 / 32%);
+    transition:
+      filter 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.1s ease;
+  }
+  button.bg-primary:not(:disabled):hover,
+  a.bg-primary:hover {
+    filter: brightness(1.06);
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 28%),
+      0 2px 3px oklch(0.2 0.05 265 / 16%),
+      0 6px 14px -3px oklch(0.505 0.192 265 / 38%);
+  }
+  button.bg-primary:not(:disabled):active,
+  a.bg-primary:active {
+    transform: translateY(0.5px);
+    filter: brightness(0.98);
+  }
+
+  /* One focus treatment everywhere, visible on both the light field and the
+     navy rail. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 }
