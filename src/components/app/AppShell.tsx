@@ -195,9 +195,18 @@ export function AppShell() {
     <div className="flex min-h-screen flex-col">
       {/* Said once, permanently, at the top of the product rather than in a
           pitch deck: what this is, and what it does not decide. */}
+      {/* The claim and its detail are one click apart on purpose: "synthetic
+          data" says the patients are invented and nothing about whether the
+          thing you just clicked wrote anything down. */}
       <div className="w-full bg-sidebar px-4 py-1.5 text-center text-[11.5px] font-medium text-sidebar-muted">
         Prototype · synthetic data only · no diagnosis, prescribing or discharge decisions —
-        clinical judgement stays human
+        clinical judgement stays human ·{" "}
+        <Link
+          to="/whats-real"
+          className="font-semibold text-sidebar-gold underline-offset-2 hover:underline"
+        >
+          what is real
+        </Link>
       </div>
       <div className="flex min-h-screen">
         <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-sidebar-border bg-sidebar lg:flex">
