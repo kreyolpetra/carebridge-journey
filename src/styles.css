@@ -65,6 +65,8 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-gold: var(--sidebar-gold);
+  --color-sidebar-gold-muted: var(--sidebar-gold-muted);
   --color-chat: var(--chat);
   --color-chat-foreground: var(--chat-foreground);
   --color-chat-bubble-in: var(--chat-bubble-in);
@@ -115,10 +117,24 @@
      accommodate the navigation. */
   --sidebar: oklch(0.223 0.058 265);
   --sidebar-raised: oklch(0.285 0.076 265);
-  --sidebar-foreground: oklch(0.96 0.006 260);
+  --sidebar-foreground: oklch(0.962 0.008 96);
   --sidebar-muted: oklch(0.7 0.032 262);
   --sidebar-border: oklch(0.305 0.062 265);
   --sidebar-accent: oklch(0.78 0.13 262);
+  /*
+   * Champagne, and only ever on navy.
+   *
+   * Gold is a hair away from the amber this system reserves for safety states,
+   * so on the light field it would start reading as a warning. The rail never
+   * carries clinical state, which makes it the one surface where a warm metal
+   * can be spent without stealing meaning from something that needs it.
+   *
+   * Two weights: the bright one for the wordmark and the active marker, the
+   * quieter one for group labels, which sit at 10px and would shout in the
+   * brighter tone.
+   */
+  --sidebar-gold: oklch(0.855 0.105 89);
+  --sidebar-gold-muted: oklch(0.735 0.075 86);
 
   --critical: oklch(0.577 0.19 27);
   --critical-foreground: oklch(0.99 0.002 260);

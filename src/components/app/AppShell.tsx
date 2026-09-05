@@ -48,7 +48,7 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
       <span
         className={
           "grid h-8 w-8 place-items-center rounded-lg " +
-          (onDark ? "bg-sidebar-accent/15 text-sidebar-accent" : "bg-primary/12 text-primary")
+          (onDark ? "bg-sidebar-gold/12 text-sidebar-gold" : "bg-primary/12 text-primary")
         }
       >
         <svg
@@ -68,7 +68,7 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
         }
       >
         CariCare
-        <span className={onDark ? "text-sidebar-accent" : "text-primary"}> Grid</span>
+        <span className={onDark ? "text-sidebar-gold" : "text-primary"}> Grid</span>
       </span>
     </Link>
   );
@@ -86,7 +86,7 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
         if (!groupItems.length) return null;
         return (
           <div key={group}>
-            <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted/80">
+            <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-sidebar-gold-muted/85">
               {group}
             </p>
             <div className="flex flex-col gap-0.5">
@@ -99,7 +99,7 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
                   className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-raised hover:text-sidebar-foreground"
                   activeProps={{
                     className:
-                      "bg-sidebar-raised !text-sidebar-foreground border-l-[3px] border-sidebar-accent pl-[9px]",
+                      "bg-sidebar-raised !text-sidebar-foreground border-l-[3px] border-sidebar-gold pl-[9px] shadow-[inset_0_1px_0_oklch(1_0_0/6%)]",
                   }}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
