@@ -81,7 +81,17 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
   // gets the console vocabulary untouched.
   const { t } = usePatientLang();
   const items = navFor(role, staffRole);
-  const groups = ["Work", "Account"] as const;
+  /*
+   * Three groups, not two.
+   *
+   * "Work" had eleven entries for a clinician, and two of them were not work:
+   * the agent console and the report surface answer "how has this been going",
+   * which nobody asks in the middle of a clinic. Every entry a person never
+   * clicks makes the ones they do click slower to find, so the two that are
+   * reviewed rather than used are grouped as such. A group with no entries for
+   * this role renders nothing, so no role gains an empty heading.
+   */
+  const groups = ["Work", "Oversight", "Account"] as const;
 
   return (
     <nav className="flex flex-col gap-4 px-3 py-4">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Sparkles,
   ChevronDown,
@@ -8,6 +9,7 @@ import {
   X,
   Wrench,
   Clock,
+  ArrowRight,
 } from "lucide-react";
 import type { AgentRun, FindingSeverity } from "@/lib/agents/core";
 import { Panel, PanelHeader, Pill } from "@/components/grid";
@@ -172,6 +174,17 @@ export function AgentBrief({
             <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
               {run.confidenceReason}
             </p>
+            {/* The door to the aggregate goes where the curiosity starts.
+                Somebody who has just opened one agent's working is the only
+                person who wants to know how the agents have been behaving
+                generally — which is a better place for that link than a
+                permanent entry in a clinician's navigation. */}
+            <Link
+              to="/agents"
+              className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-primary hover:underline"
+            >
+              How the agents have been behaving <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
         )}
 

@@ -47,7 +47,7 @@ export type NavItem = {
    * enough to decide what belongs in someone's sidebar.
    */
   tiers?: CareTier[];
-  group: "Work" | "Account";
+  group: "Work" | "Oversight" | "Account";
   keywords: string;
 };
 
@@ -167,7 +167,11 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Sparkles,
     roles: ["clinician", "ministry", "admin"],
     tiers: ["attending", "consulting", "org_admin"],
-    group: "Work",
+    // Not a work surface. A clinician gets the agent's evidence where the
+    // judgement is — the confidence figure, the tool trace and the consent
+    // refusals sit on the brief itself. This is the aggregate behind it, which
+    // is an oversight question, not a clinic one.
+    group: "Oversight",
     keywords:
       "agent ai activity governance runs audit trace model adapter accepted dismissed compute gpu",
   },
@@ -179,7 +183,7 @@ export const NAV_ITEMS: NavItem[] = [
     // the foot of their own home, because "my health" and "my health summary"
     // are not two places a person should have to tell apart.
     roles: ["clinician", "ministry", "insurer", "admin"],
-    group: "Work",
+    group: "Oversight",
     keywords: "report export print pdf summary population panel governance adherence",
   },
   {
