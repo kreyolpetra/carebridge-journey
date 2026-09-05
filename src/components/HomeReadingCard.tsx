@@ -30,9 +30,14 @@ export function HomeReadingCard({ patientId }: { patientId: string }) {
       // The write this feature exists for: a reading sent from a house a long
       // way from the clinic, where the signal is the thing most likely to fail.
       // Queued rather than lost when it does — and the caller is told which.
-      const sent = await queueWrite(`Reading for ${patientId.slice(0, 8)}`, async () => {
-        const { error } = await supabase.from("vitals").insert({
+      const sent = await queueWrite({
+        label: "Home reading",
+        table: "vitals",
+        op: "insert",
+        payload: {
           patient_id: patientId,
+          // The time it was taken, not the time it syncs — a reading queued
+          // through a power cut still belongs to the moment it was measured.
           measured_at: new Date().toISOString(),
           systolic: sys,
           diastolic: dia,
@@ -40,8 +45,7 @@ export function HomeReadingCard({ patientId }: { patientId: string }) {
           source: "home",
           reported_by: "patient",
           device: "Home device",
-        });
-        if (error) throw new Error(error.message);
+        },
       });
       if (!sent) return { queued: true as const };
 

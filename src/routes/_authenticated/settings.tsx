@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Panel, PanelHeader } from "@/components/grid";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABEL } from "@/lib/demo-accounts";
+import { patientsQuery } from "@/lib/api";
+import { LANGUAGE_LABEL } from "@/lib/format";
 import { islandsQuery } from "@/lib/api";
 import { resetDb } from "@/lib/mock/db";
 import { Building2 } from "lucide-react";
@@ -36,7 +38,32 @@ export const Route = createFileRoute("/_authenticated/settings")({
 const PREF_KEY = "caricare.prefs";
 
 function SettingsPage() {
+  const qc = useQueryClient();
   const { profile, role, refreshProfile, signOut, user } = useAuth();
+
+  /**
+   * The patient's own language, read from and written to their record — the
+   * same field the care line composes messages from, so one switch moves both.
+   */
+  const patients = useQuery({ ...patientsQuery, enabled: Boolean(profile?.patient_id) });
+  const myLanguage =
+    (patients.data ?? []).find((p) => p.id === profile?.patient_id)?.language ?? "en";
+
+  const setLanguage = useMutation({
+    mutationFn: async (language: string) => {
+      const { error } = await supabase
+        .from("patients")
+        .update({ language })
+        .eq("id", profile?.patient_id ?? "");
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["patients"] });
+      void qc.invalidateQueries({ queryKey: ["patient-bundle"] });
+      toast.success("Language changed");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const navigate = useNavigate();
   const islands = useQuery(islandsQuery);
   const [fullName, setFullName] = useState("");
@@ -112,6 +139,47 @@ function SettingsPage() {
                 <Building2 className="h-3.5 w-3.5" />
                 Set up a facility
               </Link>
+            </div>
+          </Panel>
+        ) : null}
+
+        {/* One switch drives both the screens and the messages, because a
+            patient reading their app in Patois and getting replies in English
+            is the same failure as not translating at all. */}
+        {role === "patient" ? (
+          <Panel>
+            <PanelHeader
+              title="Your language"
+              subtitle="Your screens and the messages your care team sends you"
+            />
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2">
+                {(["en", "jam", "ht", "es"] as const).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setLanguage.mutate(code)}
+                    disabled={setLanguage.isPending}
+                    className={
+                      "rounded-lg border px-3 py-2 text-[13px] font-semibold transition-colors disabled:opacity-60 " +
+                      (myLanguage === code
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:border-primary/40")
+                    }
+                  >
+                    {LANGUAGE_LABEL[code] ?? code}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 max-w-[64ch] text-[12.5px] leading-relaxed text-muted-foreground">
+                Messages are written in each language rather than machine translated, so a
+                confirmation you cannot read is never sent. The clinical console your care team uses
+                stays in English — that is a deliberate stopping point, and it is on the{" "}
+                <Link to="/whats-real" className="font-medium text-primary">
+                  what is real
+                </Link>{" "}
+                page.
+              </p>
             </div>
           </Panel>
         ) : null}

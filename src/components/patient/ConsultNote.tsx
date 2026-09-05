@@ -18,13 +18,14 @@
  * far as every count in this product is concerned, so a visit nobody closes
  * quietly inflates the clinic census and the ward list.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { NotebookPen, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Encounter } from "@/lib/org";
+import { saveDraft, readDraft, clearDraft } from "@/lib/offline";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,30 @@ export function ConsultNote({
   const { profile } = useAuth();
   const [summary, setSummary] = useState("");
   const [plan, setPlan] = useState("");
+
+  /**
+   * A half-written note survives the machine dying.
+   *
+   * Keyed to the encounter, so two visits open in two tabs do not overwrite
+   * each other, and cleared the moment the note is saved. This is the commonest
+   * way a power cut could waste somebody's afternoon.
+   */
+  const draftKey = encounter ? `note:${encounter.id}` : null;
+
+  useEffect(() => {
+    if (!open || !draftKey) return;
+    const d = readDraft<{ summary: string; plan: string }>(draftKey);
+    if (d) {
+      setSummary(d.summary ?? "");
+      setPlan(d.plan ?? "");
+    }
+  }, [open, draftKey]);
+
+  useEffect(() => {
+    if (!open || !draftKey) return;
+    if (!summary && !plan) return;
+    saveDraft(draftKey, { summary, plan });
+  }, [open, draftKey, summary, plan]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -79,6 +104,7 @@ export function ConsultNote({
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["encounters"] });
       void qc.invalidateQueries({ queryKey: ["workflow_events"] });
+      if (draftKey) clearDraft(draftKey);
       onOpenChange(false);
       setSummary("");
       setPlan("");

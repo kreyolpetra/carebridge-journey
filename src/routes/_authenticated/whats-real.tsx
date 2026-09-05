@@ -55,6 +55,10 @@ const REAL: Row[] = [
     note: "A photographed or pasted record is read, reviewed and committed by a human, filed under the date on the document rather than the date it was scanned.",
   },
   {
+    what: "Losing the signal, and losing the power",
+    note: "A queued write is a description of the write, saved to the device — so it survives a reload, a crash or a power cut, and replays itself when the machine comes back. Half-written consult notes are kept the same way. What was entered on paper while the lights were out goes back in through the paper reader, filed under the date on the document rather than the date it was typed.",
+  },
+  {
     what: "Reports and printing",
     note: "Every role has a report built from the live record, with a real print stylesheet behind it.",
   },
@@ -82,8 +86,8 @@ const STAGED: Row[] = [
     note: "An ask, not a prescription and not a lab order. This is a coordination layer and does not claim dispensing authority it has not got.",
   },
   {
-    what: "The offline queue",
-    note: "Genuinely queues and replays the care line and home readings, and the pill counts what is actually waiting. It lives in memory, so a page reload loses it, and reads still fail normally.",
+    what: "Reads while the connection is down",
+    note: "Writes queue and survive; reads do not. A stale chart presented as current is worse than an error, so nothing is served from a cache pretending to be live.",
   },
   {
     what: "The hurricane",

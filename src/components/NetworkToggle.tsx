@@ -1,4 +1,4 @@
-import { useNetworkOnline, setNetworkOnline, usePendingCount } from "@/lib/offline";
+import { useNetworkOnline, setNetworkOnline, usePendingCount, isDurable } from "@/lib/offline";
 import { Wifi, WifiOff } from "lucide-react";
 
 export function NetworkToggle({ onDark = false }: { onDark?: boolean } = {}) {
@@ -12,7 +12,7 @@ export function NetworkToggle({ onDark = false }: { onDark?: boolean } = {}) {
       title={
         online
           ? "Simulate the island connection dropping"
-          : `${waiting} write${waiting === 1 ? "" : "s"} held in memory — a reload loses them`
+          : `${waiting} write${waiting === 1 ? "" : "s"} waiting${isDurable() ? " — saved on this device, they survive a reload or a power cut" : " — this browser refuses storage, so they last only for this session"}`
       }
       className={
         "flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors " +
