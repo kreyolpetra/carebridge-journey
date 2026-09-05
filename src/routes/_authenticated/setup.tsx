@@ -90,8 +90,6 @@ function Setup() {
     if (profile && !mayRunSetup) void navigate({ to: "/" });
   }, [profile, mayRunSetup, navigate]);
 
-  if (profile && !mayRunSetup) return null;
-
   const islands = useQuery(islandsQuery);
   const facilities = useQuery(facilitiesQuery);
   const patients = useQuery(patientsQuery);
@@ -227,6 +225,17 @@ function Setup() {
 
   const toggle = (k: "has_lab" | "has_imaging" | "has_pharmacy") =>
     setCaps((c) => ({ ...c, [k]: !c[k] }));
+
+  /*
+   * After the hooks, not before them.
+   *
+   * This guard was the first statement in the component, which meant that on
+   * the render where it fired, React ran fewer hooks than on the render before
+   * it — the "rendered fewer hooks than expected" crash, waiting for somebody
+   * without permission to open the URL. The redirect above is the hook-safe
+   * half; this is only what to paint while it happens.
+   */
+  if (profile && !mayRunSetup) return null;
 
   return (
     <div className="mx-auto w-full max-w-[820px] px-5 py-8">
