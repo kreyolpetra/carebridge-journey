@@ -134,7 +134,13 @@ function SidebarNav({ role, onNavigate }: { role: string; onNavigate?: () => voi
  * surface cannot forget to check — there is no authenticated page a pending
  * account can render.
  */
-function PendingVerification({ onSignOut }: { onSignOut: () => void }) {
+function PendingVerification({
+  onSignOut,
+  revoked = false,
+}: {
+  onSignOut: () => void;
+  revoked?: boolean;
+}) {
   const { profile } = useAuth();
   return (
     <div className="grid min-h-screen place-items-center px-6 py-12">
@@ -147,12 +153,22 @@ function PendingVerification({ onSignOut }: { onSignOut: () => void }) {
             <ShieldQuestion className="h-5 w-5" />
           </span>
           <h1 className="mt-4 font-display text-[22px] font-bold tracking-tight">
-            Awaiting facility confirmation
+            {revoked ? "Access withdrawn" : "Awaiting facility confirmation"}
           </h1>
           <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
-            Your account is registered as a clinical account
-            {profile?.licence_no ? ` against registration ${profile.licence_no}` : ""}. Someone at
-            your facility has to confirm that before any patient record opens to you.
+            {revoked ? (
+              <>
+                A facility administrator has withdrawn your access. Your account still exists and
+                your past work stays on the record — what has gone is the ability to open patient
+                records. If this is wrong, the administrator who removed you can re-admit you.
+              </>
+            ) : (
+              <>
+                Your account is registered as a clinical account
+                {profile?.licence_no ? ` against registration ${profile.licence_no}` : ""}. Someone
+                at your facility has to confirm that before any patient record opens to you.
+              </>
+            )}
           </p>
           <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
             This is not a queue you can skip. A clinical role reaches other people's records, so it
@@ -191,9 +207,22 @@ export function AppShell() {
     );
   }
 
-  if (profile && profile.verification_status === "pending") {
+  /*
+   * Two ways to be outside.
+   *
+   * Waiting to be let in, and having been let out again. The second did not
+   * exist: there was no way to remove anybody, so there was nothing for this
+   * wall to catch. Now that a facility can withdraw access, the withdrawal has
+   * to mean something at the door — a revoked account that still reaches every
+   * clinical surface has not been revoked, it has been annotated.
+   */
+  if (
+    profile &&
+    (profile.verification_status === "pending" || profile.verification_status === "revoked")
+  ) {
     return (
       <PendingVerification
+        revoked={profile.verification_status === "revoked"}
         onSignOut={() => {
           void signOut().then(hardResetToSignIn);
         }}

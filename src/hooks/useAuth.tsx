@@ -86,7 +86,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       role: profile?.primary_role ?? "patient",
       loading,
-      refreshProfile: () => loadProfile(session?.user?.id),
+      /*
+       * Ask who is signed in; do not remember.
+       *
+       * This read the session held in React state, which at the one moment it
+       * matters most — the instant after registering — has not committed yet.
+       * So it loaded the profile of nobody, set it to null, and AppShell's
+       * "if (profile && pending)" gate found no profile and let the account
+       * straight through into the clinical surfaces. A reload fixed it, which
+       * is the worst kind of bug: correct on every screen except the first.
+       *
+       * Caught by registering a clinician and looking at what they saw before
+       * touching anything: the whole application, then the verification wall
+       * after a refresh.
+       */
+      refreshProfile: async () => {
+        const { data } = await supabase.auth.getSession();
+        await loadProfile(data.session?.user?.id);
+      },
       signOut: async () => {
         await supabase.auth.signOut();
         setProfile(null);

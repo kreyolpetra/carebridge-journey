@@ -117,10 +117,41 @@ export function PendingStaff({
       // Tie the person to the roster row they were invited on, so the seat is
       // filled rather than leaving a ghost invitation behind them.
       if (approve && row.expected) {
+        /*
+         * Who let this person in, and when.
+         *
+         * The click grants a human the ability to open patient records here.
+         * This product logs every read of a record and logged nothing about
+         * the granting of the right to read them, which is the one an auditor
+         * asks about first. It is written on the seat itself, so it survives
+         * as long as the roster does.
+         */
         await supabase
           .from("facility_staff")
-          .update({ user_id: row.profile.id })
+          .update({
+            user_id: row.profile.id,
+            confirmed_by: profile?.full_name ?? profile?.id ?? "unknown",
+            confirmed_at: new Date().toISOString(),
+          })
           .eq("id", row.expected.id);
+      } else if (approve && facilityId) {
+        /*
+         * Confirmed, but never on the roster.
+         *
+         * Somebody can sign up naming a facility that was not expecting them,
+         * and an administrator can still decide they belong. That used to
+         * verify the profile and create no seat — so there was no record of who
+         * admitted them, and later no seat to withdraw, which would have made
+         * them the one person who could never be removed. Give them a seat.
+         */
+        await supabase.from("facility_staff").insert({
+          facility_id: facilityId,
+          user_id: row.profile.id,
+          full_name: row.profile.full_name,
+          staff_role: (row.profile.staff_role ?? "doctor") as never,
+          confirmed_by: profile?.full_name ?? profile?.id ?? "unknown",
+          confirmed_at: new Date().toISOString(),
+        });
       }
     },
     onSuccess: (_d, vars) => {

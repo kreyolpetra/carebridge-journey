@@ -185,6 +185,11 @@ function Setup() {
           user_id: profile.id,
           full_name: profile.full_name,
           staff_role: "org_admin",
+          // Nobody confirmed this one. The first administrator of a new
+          // practice self-attests because there is no one above them yet, and
+          // the roster says so rather than showing them as vouched for.
+          confirmed_by: null,
+          confirmed_at: new Date().toISOString(),
         });
         await supabase.from("profiles").update({ facility_id: facilityId }).eq("id", profile.id);
       }

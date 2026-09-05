@@ -17,6 +17,7 @@ import {
 } from "@/lib/org";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InpatientsPanel } from "@/components/facility/InpatientsPanel";
+import { StaffSeat } from "@/components/facility/StaffSeat";
 import { PendingStaff } from "@/components/facility/PendingStaff";
 import { useScope } from "@/hooks/useScope";
 import { mayConfirmStaff } from "@/lib/access";
@@ -319,16 +320,19 @@ function FacilityConsole() {
                     </p>
                   ) : (
                     myStaff.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                        <span className="truncate text-[13.5px] font-semibold">
-                          {s.user_id === profile?.id
-                            ? profile.full_name
-                            : (s.full_name ?? s.title ?? "CareBridge account")}
-                        </span>
-                        <Pill className="border-border bg-surface text-muted-foreground">
-                          {STAFF_ROLE_LABEL[s.staff_role] ?? s.staff_role}
-                        </Pill>
-                      </div>
+                      <StaffSeat
+                        key={s.id}
+                        seat={s}
+                        displayName={
+                          s.user_id === profile?.id
+                            ? (profile.full_name ?? "You")
+                            : (s.full_name ?? s.title ?? "CareBridge account")
+                        }
+                        // Withdrawing access is the same decision as granting
+                        // it, so it answers to the same rule.
+                        canRemove={canConfirmStaff && s.user_id !== profile?.id}
+                        isSelf={s.user_id === profile?.id}
+                      />
                     ))
                   )}
                 </div>

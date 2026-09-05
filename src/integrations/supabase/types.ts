@@ -1140,6 +1140,9 @@ export type Database = {
       };
       facility_staff: {
         Row: {
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          removed_at: string | null;
           contact: string;
           invited_at: string | null;
           created_at: string;
@@ -1151,6 +1154,9 @@ export type Database = {
           user_id: string | null;
         };
         Insert: {
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          removed_at?: string | null;
           contact?: string;
           invited_at?: string | null;
           created_at?: string;
@@ -1162,6 +1168,9 @@ export type Database = {
           user_id: string | null;
         };
         Update: {
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          removed_at?: string | null;
           contact?: string;
           invited_at?: string | null;
           created_at?: string;
