@@ -125,8 +125,10 @@ function AuthPage() {
           fullName: fullName || email,
           role,
           licenceNo: needsVerification ? licenceNo.trim() : null,
-          facilityId: needsVerification ? facilityId : null,
-          staffRole: needsVerification ? staffRole : null,
+          // "Not listed" means there is no facility to attach to yet; the
+          // wizard creates it and writes them in as its administrator.
+          facilityId: needsVerification && facilityId !== "new" ? facilityId : null,
+          staffRole: needsVerification ? (facilityId === "new" ? "org_admin" : staffRole) : null,
         },
       });
       // The auth listener loaded a profile that did not exist yet, so the
@@ -345,7 +347,21 @@ function AuthPage() {
                           {f.name} · {f.island_code}
                         </option>
                       ))}
+                      {/* The first person at a new clinic had nowhere to go.
+                          Signing up demanded a facility that could confirm you,
+                          which assumes the building is already on CareBridge —
+                          so the one person the setup wizard exists for, whoever
+                          brings a new practice on, could not legitimately reach
+                          it. They can now, and they arrive as its administrator
+                          because somebody has to be first. */}
+                      <option value="new">My facility is not listed yet</option>
                     </select>
+                    {facilityId === "new" ? (
+                      <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                        You will set the place up after signing in, and you will administer it.
+                        Everyone you add after that waits for you to confirm them.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="staffRole">Your role there</Label>

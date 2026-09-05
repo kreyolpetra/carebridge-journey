@@ -14,7 +14,7 @@
  * cannot escape is the worst possible first five minutes, and a default nobody
  * can see is a decision taken on their behalf.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { islandsQuery, facilitiesQuery, patientsQuery } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useScope } from "@/hooks/useScope";
 import {
   parseStaffList,
   channelFor,
@@ -63,10 +64,34 @@ export const Route = createFileRoute("/_authenticated/setup")({ component: Setup
 
 const STEPS = ["The place", "What it has", "Your people", "Your patients"] as const;
 
+/**
+ * Who is allowed to run this.
+ *
+ * Nothing checked. The route is not in the sidebar, which is not a permission —
+ * it is a URL, and anybody signed in could open it. The wizard creates a
+ * facility, writes the person running it in as its org_admin and repoints their
+ * profile at it, so a patient could type /setup and come out the other side an
+ * administrator with the roster in their hands. Verified before it was fixed:
+ * Marlene, a patient, and Yvette, a nurse, both got the full wizard.
+ *
+ * Setting up a workspace is a first-run act or an administrator's act. Everyone
+ * else is sent back to their own home rather than shown a form that would
+ * quietly change what they are.
+ */
 function Setup() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { profile, refreshProfile } = useAuth();
+  const { role, tier } = useScope();
+  const mayRunSetup =
+    (role === "clinician" || role === "admin") && (!profile?.facility_id || tier === "org_admin");
+
+  useEffect(() => {
+    if (profile && !mayRunSetup) void navigate({ to: "/" });
+  }, [profile, mayRunSetup, navigate]);
+
+  if (profile && !mayRunSetup) return null;
+
   const islands = useQuery(islandsQuery);
   const facilities = useQuery(facilitiesQuery);
   const patients = useQuery(patientsQuery);

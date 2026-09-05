@@ -12,10 +12,12 @@ import { intakeCases } from "./intake.eval";
 import { clinicianCases } from "./clinician.eval";
 import { askCases } from "./ask.eval";
 import { documentCases } from "./documents.eval";
+import { accessCases } from "./access.eval";
 
 const results: SuiteResult[] = [];
 results.push(await runSuite("Intake agent", intakeCases));
 results.push(await runSuite("Pre-consult brief agent", clinicianCases));
 results.push(await runSuite("Ask agent", askCases));
 results.push(await runSuite("Paper reader", documentCases));
+results.push(await runSuite("Access rules", accessCases));
 report(results);

@@ -37,7 +37,20 @@ export async function provisionProfile({
   // selection was enough to read identified charts. The role is still recorded
   // — it is what the facility will verify against — but it starts pending, and
   // AppShell holds a pending account out of every clinical surface.
-  const verification_status = VERIFIED_ROLES.has(data.role) ? "pending" : "verified";
+  /*
+   * The one account nobody else can confirm.
+   *
+   * Verification means "a facility vouched for this licence", and it is right
+   * that a clinician joining an existing facility waits for it. The person
+   * bringing a new practice onto CareBridge has no such facility — that is the
+   * thing they are about to create — so holding them pending would park them
+   * at a wall with nobody on the other side of it, forever. They self-attest,
+   * become the administrator of what they create, and every colleague they add
+   * afterwards waits for them. Somebody has to be first.
+   */
+  const foundingAdmin = data.staffRole === "org_admin" && !data.facilityId;
+  const verification_status =
+    VERIFIED_ROLES.has(data.role) && !foundingAdmin ? "pending" : "verified";
   await supabase.from("profiles").upsert(
     {
       id: data.userId,

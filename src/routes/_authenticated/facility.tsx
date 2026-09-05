@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InpatientsPanel } from "@/components/facility/InpatientsPanel";
 import { PendingStaff } from "@/components/facility/PendingStaff";
 import { useScope } from "@/hooks/useScope";
+import { mayConfirmStaff } from "@/lib/access";
 import { RegistryPage } from "@/components/facility/Registry";
 import { Panel, PanelHeader, Pill, Stat, Loading } from "@/components/grid";
 import { bandClasses, shortDate, timeAgo } from "@/lib/format";
@@ -137,6 +138,12 @@ function FacilityConsole() {
   // tabs here now. The tier gating they carried in the sidebar has to come with
   // them, or the merge would quietly hand a ward nurse a bulk patient export.
   const canAdminister = tier === "attending" || tier === "org_admin";
+
+  // An administrator who is only a name on the roster has never signed in and
+  // cannot approve anything, so they do not count as cover. The rule itself
+  // lives in lib/access.ts with the other access rules, and is tested there.
+  const hasJoinedAdmin = myStaff.some((m) => m.staff_role === "org_admin" && m.user_id);
+  const canConfirmStaff = mayConfirmStaff(tier, hasJoinedAdmin);
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-5 py-8">
@@ -352,7 +359,7 @@ function FacilityConsole() {
           <TabsContent value="roster" className="mt-4 space-y-4">
             {/* The confirmation step the verification gate always implied and
                 nothing could actually perform. */}
-            <PendingStaff facilityId={facilityId} />
+            <PendingStaff facilityId={facilityId} canConfirm={canConfirmStaff} />
             <RegistryPage />
           </TabsContent>
         ) : null}

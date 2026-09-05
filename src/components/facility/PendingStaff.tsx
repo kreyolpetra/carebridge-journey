@@ -73,7 +73,14 @@ function findExpected(profile: PendingProfile, roster: FacilityStaff[]) {
   );
 }
 
-export function PendingStaff({ facilityId }: { facilityId: string | null | undefined }) {
+export function PendingStaff({
+  facilityId,
+  canConfirm = true,
+}: {
+  facilityId: string | null | undefined;
+  /** Confirming grants access to records, so it is the administrator's click. */
+  canConfirm?: boolean;
+}) {
   const qc = useQueryClient();
   const { profile } = useAuth();
   const pending = useQuery(pendingQuery);
@@ -129,6 +136,40 @@ export function PendingStaff({ facilityId }: { facilityId: string | null | undef
   });
 
   if (!rows.length) return null;
+
+  /*
+   * Visible without being actionable.
+   *
+   * Hiding the queue from a clinician who cannot approve it would leave them
+   * wondering why a colleague still has no access. Showing it read-only tells
+   * them what is happening and who has to act.
+   */
+  if (!canConfirm) {
+    return (
+      <Panel className="mb-4 border-border">
+        <PanelHeader
+          title="Waiting to be let in"
+          subtitle={`${rows.length} ${rows.length === 1 ? "person has" : "people have"} signed up naming this facility. Confirming someone grants them access to records here, so it is your administrator's decision — ask them to review it.`}
+          right={
+            <Pill className="border-border bg-surface text-muted-foreground">
+              <ShieldQuestion className="h-3 w-3" />
+              {rows.length} waiting
+            </Pill>
+          }
+        />
+        <ul className="divide-y divide-border">
+          {rows.map((r) => (
+            <li key={r.profile.id} className="px-5 py-3 text-[13px]">
+              <p className="font-semibold">{r.profile.full_name}</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
+                {r.expected ? "Named on the roster" : "Not on the roster"}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    );
+  }
 
   return (
     <Panel className="mb-4 border-high/40">

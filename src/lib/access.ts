@@ -79,6 +79,26 @@ export const STAFF_ROLE_TIER: Record<string, CareTier> = {
   org_admin: "org_admin",
 };
 
+/**
+ * Who may let a person into a facility's records.
+ *
+ * Confirming a colleague is not administration, it is access control: the click
+ * grants a human the ability to open patient records at that building. It was
+ * available to any doctor, which puts the request and the approval in the same
+ * pair of hands — the first separation an auditor asks about.
+ *
+ * It belongs to the administrator. Two exceptions keep it from bricking a real
+ * clinic: a facility with no administrator at all (a two-person practice would
+ * otherwise never be able to add its own nurse), and a facility whose only
+ * administrator is a name on the roster with no account behind them, who
+ * cannot approve anything because they have never signed in. In both cases the
+ * senior clinician may confirm, and the panel says that is what is happening.
+ */
+export function mayConfirmStaff(tier: CareTier | null, facilityHasJoinedAdmin: boolean) {
+  if (tier === "org_admin") return true;
+  return tier === "attending" && !facilityHasJoinedAdmin;
+}
+
 export function tierCanSeeClinical(tier: CareTier) {
   return tier === "attending" || tier === "consulting" || tier === "nursing" || tier === "allied";
 }
