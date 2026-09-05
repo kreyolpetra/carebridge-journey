@@ -91,12 +91,22 @@ export function Stat({
         aria-hidden
         className={cn("absolute inset-y-0 left-0 w-[3px] rounded-full", ruleClass)}
       />
-      <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground sm:text-[10.5px] sm:tracking-[0.12em]">
         {label}
       </div>
       <div
         className={cn(
-          "display-num mt-2.5 text-[38px] font-bold leading-[1.02] tracking-[-0.032em]",
+          /*
+           * Smaller on a phone.
+           *
+           * 38px was chosen against a desktop grid of four figures across. On a
+           * 390px screen each figure has the full width to itself, so the same
+           * size reads as shouting — "CRITICAL · 83" filling a third of the
+           * screen above the reading someone actually came to send. The figure
+           * is still the largest thing in its block; it just stops competing
+           * with the task.
+           */
+          "display-num mt-2 text-[27px] font-bold leading-[1.04] tracking-[-0.03em] sm:mt-2.5 sm:text-[38px] sm:leading-[1.02] sm:tracking-[-0.032em]",
           toneClass,
         )}
       >
